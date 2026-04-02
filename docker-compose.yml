@@ -1,0 +1,59 @@
+services:
+  web:
+    user: "1000:1000"
+    build: ./docker
+    container_name: seo_web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - seo_net
+
+  db:
+    image: mysql:8.3
+    container_name: seo_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-seo_generator}
+      MYSQL_USER: ${MYSQL_USER:-seo_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-seo_pass}
+      TZ: Europe/Moscow
+    ports:
+      - "3306:3306"
+    volumes:
+      - seo_db_data:/var/lib/mysql
+      - ./init-sql/011_create_seo_tables.sql:/docker-entrypoint-initdb.d/01_create_seo_tables.sql
+      - ./init-sql/012_seo_clustering_migration.sql:/docker-entrypoint-initdb.d/02_seo_clustering_migration.sql
+      - ./init-sql/013_templates.sql:/docker-entrypoint-initdb.d/03_templates.sql
+      - ./init-sql/014_add_gpt_source.sql:/docker-entrypoint-initdb.d/04_add_gpt_source.sql
+      - ./init-sql/015_block_types_registry.sql:/docker-entrypoint-initdb.d/05_block_types_registry.sql
+      - ./init-sql/016_site_profiles.sql:/docker-entrypoint-initdb.d/06_site_profiles.sql
+      - ./init-sql/017_universal_intents.sql:/docker-entrypoint-initdb.d/07_universal_intents.sql
+      - ./init-sql/018_universal_templates.sql:/docker-entrypoint-initdb.d/08_universal_templates.sql
+      - ./init-sql/019_profile_enhancements.sql:/docker-entrypoint-initdb.d/09_profile_enhancements.sql
+    networks:
+      - seo_net
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  seo_db_data:
+
+networks:
+  seo_net:
+    driver: bridge
