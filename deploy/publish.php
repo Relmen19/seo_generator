@@ -94,7 +94,7 @@ if (!is_dir($directory)) {
 if (file_put_contents($fullPath, $content) !== false) {
     chmod($fullPath, 0644);
 
-    $url = rtrim(BASE_URL, '/') . '/' . $type . '/' . $path;
+    $url = rtrim(BASE_URL, '/') . '/uploads/' . $type . '/' . $path;
 
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
