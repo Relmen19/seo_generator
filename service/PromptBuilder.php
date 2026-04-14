@@ -12,9 +12,15 @@ class PromptBuilder {
     private const RICHTEXT_RULES  = 'type "list" → "items"(массив строк). type "heading" → "text"+"level"(2/3). Остальные → "text"(строка). Мин. 6 подблоков, чередуй типы.';
 
     private ?array $siteProfile = null;
+    private array $blockTypeHints = [];
 
     public function setSiteProfile(?array $profile): self {
         $this->siteProfile = $profile;
+        return $this;
+    }
+
+    public function setBlockTypeHints(array $hints): self {
+        $this->blockTypeHints = $hints;
         return $this;
     }
 
@@ -193,6 +199,10 @@ class PromptBuilder {
     }
 
     private function getTypeWarning(string $type): string {
+        if (!empty($this->blockTypeHints[$type])) {
+            return "  ⚠ {$this->blockTypeHints[$type]}\n";
+        }
+
         switch ($type) {
             // Плоские объекты — GPT любит вкладывать в подобъекты
             case 'hero':

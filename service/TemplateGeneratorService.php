@@ -120,6 +120,9 @@ class TemplateGeneratorService {
                 $typeList .= " — {$bt['description']}";
             }
             $typeList .= "\n";
+            if (!empty($bt['gpt_hint'])) {
+                $typeList .= "  Структура: {$bt['gpt_hint']}\n";
+            }
         }
 
         return <<<PROMPT
@@ -197,7 +200,7 @@ PROMPT;
 
     private function loadActiveBlockTypes(): array {
         return $this->db->fetchAll(
-            "SELECT code, display_name, description, category FROM " . SeoBlockType::TABLE
+            "SELECT code, display_name, description, category, gpt_hint FROM " . SeoBlockType::TABLE
             . " WHERE is_active = 1 ORDER BY category, sort_order"
         );
     }

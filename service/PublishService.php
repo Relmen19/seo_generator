@@ -36,7 +36,7 @@ class PublishService {
         $slug = $article['slug'];
         $remotePath = ltrim(trim($catalogPath, '/') . '/' . $slug . '/index.html', '/');
 
-        $publicUrl = rtrim($target['base_url'], '/') . '/articles/' . $remotePath;
+        $publicUrl = rtrim($target['base_url'], '/') . '/uploads/articles/' . $remotePath;
 
         $config = is_string($target['config'])
             ? json_decode($target['config'], true) ?? []

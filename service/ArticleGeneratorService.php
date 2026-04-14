@@ -9,6 +9,7 @@ use Seo\Database;
 use Seo\Entity\SeoArticle;
 use Seo\Entity\SeoArticleBlock;
 use Seo\Entity\SeoAuditLog;
+use Seo\Entity\SeoBlockType;
 use Seo\Entity\SeoIntentType;
 use Seo\Entity\SeoKeywordCluster;
 use Seo\Entity\SeoRawKeyword;
@@ -27,6 +28,13 @@ class ArticleGeneratorService {
         $this->gpt = $gpt ?? new GptClient();
         $this->prompts = new PromptBuilder();
         $this->db = Database::getInstance();
+
+        $rows = $this->db->fetchAll(
+            "SELECT code, gpt_hint FROM " . SeoBlockType::TABLE . " WHERE gpt_hint IS NOT NULL"
+        );
+        if ($rows) {
+            $this->prompts->setBlockTypeHints(array_column($rows, 'gpt_hint', 'code'));
+        }
     }
 
     private function loadSiteProfile(?int $profileId): ?array {

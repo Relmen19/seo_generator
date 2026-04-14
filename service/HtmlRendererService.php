@@ -2421,7 +2421,7 @@ class HtmlRendererService {
         $navSearch   = $this->buildNavbarSearch($a['id']);
         $relatedHtml = $this->renderRelatedArticles($a);
 
-        $logo = $this->siteProfile['logo_url'] ?? SEO_DEFAULT_LOGO_URL;
+        $logo = '/uploads/' . $this->siteProfile['icon_path'] ?? SEO_DEFAULT_LOGO_URL;
         $brandName = $this->siteProfile['brand_name'] ?? 'SEO Generator';
 
         // Split brand name for accent styling (first word normal, rest accented)
