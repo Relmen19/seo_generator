@@ -147,6 +147,19 @@ requireAuth();
         .gen-tpl-item h4 { color: #f1f5f9; font-size: .9rem; margin-bottom: 6px; }
         .gen-tpl-item .blocks-preview { font-size: .72rem; color: #94a3b8; word-break: break-word; }
 
+        /* ── SSE generation steps ── */
+        .gen-step { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #1e293b; }
+        .gen-step:last-child { border-bottom: none; }
+        .gen-step-icon { width: 28px; height: 28px; border-radius: 50%; background: #334155; color: #64748b; display: flex; align-items: center; justify-content: center; font-size: .78rem; font-weight: 700; flex-shrink: 0; transition: .3s; }
+        .gen-step.active .gen-step-icon { background: #6366f1; color: #fff; }
+        .gen-step.done .gen-step-icon { background: #059669; color: #fff; }
+        .gen-step.error .gen-step-icon { background: #dc2626; color: #fff; }
+        .gen-step-label { font-size: .85rem; color: #94a3b8; flex: 1; }
+        .gen-step.active .gen-step-label { color: #e2e8f0; font-weight: 600; }
+        .gen-step-status { font-size: .72rem; color: #64748b; }
+        .gen-review-suggestion { font-size: .78rem; color: #94a3b8; padding: 3px 0; }
+        .gen-block-chip { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: .7rem; background: #1e293b; border: 1px solid #334155; color: #94a3b8; margin: 2px; }
+
         /* ── Empty state ── */
         .empty-state { text-align: center; padding: 60px 20px; color: #64748b; }
         .empty-state-icon { font-size: 3rem; margin-bottom: 12px; opacity: .4; }
@@ -314,7 +327,7 @@ requireAuth();
     <div class="ws-content" id="tabTemplates" style="display:none">
         <div class="section-title">
             <span>Шаблоны профиля</span>
-            <button class="ai-badge" onclick="openGenModal()">AI Генерация шаблонов</button>
+            <button class="ai-badge" onclick="openGenModal()">+ AI Шаблон</button>
         </div>
         <div id="templatesList"></div>
     </div>
@@ -426,29 +439,53 @@ requireAuth();
     </div>
 </div>
 
-<!-- ═══════════════════ MODAL: Generate Templates ═══════════════════ -->
+<!-- ═══════════════════ MODAL: AI Template Generation (SSE) ═══════════════════ -->
 <div class="wizard-overlay" id="genModal">
     <div class="wizard" style="max-width:800px">
         <div class="wizard-header" style="padding-bottom:16px">
-            <div class="wizard-title">AI Генерация шаблонов</div>
+            <div class="wizard-title">AI Генерация шаблона</div>
         </div>
         <div class="wizard-body">
-            <div class="form-row">
-                <label>Описание ниши (подробно)</label>
-                <textarea id="genNiche" rows="3" placeholder="Интернет-магазин электроники. Продаём смартфоны, ноутбуки, аксессуары. ЦА: 25-45 лет."></textarea>
-            </div>
-            <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:12px">
-                <div style="flex:1">
-                    <label style="display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-bottom:4px">Количество</label>
-                    <select id="genCount"><option value="3">3</option><option value="5" selected>5</option><option value="7">7</option><option value="10">10</option></select>
+            <!-- Input form -->
+            <div id="genForm">
+                <div class="form-row">
+                    <label>Назначение шаблона — тип статьи</label>
+                    <textarea id="genPurpose" rows="3" placeholder="Опишите для чего будет этот шаблон. Например: Обзорная статья товара с таблицей характеристик и сравнением с аналогами. Информационная статья о симптомах и лечении заболевания."></textarea>
+                    <div class="form-hint">Подробное описание поможет AI правильно подобрать блоки и написать подсказки</div>
                 </div>
-                <button class="btn btn-primary" id="btnGenerate" onclick="generateTemplates()">Сгенерировать</button>
+                <div class="form-row">
+                    <label>Дополнительные подсказки для AI (необязательно)</label>
+                    <textarea id="genHints" rows="2" placeholder="Особые требования: нужны таблицы сравнения, обязательно FAQ, не использовать графики..."></textarea>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+                    <button class="btn btn-primary" id="btnGenStart" onclick="startTemplateGeneration()">Сгенерировать шаблон</button>
+                </div>
             </div>
-            <div id="genResult"></div>
+            <!-- SSE Progress -->
+            <div id="genProgress" style="display:none">
+                <div style="margin-bottom:16px">
+                    <div class="gen-step" id="genStep1">
+                        <span class="gen-step-icon" id="genStep1Icon">1</span>
+                        <span class="gen-step-label">Генерация шаблона</span>
+                        <span class="gen-step-status" id="genStep1Status"></span>
+                    </div>
+                    <div class="gen-step" id="genStep2">
+                        <span class="gen-step-icon" id="genStep2Icon">2</span>
+                        <span class="gen-step-label">Ревью качества</span>
+                        <span class="gen-step-status" id="genStep2Status"></span>
+                    </div>
+                    <div class="gen-step" id="genStep3">
+                        <span class="gen-step-icon" id="genStep3Icon">3</span>
+                        <span class="gen-step-label">Сохранение</span>
+                        <span class="gen-step-status" id="genStep3Status"></span>
+                    </div>
+                </div>
+                <div id="genPreview" style="display:none" class="gen-proposal"></div>
+                <div id="genReview" style="display:none;margin-top:12px"></div>
+            </div>
         </div>
         <div class="wizard-footer">
-            <button class="btn btn-ghost" onclick="closeGenModal()">Закрыть</button>
-            <button class="btn btn-success" id="btnSaveGen" onclick="saveGeneratedTemplates()" style="display:none">Сохранить шаблоны</button>
+            <button class="btn btn-ghost" id="btnGenClose" onclick="closeGenModal()">Закрыть</button>
         </div>
     </div>
 </div>
@@ -461,7 +498,7 @@ let profiles = [];
 let currentProfile = null;
 let wizardStep = 1;
 let wizIconFile = null;
-let genProposal = null;
+let genRunning = false;
 
 const $ = id => document.getElementById(id);
 
@@ -753,8 +790,8 @@ async function loadTemplates() {
                 <div class="empty-state">
                     <div class="empty-state-icon">&#128196;</div>
                     <div class="empty-state-title">Нет шаблонов</div>
-                    <div class="empty-state-text">Сгенерируйте шаблоны через AI или создайте на странице SEO</div>
-                    <button class="ai-badge" onclick="openGenModal()" style="font-size:.82rem;padding:8px 16px">AI Генерация шаблонов</button>
+                    <div class="empty-state-text">Создайте шаблон через AI — опишите тип статьи и AI подберёт блоки</div>
+                    <button class="ai-badge" onclick="openGenModal()" style="font-size:.82rem;padding:8px 16px">+ AI Шаблон</button>
                 </div>`;
             return;
         }
@@ -992,76 +1029,201 @@ function clearWizIcon() {
     upload.classList.remove('has-image');
 }
 
-// ═══════════════════ TEMPLATE GENERATION ═══════════════════
+// ═══════════════════ AI TEMPLATE GENERATION (SSE) ═══════════════════
 
 function openGenModal() {
-    genProposal = null;
-    $('genNiche').value = currentProfile.description || currentProfile.niche || '';
-    $('genResult').innerHTML = '';
-    $('btnSaveGen').style.display = 'none';
-    $('btnGenerate').disabled = false;
+    $('genPurpose').value = '';
+    $('genHints').value = '';
+    $('genForm').style.display = '';
+    $('genProgress').style.display = 'none';
+    $('genPreview').style.display = 'none';
+    $('genPreview').innerHTML = '';
+    $('genReview').style.display = 'none';
+    $('genReview').innerHTML = '';
+    $('btnGenStart').disabled = false;
+    $('btnGenStart').textContent = 'Сгенерировать шаблон';
+    $('btnGenClose').textContent = 'Закрыть';
+    ['genStep1','genStep2','genStep3'].forEach(function(id) {
+        $(id).className = 'gen-step';
+        $(id + 'Icon').textContent = id.replace('genStep', '');
+        $(id + 'Status').textContent = '';
+        $(id + 'Status').innerHTML = '';
+    });
+    genRunning = false;
     $('genModal').classList.add('show');
 }
 
-function closeGenModal() { $('genModal').classList.remove('show'); }
-
-async function generateTemplates() {
-    const niche = $('genNiche').value.trim();
-    if (!niche) { toast('Опишите нишу', true); return; }
-
-    $('btnGenerate').disabled = true;
-    $('btnGenerate').innerHTML = '<span class="spinner"></span> Генерация...';
-    $('genResult').innerHTML = '<div style="color:#64748b;padding:20px;text-align:center"><span class="spinner"></span> Генерация шаблонов через GPT...</div>';
-
-    try {
-        const res = await api(`profiles/${currentProfile.id}/generate-templates`, {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ niche_description: niche, count: parseInt($('genCount').value) }),
-        });
-
-        if (!res.success) { toast(res.error || 'Ошибка GPT', true); $('genResult').innerHTML = ''; return; }
-
-        genProposal = res.data.templates;
-        const usage = res.data.usage;
-        const tokensInfo = usage ? `<div style="font-size:.72rem;color:#64748b;margin-bottom:12px">Токены: ${usage.total_tokens || '?'}</div>` : '';
-        $('genResult').innerHTML = `
-            <div class="gen-proposal">
-                ${tokensInfo}
-                <div style="font-weight:600;margin-bottom:10px;color:#f1f5f9">Предложено ${genProposal.length} шаблонов:</div>
-                ${genProposal.map((t, i) => `
-                    <div class="gen-tpl-item">
-                        <h4>${i+1}. ${esc(t.name)}</h4>
-                        <div style="font-size:.78rem;color:#94a3b8;margin-bottom:6px">${esc(t.description || '')}</div>
-                        <div class="blocks-preview">Блоки: ${(t.blocks || []).map(b => b.type).join(' \u2192 ')}</div>
-                    </div>
-                `).join('')}
-            </div>`;
-        $('btnSaveGen').style.display = '';
-    } catch(e) {
-        toast('Ошибка сети', true);
-        $('genResult').innerHTML = '';
-    } finally {
-        $('btnGenerate').disabled = false;
-        $('btnGenerate').textContent = 'Сгенерировать';
+function closeGenModal() {
+    if (genRunning) {
+        if (!confirm('Генерация в процессе. Закрыть?')) return;
     }
+    $('genModal').classList.remove('show');
+    genRunning = false;
 }
 
-async function saveGeneratedTemplates() {
-    if (!genProposal || !currentProfile) return;
-    $('btnSaveGen').disabled = true;
+async function startTemplateGeneration() {
+    const purpose = $('genPurpose').value.trim();
+    if (!purpose) { toast('Опишите назначение шаблона', true); return; }
+
+    $('btnGenStart').disabled = true;
+    $('btnGenStart').innerHTML = '<span class="spinner"></span> Генерация...';
+    $('genForm').style.display = 'none';
+    $('genProgress').style.display = '';
+    genRunning = true;
+
     try {
-        const res = await api(`profiles/${currentProfile.id}/save-templates`, {
+        const response = await fetch(API + '?r=profiles/' + currentProfile.id + '/generate-template-sse', {
             method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ templates: genProposal }),
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                purpose: purpose,
+                hints: $('genHints').value.trim() || null,
+            }),
         });
-        if (!res.success) { toast(res.error || 'Ошибка', true); return; }
-        toast(`Сохранено ${res.data.saved_template_ids.length} шаблонов`);
-        closeGenModal();
-        loadTemplates();
-    } catch(e) { toast('Ошибка сети', true); }
-    finally { $('btnSaveGen').disabled = false; }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const {value, done} = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, {stream: true});
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            let eventName = '';
+            for (const line of lines) {
+                if (line.startsWith('event: ')) {
+                    eventName = line.substring(7).trim();
+                } else if (line.startsWith('data: ') && eventName) {
+                    try {
+                        const data = JSON.parse(line.substring(6));
+                        handleTemplateGenEvent(eventName, data);
+                    } catch(e) {}
+                    eventName = '';
+                }
+            }
+        }
+    } catch(e) {
+        toast('Ошибка: ' + e.message, true);
+    }
+
+    genRunning = false;
+    $('btnGenClose').textContent = 'Закрыть';
+}
+
+function handleTemplateGenEvent(event, data) {
+    switch (event) {
+        case 'start':
+            $('genStep1').className = 'gen-step active';
+            $('genStep1Status').innerHTML = '<span class="spinner"></span>';
+            break;
+
+        case 'generation_start':
+            $('genStep1').className = 'gen-step active';
+            $('genStep1Status').innerHTML = '<span class="spinner"></span> AI подбирает блоки...';
+            break;
+
+        case 'generation_done':
+            $('genStep1').className = 'gen-step done';
+            $('genStep1Icon').innerHTML = '&#10003;';
+            $('genStep1Status').textContent = 'Готово';
+            if (data.template) {
+                $('genPreview').style.display = '';
+                const blocks = data.template.blocks || [];
+                $('genPreview').innerHTML =
+                    '<div style="font-weight:700;color:#f1f5f9;margin-bottom:4px">' + esc(data.template.name) + '</div>'
+                    + '<div style="font-size:.78rem;color:#94a3b8;margin-bottom:10px">' + esc(data.template.description || '') + '</div>'
+                    + '<div style="font-size:.72rem;color:#64748b;margin-bottom:6px">Блоки (' + blocks.length + '):</div>'
+                    + blocks.map(function(b, i) {
+                        return '<div class="gen-tpl-item" style="padding:10px;margin-bottom:6px">'
+                            + '<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">'
+                            + '<span class="gen-block-chip">' + esc(b.type) + '</span>'
+                            + '<span style="font-size:.82rem;font-weight:600;color:#e2e8f0">' + esc(b.name) + '</span>'
+                            + (b.is_required ? '<span style="font-size:.6rem;color:#fcd34d">&#9733; обяз.</span>' : '')
+                            + '</div>'
+                            + (b.hint ? '<div style="font-size:.72rem;color:#94a3b8">' + esc(b.hint) + '</div>' : '')
+                            + '</div>';
+                    }).join('');
+            }
+            break;
+
+        case 'review_start':
+            $('genStep2').className = 'gen-step active';
+            $('genStep2Status').innerHTML = '<span class="spinner"></span> AI проверяет качество...';
+            break;
+
+        case 'review_done':
+            $('genStep2').className = 'gen-step done';
+            $('genStep2Icon').innerHTML = '&#10003;';
+            const review = data.review || {};
+            const score = review.score || 0;
+            const scoreColor = score >= 8 ? '#4ade80' : score >= 5 ? '#fbbf24' : '#f87171';
+            $('genStep2Status').innerHTML = '<span style="color:' + scoreColor + ';font-weight:700">' + score + '/10</span>';
+
+            if (review.suggestions && review.suggestions.length) {
+                $('genReview').style.display = '';
+                $('genReview').innerHTML =
+                    '<div style="font-size:.72rem;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px">Рекомендации AI:</div>'
+                    + review.suggestions.map(function(s) {
+                        return '<div class="gen-review-suggestion">&#8226; ' + esc(s) + '</div>';
+                    }).join('');
+            }
+
+            // Update preview with improved template if available
+            if (data.template && data.template.blocks) {
+                const blocks = data.template.blocks;
+                $('genPreview').innerHTML =
+                    '<div style="font-weight:700;color:#f1f5f9;margin-bottom:4px">' + esc(data.template.name) + '</div>'
+                    + '<div style="font-size:.78rem;color:#94a3b8;margin-bottom:10px">' + esc(data.template.description || '') + '</div>'
+                    + '<div style="font-size:.72rem;color:#64748b;margin-bottom:6px">Блоки (' + blocks.length + '):</div>'
+                    + blocks.map(function(b) {
+                        return '<div class="gen-tpl-item" style="padding:10px;margin-bottom:6px">'
+                            + '<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">'
+                            + '<span class="gen-block-chip">' + esc(b.type) + '</span>'
+                            + '<span style="font-size:.82rem;font-weight:600;color:#e2e8f0">' + esc(b.name) + '</span>'
+                            + (b.is_required ? '<span style="font-size:.6rem;color:#fcd34d">&#9733; обяз.</span>' : '')
+                            + '</div>'
+                            + (b.hint ? '<div style="font-size:.72rem;color:#94a3b8">' + esc(b.hint) + '</div>' : '')
+                            + '</div>';
+                    }).join('');
+            }
+            break;
+
+        case 'save_start':
+            $('genStep3').className = 'gen-step active';
+            $('genStep3Status').innerHTML = '<span class="spinner"></span> Сохранение...';
+            break;
+
+        case 'save_done':
+            $('genStep3').className = 'gen-step done';
+            $('genStep3Icon').innerHTML = '&#10003;';
+            $('genStep3Status').textContent = 'Шаблон #' + data.template_id;
+            toast('Шаблон создан!');
+            loadTemplates();
+            break;
+
+        case 'done':
+            const usage = data.usage || {};
+            if (usage.total_tokens) {
+                $('genStep3Status').textContent += ' (' + usage.total_tokens + ' токенов)';
+            }
+            break;
+
+        case 'error':
+            toast('Ошибка: ' + (data.message || 'Неизвестная ошибка'), true);
+            ['genStep1','genStep2','genStep3'].forEach(function(id) {
+                if ($(id).classList.contains('active')) {
+                    $(id).className = 'gen-step error';
+                    $(id + 'Icon').innerHTML = '&#10007;';
+                    $(id + 'Status').textContent = data.message || 'Ошибка';
+                }
+            });
+            genRunning = false;
+            break;
+    }
 }
 
 // ═══════════════════ UTILS ═══════════════════

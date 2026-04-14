@@ -45,6 +45,10 @@ class SiteProfileController extends AbstractController {
             $this->saveTemplates($id);
             return;
         }
+        if ($id !== null && $action === 'generate-template-sse' && $method === 'POST') {
+            $this->generateTemplateSse($id);
+            return;
+        }
         // POST /profiles/generate-from-description (action-only, no id)
         if ($action === 'generate-from-description' && $method === 'POST') {
             $this->generateFromDescription();
@@ -208,6 +212,46 @@ class SiteProfileController extends AbstractController {
         $result = $service->saveProposal($id, $templates);
 
         $this->success($result, 201);
+    }
+
+    private function generateTemplateSse(int $id): void {
+        header('Content-Type: text/event-stream');
+        header('Cache-Control: no-cache');
+        header('Connection: keep-alive');
+        header('X-Accel-Buffering: no');
+
+        while (ob_get_level()) {
+            ob_end_flush();
+        }
+        ob_implicit_flush(1);
+
+        $body = [];
+        $raw = file_get_contents('php://input');
+        if ($raw) {
+            $body = json_decode($raw, true) ?? [];
+        }
+
+        $purpose = trim((string)($body['purpose'] ?? ''));
+        if ($purpose === '') {
+            echo "event: error\n";
+            echo "data: " . json_encode(['message' => 'Поле purpose обязательно — опишите назначение шаблона'], JSON_UNESCAPED_UNICODE) . "\n\n";
+            flush();
+            exit;
+        }
+
+        try {
+            $service = new TemplateGeneratorService();
+            $service->generateSingleTemplateSSE($id, $purpose, [
+                'model' => $body['model'] ?? null,
+                'hints' => $body['hints'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            echo "event: error\n";
+            echo "data: " . json_encode(['message' => $e->getMessage()], JSON_UNESCAPED_UNICODE) . "\n\n";
+            flush();
+        }
+
+        exit;
     }
 
     private function stats(int $id): void {

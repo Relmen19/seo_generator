@@ -590,7 +590,7 @@ requireAuth();
             <div class="list-toolbar">
                 <div class="search-row">
                     <input type="text" id="searchTemplate" placeholder="Поиск шаблонов...">
-                    <button class="btn btn-purple btn-sm" onclick="newTemplate()">+ Новый</button>
+                    <!-- Создание шаблонов через AI на вкладке профиля -->
                 </div>
             </div>
             <div class="item-list" id="templateList"></div>
@@ -1500,6 +1500,7 @@ requireAuth();
             meta_description: $('artMetaDesc').value, meta_keywords: $('artMetaKeywords').value,
             article_plan: $('artArticlePlan').value,
             gpt_model: $('artGptModel').value, created_by: $('artCreatedBy').value,
+            profile_id: currentProfileId || null,
         };
         try {
             if (artId) { await api('articles/'+artId, {method:'PUT', body}); toast('Статья сохранена'); }
@@ -2249,7 +2250,8 @@ requireAuth();
     }
     async function saveTemplate() {
         const body = {name:$('tplName').value, slug:$('tplSlug').value, css_class:$('tplCssClass').value,
-            is_active:parseInt($('tplIsActive').value), description:$('tplDescription').value, gpt_system_prompt:$('tplGptPrompt').value};
+            is_active:parseInt($('tplIsActive').value), description:$('tplDescription').value, gpt_system_prompt:$('tplGptPrompt').value,
+            profile_id: currentProfileId || null};
         try {
             if (tplId) { await api('templates/'+tplId, {method:'PUT', body}); toast('Шаблон сохранён'); }
             else { const d = await api('templates', {method:'POST', body}); tplId = d.data.id; toast('Шаблон создан'); }

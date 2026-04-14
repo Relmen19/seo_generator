@@ -10,6 +10,7 @@ use Seo\Entity\SeoBlockType;
 use Seo\Entity\SeoSiteProfile;
 use Seo\Entity\SeoTemplate;
 use Seo\Entity\SeoTemplateBlock;
+use Throwable;
 
 class TemplateGeneratorService {
 
@@ -110,6 +111,285 @@ class TemplateGeneratorService {
         });
 
         return ['saved_template_ids' => $savedIds];
+    }
+
+    /**
+     * Generate a single template via SSE with AI review.
+     */
+    public function generateSingleTemplateSSE(int $profileId, string $purpose, array $options = []): void {
+        $totalUsage = ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0];
+        $model = $options['model'] ?? GPT_DEFAULT_MODEL;
+
+        $profile = $this->loadProfile($profileId);
+        $blockTypes = $this->loadActiveBlockTypes();
+
+        $this->sendSSE('start', ['profile_id' => $profileId, 'purpose' => $purpose]);
+
+        // ── Step 1: Generate template ──
+        $this->sendSSE('generation_start', []);
+
+        try {
+            $systemPrompt = $this->buildSingleTemplateSystemPrompt($profile, $blockTypes, $purpose);
+            $userPrompt = $this->buildSingleTemplateUserPrompt($profile, $purpose, $options['hints'] ?? null);
+
+            $result = $this->gpt->chatJson([
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user', 'content' => $userPrompt],
+            ], [
+                'model' => $model,
+                'temperature' => SEO_TEMPERATURE_CREATIVE,
+                'max_tokens' => SEO_MAX_TOKENS_LARGE,
+            ]);
+
+            $this->addUsage($totalUsage, $result['usage'] ?? []);
+
+            $template = $result['data']['template'] ?? $result['data'] ?? null;
+            if (!$template || empty($template['name'])) {
+                $this->sendSSE('error', ['message' => 'AI не вернул шаблон. Попробуйте уточнить описание.', 'step' => 'generation']);
+                return;
+            }
+
+            // Validate block types
+            $validTypes = array_column($blockTypes, 'code');
+            $template['blocks'] = array_values(array_filter(
+                $template['blocks'] ?? [],
+                static function (array $block) use ($validTypes) {
+                    return in_array($block['type'] ?? '', $validTypes, true);
+                }
+            ));
+
+            $this->sendSSE('generation_done', ['template' => $template]);
+        } catch (Throwable $e) {
+            $this->sendSSE('error', ['message' => $e->getMessage(), 'step' => 'generation']);
+            return;
+        }
+
+        // ── Step 2: Review template ──
+        $this->sendSSE('review_start', []);
+
+        try {
+            $reviewPrompt = $this->buildReviewPrompt($template, $profile, $blockTypes);
+
+            $reviewResult = $this->gpt->chatJson([
+                ['role' => 'system', 'content' => $reviewPrompt],
+                ['role' => 'user', 'content' => 'Проведи ревью шаблона и предложи улучшения.'],
+            ], [
+                'model' => $model,
+                'temperature' => SEO_TEMPERATURE_PRECISE,
+                'max_tokens' => SEO_MAX_TOKENS_LARGE,
+            ]);
+
+            $this->addUsage($totalUsage, $reviewResult['usage'] ?? []);
+
+            $review = $reviewResult['data'] ?? [];
+            $score = (int)($review['score'] ?? 7);
+            $suggestions = $review['suggestions'] ?? [];
+            $improved = $review['improved_template'] ?? null;
+
+            // Use improved template if provided and has blocks
+            if ($improved && !empty($improved['blocks'])) {
+                $improved['blocks'] = array_values(array_filter(
+                    $improved['blocks'] ?? [],
+                    static function (array $block) use ($validTypes) {
+                        return in_array($block['type'] ?? '', $validTypes, true);
+                    }
+                ));
+                if (!empty($improved['blocks'])) {
+                    $template = $improved;
+                }
+            }
+
+            $this->sendSSE('review_done', [
+                'review' => [
+                    'score' => $score,
+                    'suggestions' => $suggestions,
+                ],
+                'template' => $template,
+            ]);
+        } catch (Throwable $e) {
+            // Review failed — save original template anyway
+            $this->sendSSE('review_done', [
+                'review' => [
+                    'score' => 0,
+                    'suggestions' => ['Ревью не удалось: ' . $e->getMessage()],
+                ],
+                'template' => $template,
+            ]);
+        }
+
+        // ── Step 3: Save template ──
+        $this->sendSSE('save_start', []);
+
+        try {
+            $saved = $this->saveProposal($profileId, [$template]);
+            $templateId = $saved['saved_template_ids'][0] ?? null;
+
+            $this->sendSSE('save_done', ['template_id' => $templateId]);
+        } catch (Throwable $e) {
+            $this->sendSSE('error', ['message' => $e->getMessage(), 'step' => 'save']);
+            return;
+        }
+
+        $this->sendSSE('done', ['usage' => $totalUsage]);
+    }
+
+    private function buildSingleTemplateSystemPrompt(array $profile, array $blockTypes, string $purpose): string {
+        $typeList = $this->formatBlockTypeList($blockTypes);
+
+        $profileContext = '';
+        if (!empty($profile['niche'])) {
+            $profileContext .= "Ниша: {$profile['niche']}\n";
+        }
+        if (!empty($profile['brand_name'])) {
+            $profileContext .= "Бренд: {$profile['brand_name']}\n";
+        }
+        if (!empty($profile['tone'])) {
+            $profileContext .= "Тон: {$profile['tone']}\n";
+        }
+        if (!empty($profile['gpt_persona'])) {
+            $profileContext .= "Персона контента: {$profile['gpt_persona']}\n";
+        }
+        if (!empty($profile['gpt_rules'])) {
+            $profileContext .= "Правила: {$profile['gpt_rules']}\n";
+        }
+        if (!empty($profile['description'])) {
+            $profileContext .= "Описание проекта: {$profile['description']}\n";
+        }
+
+        return <<<PROMPT
+Ты — архитектор SEO-шаблонов. Твоя задача — спроектировать ОДИН шаблон статьи для конкретного типа контента.
+
+КОНТЕКСТ ПРОФИЛЯ:
+{$profileContext}
+
+НАЗНАЧЕНИЕ ШАБЛОНА:
+{$purpose}
+
+ДОСТУПНЫЕ ТИПЫ БЛОКОВ:
+{$typeList}
+
+ПРАВИЛА:
+1. Шаблон ДОЛЖЕН начинаться с `hero` и заканчиваться `cta`.
+2. Используй 5-10 блоков в зависимости от сложности типа статьи.
+3. gpt_system_prompt — подробная инструкция для GPT при генерации контента по этому шаблону (3-5 предложений).
+4. hint для каждого блока — детальная подсказка GPT что именно генерировать в этом блоке с учётом назначения шаблона.
+5. Подбирай блоки, которые максимально подходят для данного типа статьи.
+6. Имена, описания и промпты — на русском языке.
+7. slug — латиницей, через дефис.
+
+ФОРМАТ ОТВЕТА (строго JSON):
+{
+  "template": {
+    "name": "Название шаблона",
+    "slug": "template-slug",
+    "description": "Описание назначения шаблона — для какого типа статей",
+    "css_class": "tpl-slug",
+    "gpt_system_prompt": "Подробный системный промпт для GPT при генерации статьи по этому шаблону...",
+    "blocks": [
+      {
+        "type": "hero",
+        "name": "Название блока",
+        "hint": "Детальная подсказка GPT для генерации этого блока",
+        "fields": ["title", "subtitle"],
+        "sort_order": 1,
+        "is_required": true
+      }
+    ]
+  }
+}
+PROMPT;
+    }
+
+    private function buildSingleTemplateUserPrompt(array $profile, string $purpose, ?string $hints = null): string {
+        $parts = ["Создай шаблон для следующего типа статьи: {$purpose}"];
+
+        if ($hints !== null && trim($hints) !== '') {
+            $parts[] = "Дополнительные подсказки от менеджера: {$hints}";
+        }
+
+        $parts[] = 'Подбери блоки, которые лучше всего подходят для этого типа контента. Для каждого блока напиши подробный hint.';
+
+        return implode("\n\n", $parts);
+    }
+
+    private function buildReviewPrompt(array $template, array $profile, array $blockTypes): string {
+        $tplJson = json_encode($template, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        $typeList = $this->formatBlockTypeList($blockTypes);
+
+        $profileContext = '';
+        if (!empty($profile['niche'])) {
+            $profileContext .= "Ниша: {$profile['niche']}\n";
+        }
+        if (!empty($profile['tone'])) {
+            $profileContext .= "Тон: {$profile['tone']}\n";
+        }
+
+        return <<<PROMPT
+Ты — ревьюер SEO-шаблонов. Проверь качество шаблона и предложи улучшения.
+
+ПРОФИЛЬ:
+{$profileContext}
+
+ДОСТУПНЫЕ ТИПЫ БЛОКОВ:
+{$typeList}
+
+ШАБЛОН НА РЕВЬЮ:
+{$tplJson}
+
+КРИТЕРИИ ОЦЕНКИ:
+1. Логичность структуры блоков (порядок, необходимость каждого блока)
+2. Качество gpt_system_prompt (достаточно ли подробный, учитывает ли нишу)
+3. Качество hint для каждого блока (конкретность, полезность для GPT)
+4. Покрытие нужных аспектов типа статьи
+5. Нет ли лишних или недостающих блоков
+
+ФОРМАТ ОТВЕТА (строго JSON):
+{
+  "score": 8,
+  "suggestions": ["Замечание 1", "Замечание 2"],
+  "improved_template": {
+    "name": "...",
+    "slug": "...",
+    "description": "...",
+    "css_class": "...",
+    "gpt_system_prompt": "Улучшенный промпт...",
+    "blocks": [...]
+  }
+}
+
+Если шаблон хорош — поставь высокую оценку и верни его без изменений в improved_template.
+Если есть что улучшить — улучши и верни исправленную версию.
+PROMPT;
+    }
+
+    private function formatBlockTypeList(array $blockTypes): string {
+        $typeList = '';
+        foreach ($blockTypes as $bt) {
+            $typeList .= "- `{$bt['code']}` ({$bt['category']}): {$bt['display_name']}";
+            if (!empty($bt['description'])) {
+                $typeList .= " — {$bt['description']}";
+            }
+            $typeList .= "\n";
+            if (!empty($bt['gpt_hint'])) {
+                $typeList .= "  Структура: {$bt['gpt_hint']}\n";
+            }
+        }
+        return $typeList;
+    }
+
+    private function sendSSE(string $event, array $data): void {
+        echo "event: {$event}\n";
+        echo "data: " . json_encode($data, JSON_UNESCAPED_UNICODE) . "\n\n";
+        if (ob_get_level()) {
+            ob_flush();
+        }
+        flush();
+    }
+
+    private function addUsage(array &$total, array $usage): void {
+        foreach (['prompt_tokens', 'completion_tokens', 'total_tokens'] as $k) {
+            $total[$k] += ($usage[$k] ?? 0);
+        }
     }
 
     private function buildSystemPrompt(array $profile, array $blockTypes, int $count): string {
