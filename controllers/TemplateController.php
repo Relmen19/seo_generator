@@ -7,16 +7,20 @@ namespace Seo\Controller;
 use Seo\Entity\SeoArticle;
 use Seo\Entity\SeoTemplate;
 use Seo\Entity\SeoTemplateBlock;
+use Seo\Service\TemplateGeneratorService;
 
 /*
-    GET    /templates              — список шаблонов
-    GET    /templates/{id}         — шаблон с блоками
-    POST   /templates              — создать шаблон
-    PUT    /templates/{id}         — обновить шаблон
-    DELETE /templates/{id}         — удалить шаблон
-    POST   /templates/{id}/blocks  — добавить блок в шаблон
-    PUT    /templates/{id}/blocks  — обновить блок шаблона (block_id в теле)
-    DELETE /templates/{id}/blocks  — удалить блок (block_id в теле)
+    GET    /templates                       — список шаблонов
+    GET    /templates/{id}                  — шаблон с блоками
+    POST   /templates                       — создать шаблон
+    PUT    /templates/{id}                  — обновить шаблон
+    DELETE /templates/{id}                  — удалить шаблон
+    POST   /templates/{id}/blocks           — добавить блок в шаблон
+    PUT    /templates/{id}/blocks           — обновить блок шаблона (block_id в теле)
+    DELETE /templates/{id}/blocks           — удалить блок (block_id в теле)
+    POST   /templates/{id}/ai-review        — AI-ревью шаблона (оценка + улучшения)
+    POST   /templates/{id}/ai-apply         — применить данные шаблона (после ревью/отката)
+    POST   /templates/{id}/ai-regenerate-sse — перегенерировать шаблон через SSE
  */
 class TemplateController extends AbstractController {
 
@@ -24,6 +28,18 @@ class TemplateController extends AbstractController {
 
         if ($action === 'blocks' && $id !== null) {
             $this->dispatchBlocks($method, $id);
+            return;
+        }
+        if ($action === 'ai-review' && $id !== null && $method === 'POST') {
+            $this->aiReview($id);
+            return;
+        }
+        if ($action === 'ai-apply' && $id !== null && $method === 'POST') {
+            $this->aiApply($id);
+            return;
+        }
+        if ($action === 'ai-regenerate-sse' && $id !== null && $method === 'POST') {
+            $this->aiRegenerateSse($id);
             return;
         }
 
@@ -217,6 +233,77 @@ class TemplateController extends AbstractController {
         if ($deleted === 0) $this->notFound('Блок шаблона');
 
         $this->success(['deleted' => true]);
+    }
+
+    // ── AI endpoints ──────────────────────────────────────────
+
+    private function aiReview(int $id): void {
+        $data = $this->getJsonBody();
+        $service = new TemplateGeneratorService();
+        $result = $service->reviewExistingTemplate($id, [
+            'model' => $data['model'] ?? null,
+        ]);
+        $this->success($result);
+    }
+
+    private function aiApply(int $id): void {
+        $data = $this->getJsonBody();
+        $template = $data['template'] ?? null;
+        if (!$template || !is_array($template)) {
+            $this->error('Поле template обязательно', 422);
+        }
+
+        $service = new TemplateGeneratorService();
+        $service->applyTemplateData($id, $template);
+
+        // Return updated template with blocks
+        $row = $this->db->fetchOne(
+            "SELECT * FROM " . SeoTemplate::TABLE . " WHERE id = :id",
+            [':id' => $id]
+        );
+        $tpl = new SeoTemplate($row);
+        $tpl->setBlocks($this->loadBlocks($id));
+        $this->success($tpl->toFullArray());
+    }
+
+    private function aiRegenerateSse(int $id): void {
+        header('Content-Type: text/event-stream');
+        header('Cache-Control: no-cache');
+        header('Connection: keep-alive');
+        header('X-Accel-Buffering: no');
+
+        while (ob_get_level()) {
+            ob_end_flush();
+        }
+        ob_implicit_flush(1);
+
+        $body = [];
+        $raw = file_get_contents('php://input');
+        if ($raw) {
+            $body = json_decode($raw, true) ?? [];
+        }
+
+        $purpose = trim((string)($body['purpose'] ?? ''));
+        if ($purpose === '') {
+            echo "event: error\n";
+            echo "data: " . json_encode(['message' => 'Поле purpose обязательно'], JSON_UNESCAPED_UNICODE) . "\n\n";
+            flush();
+            exit;
+        }
+
+        try {
+            $service = new TemplateGeneratorService();
+            $service->regenerateTemplateSSE($id, $purpose, [
+                'model' => $body['model'] ?? null,
+                'hints' => $body['hints'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            echo "event: error\n";
+            echo "data: " . json_encode(['message' => $e->getMessage()], JSON_UNESCAPED_UNICODE) . "\n\n";
+            flush();
+        }
+
+        exit;
     }
 
     private function loadBlocks(int $templateId): array {

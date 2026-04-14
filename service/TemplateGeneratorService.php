@@ -233,6 +233,266 @@ class TemplateGeneratorService {
         $this->sendSSE('done', ['usage' => $totalUsage]);
     }
 
+    /**
+     * Review an existing saved template (non-SSE, returns JSON).
+     */
+    public function reviewExistingTemplate(int $templateId, array $options = []): array
+    {
+        $template = $this->loadTemplateAsArray($templateId);
+        $profileId = $template['_profile_id'];
+        unset($template['_profile_id']);
+
+        $profile = $this->loadProfile((int)$profileId);
+        $blockTypes = $this->loadActiveBlockTypes();
+
+        $model = $options['model'] ?? GPT_DEFAULT_MODEL;
+        $reviewPrompt = $this->buildReviewPrompt($template, $profile, $blockTypes);
+
+        $reviewResult = $this->gpt->chatJson([
+            ['role' => 'system', 'content' => $reviewPrompt],
+            ['role' => 'user', 'content' => 'Проведи ревью шаблона и предложи улучшения.'],
+        ], [
+            'model' => $model,
+            'temperature' => SEO_TEMPERATURE_PRECISE,
+            'max_tokens' => SEO_MAX_TOKENS_LARGE,
+        ]);
+
+        $review = $reviewResult['data'] ?? [];
+        $improved = $review['improved_template'] ?? null;
+
+        $validTypes = array_column($blockTypes, 'code');
+        if ($improved && !empty($improved['blocks'])) {
+            $improved['blocks'] = array_values(array_filter(
+                $improved['blocks'],
+                static function (array $block) use ($validTypes) {
+                    return in_array($block['type'] ?? '', $validTypes, true);
+                }
+            ));
+            if (empty($improved['blocks'])) {
+                $improved = null;
+            }
+        }
+
+        return [
+            'score' => (int)($review['score'] ?? 0),
+            'suggestions' => $review['suggestions'] ?? [],
+            'improved_template' => $improved,
+            'original_template' => $template,
+            'usage' => $reviewResult['usage'] ?? [],
+        ];
+    }
+
+    /**
+     * Apply reviewed/improved template data to an existing template (replace fields + blocks).
+     */
+    public function applyTemplateData(int $templateId, array $templateData): void
+    {
+        $tplRow = $this->db->fetchOne(
+            "SELECT id FROM " . SeoTemplate::TABLE . " WHERE id = ?",
+            [$templateId]
+        );
+        if (!$tplRow) {
+            throw new RuntimeException("Шаблон #{$templateId} не найден");
+        }
+
+        $this->db->transaction(function () use ($templateId, $templateData) {
+            $updateFields = [];
+            foreach (['name', 'description', 'gpt_system_prompt', 'css_class'] as $f) {
+                if (isset($templateData[$f])) {
+                    $updateFields[$f] = $templateData[$f];
+                }
+            }
+
+            if (!empty($updateFields)) {
+                $this->db->update(SeoTemplate::TABLE, $updateFields, 'id = :id', [':id' => $templateId]);
+            }
+
+            if (isset($templateData['blocks']) && is_array($templateData['blocks'])) {
+                $this->db->delete(
+                    SeoTemplateBlock::SEO_TEMPLATE_BLOCK_TABLE,
+                    'template_id = :tid',
+                    [':tid' => $templateId]
+                );
+
+                foreach ($templateData['blocks'] as $i => $blockData) {
+                    $this->db->insert(SeoTemplateBlock::SEO_TEMPLATE_BLOCK_TABLE, [
+                        'template_id' => $templateId,
+                        'type' => $blockData['type'],
+                        'name' => $blockData['name'] ?? $blockData['type'],
+                        'config' => json_encode([
+                            'hint' => $blockData['hint'] ?? '',
+                            'fields' => $blockData['fields'] ?? [],
+                        ], JSON_UNESCAPED_UNICODE),
+                        'sort_order' => $blockData['sort_order'] ?? ($i + 1),
+                        'is_required' => (int)($blockData['is_required'] ?? true),
+                    ]);
+                }
+            }
+        });
+    }
+
+    /**
+     * Regenerate a template via SSE — updates existing template in-place.
+     */
+    public function regenerateTemplateSSE(int $templateId, string $purpose, array $options = []): void
+    {
+        $tplRow = $this->db->fetchOne(
+            "SELECT * FROM " . SeoTemplate::TABLE . " WHERE id = ?",
+            [$templateId]
+        );
+        if (!$tplRow) {
+            $this->sendSSE('error', ['message' => "Шаблон #{$templateId} не найден"]);
+            return;
+        }
+
+        $totalUsage = ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0];
+        $model = $options['model'] ?? GPT_DEFAULT_MODEL;
+        $profileId = (int)$tplRow['profile_id'];
+
+        $profile = $this->loadProfile($profileId);
+        $blockTypes = $this->loadActiveBlockTypes();
+        $validTypes = array_column($blockTypes, 'code');
+
+        $this->sendSSE('start', ['template_id' => $templateId, 'purpose' => $purpose]);
+
+        // ── Step 1: Generate template ──
+        $this->sendSSE('generation_start', []);
+
+        try {
+            $systemPrompt = $this->buildSingleTemplateSystemPrompt($profile, $blockTypes, $purpose);
+            $userPrompt = $this->buildSingleTemplateUserPrompt($profile, $purpose, $options['hints'] ?? null);
+
+            $result = $this->gpt->chatJson([
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user', 'content' => $userPrompt],
+            ], [
+                'model' => $model,
+                'temperature' => SEO_TEMPERATURE_CREATIVE,
+                'max_tokens' => SEO_MAX_TOKENS_LARGE,
+            ]);
+
+            $this->addUsage($totalUsage, $result['usage'] ?? []);
+
+            $template = $result['data']['template'] ?? $result['data'] ?? null;
+            if (!$template || empty($template['name'])) {
+                $this->sendSSE('error', ['message' => 'AI не вернул шаблон.', 'step' => 'generation']);
+                return;
+            }
+
+            $template['blocks'] = array_values(array_filter(
+                $template['blocks'] ?? [],
+                static function (array $block) use ($validTypes) {
+                    return in_array($block['type'] ?? '', $validTypes, true);
+                }
+            ));
+
+            $this->sendSSE('generation_done', ['template' => $template]);
+        } catch (Throwable $e) {
+            $this->sendSSE('error', ['message' => $e->getMessage(), 'step' => 'generation']);
+            return;
+        }
+
+        // ── Step 2: Review template ──
+        $this->sendSSE('review_start', []);
+
+        try {
+            $reviewPrompt = $this->buildReviewPrompt($template, $profile, $blockTypes);
+            $reviewResult = $this->gpt->chatJson([
+                ['role' => 'system', 'content' => $reviewPrompt],
+                ['role' => 'user', 'content' => 'Проведи ревью шаблона и предложи улучшения.'],
+            ], [
+                'model' => $model,
+                'temperature' => SEO_TEMPERATURE_PRECISE,
+                'max_tokens' => SEO_MAX_TOKENS_LARGE,
+            ]);
+
+            $this->addUsage($totalUsage, $reviewResult['usage'] ?? []);
+
+            $review = $reviewResult['data'] ?? [];
+            $score = (int)($review['score'] ?? 7);
+            $suggestions = $review['suggestions'] ?? [];
+            $improved = $review['improved_template'] ?? null;
+
+            if ($improved && !empty($improved['blocks'])) {
+                $improved['blocks'] = array_values(array_filter(
+                    $improved['blocks'] ?? [],
+                    static function (array $block) use ($validTypes) {
+                        return in_array($block['type'] ?? '', $validTypes, true);
+                    }
+                ));
+                if (!empty($improved['blocks'])) {
+                    $template = $improved;
+                }
+            }
+
+            $this->sendSSE('review_done', [
+                'review' => ['score' => $score, 'suggestions' => $suggestions],
+                'template' => $template,
+            ]);
+        } catch (Throwable $e) {
+            $this->sendSSE('review_done', [
+                'review' => ['score' => 0, 'suggestions' => ['Ревью не удалось: ' . $e->getMessage()]],
+                'template' => $template,
+            ]);
+        }
+
+        // ── Step 3: Update template in-place ──
+        $this->sendSSE('save_start', []);
+
+        try {
+            $this->applyTemplateData($templateId, $template);
+            $this->sendSSE('save_done', ['template_id' => $templateId]);
+        } catch (Throwable $e) {
+            $this->sendSSE('error', ['message' => $e->getMessage(), 'step' => 'save']);
+            return;
+        }
+
+        $this->sendSSE('done', ['usage' => $totalUsage]);
+    }
+
+    /**
+     * Load a template with blocks as a plain array (for review prompt).
+     */
+    private function loadTemplateAsArray(int $templateId): array
+    {
+        $tplRow = $this->db->fetchOne(
+            "SELECT * FROM " . SeoTemplate::TABLE . " WHERE id = ?",
+            [$templateId]
+        );
+        if (!$tplRow) {
+            throw new RuntimeException("Шаблон #{$templateId} не найден");
+        }
+
+        $blocks = $this->db->fetchAll(
+            "SELECT * FROM " . SeoTemplateBlock::SEO_TEMPLATE_BLOCK_TABLE
+            . " WHERE template_id = ? ORDER BY sort_order",
+            [$templateId]
+        );
+
+        return [
+            '_profile_id' => $tplRow['profile_id'],
+            'name' => $tplRow['name'],
+            'slug' => $tplRow['slug'],
+            'description' => $tplRow['description'],
+            'css_class' => $tplRow['css_class'],
+            'gpt_system_prompt' => $tplRow['gpt_system_prompt'],
+            'blocks' => array_map(static function (array $b) {
+                $config = json_decode($b['config'] ?? '{}', true);
+                if (!is_array($config)) {
+                    $config = [];
+                }
+                return [
+                    'type' => $b['type'],
+                    'name' => $b['name'],
+                    'hint' => $config['hint'] ?? '',
+                    'fields' => $config['fields'] ?? [],
+                    'sort_order' => (int)$b['sort_order'],
+                    'is_required' => (bool)(int)$b['is_required'],
+                ];
+            }, $blocks),
+        ];
+    }
+
     private function buildSingleTemplateSystemPrompt(array $profile, array $blockTypes, string $purpose): string {
         $typeList = $this->formatBlockTypeList($blockTypes);
 

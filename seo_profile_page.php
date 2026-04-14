@@ -165,6 +165,15 @@ requireAuth();
         .empty-state-icon { font-size: 3rem; margin-bottom: 12px; opacity: .4; }
         .empty-state-title { font-size: 1.1rem; font-weight: 600; color: #94a3b8; margin-bottom: 6px; }
         .empty-state-text { font-size: .85rem; margin-bottom: 20px; }
+
+        /* ── Template editor ── */
+        .tpl-card { cursor: pointer; transition: border-color .2s; }
+        .tpl-card:hover { border-color: #6366f1; }
+        .tpl-ai-bar { display: flex; gap: 6px; flex-wrap: wrap; }
+        .tpl-review-box { border: 1px solid #334155; border-radius: 8px; padding: 16px; background: #0f172a; }
+        .tpl-score { font-size: 1.1rem; font-weight: 700; }
+        .tpl-diff-block { border-color: #059669 !important; }
+        .tpl-diff-block .gen-block-chip { border-color: #059669; color: #4ade80; }
     </style>
 </head>
 <body>
@@ -490,6 +499,32 @@ requireAuth();
     </div>
 </div>
 
+<!-- ═══════════════════ MODAL: Template AI Editor ═══════════════════ -->
+<div class="wizard-overlay" id="tplEditorModal">
+    <div class="wizard" style="max-width:900px">
+        <div class="wizard-header" style="padding-bottom:16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+                <div class="wizard-title" id="tplEditorTitle">Шаблон</div>
+                <div class="tpl-ai-bar" id="tplEditorActions">
+                    <button class="ai-badge" onclick="runAiReview()" id="btnAiReview">AI Ревью</button>
+                    <button class="ai-badge" onclick="openRegenForm()" id="btnAiRegen" style="background:#1e3a5f;color:#7dd3fc">Перегенерировать</button>
+                </div>
+            </div>
+        </div>
+        <div class="wizard-body" style="max-height:60vh;overflow-y:auto">
+            <div id="tplEditorInfo"></div>
+            <div id="tplEditorBlocks" style="margin-top:16px"></div>
+            <div id="tplReviewResult" style="display:none;margin-top:16px"></div>
+            <div id="tplRegenForm" style="display:none;margin-top:16px"></div>
+            <div id="tplRegenProgress" style="display:none;margin-top:16px"></div>
+        </div>
+        <div class="wizard-footer">
+            <button class="btn btn-ghost" onclick="closeTplEditor()">Закрыть</button>
+            <div style="display:flex;gap:8px" id="tplEditorFooterActions"></div>
+        </div>
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -796,12 +831,13 @@ async function loadTemplates() {
             return;
         }
         $('templatesList').innerHTML = templates.map(t => `
-            <div class="settings-section" style="margin-bottom:10px">
+            <div class="settings-section tpl-card" style="margin-bottom:10px" onclick="openTplEditor(${t.id})">
                 <div style="display:flex;justify-content:space-between;align-items:center">
-                    <div>
+                    <div style="flex:1;min-width:0">
                         <div style="font-weight:600;color:#f1f5f9">${esc(t.name)}</div>
-                        <div style="font-size:.72rem;color:#64748b;margin-top:2px">${esc(t.slug || '')} &middot; ${(t.blocks_count || 0)} блоков</div>
+                        <div style="font-size:.72rem;color:#64748b;margin-top:2px">${esc(t.slug || '')} &middot; ${(t.blocks || []).length} блоков</div>
                     </div>
+                    <span class="ai-badge" style="font-size:.65rem;padding:2px 8px" onclick="event.stopPropagation();openTplEditor(${t.id})">AI</span>
                 </div>
             </div>
         `).join('');
@@ -1224,6 +1260,418 @@ function handleTemplateGenEvent(event, data) {
             genRunning = false;
             break;
     }
+}
+
+// ═══════════════════ TEMPLATE AI EDITOR ═══════════════════
+
+let tplEditorData = null;
+let tplPreReviewData = null;
+let tplReviewImproved = null;
+let tplRegenRunning = false;
+
+async function openTplEditor(templateId) {
+    try {
+        const res = await api('templates/' + templateId);
+        if (!res.success) { toast(res.error || 'Ошибка', true); return; }
+        tplEditorData = res.data;
+    } catch(e) { toast('Ошибка сети', true); return; }
+
+    tplPreReviewData = null;
+    tplReviewImproved = null;
+    tplRegenRunning = false;
+    renderTplEditor();
+    $('tplEditorModal').classList.add('show');
+}
+
+function closeTplEditor() {
+    if (tplRegenRunning && !confirm('Генерация в процессе. Закрыть?')) return;
+    $('tplEditorModal').classList.remove('show');
+    tplRegenRunning = false;
+}
+
+function parseTplBlockConfig(b) {
+    if (!b.config) return {};
+    if (typeof b.config === 'object') return b.config;
+    try { return JSON.parse(b.config); } catch(e) { return {}; }
+}
+
+function renderTplEditor() {
+    var t = tplEditorData;
+    $('tplEditorTitle').textContent = t.name;
+
+    $('tplEditorInfo').innerHTML =
+        '<div style="font-size:.82rem;color:#94a3b8;margin-bottom:8px">' + esc(t.description || '') + '</div>'
+        + (t.gpt_system_prompt
+            ? '<div style="font-size:.72rem;color:#475569;padding:8px;background:#0f172a;border-radius:6px;white-space:pre-wrap;word-break:break-word">' + esc(t.gpt_system_prompt) + '</div>'
+            : '');
+
+    var blocks = t.blocks || [];
+    $('tplEditorBlocks').innerHTML =
+        '<div style="font-size:.72rem;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">Блоки (' + blocks.length + ')</div>'
+        + blocks.map(function(b) {
+            var cfg = parseTplBlockConfig(b);
+            return '<div class="gen-tpl-item" style="padding:10px;margin-bottom:6px">'
+                + '<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">'
+                + '<span class="gen-block-chip">' + esc(b.type) + '</span>'
+                + '<span style="font-size:.82rem;font-weight:600;color:#e2e8f0">' + esc(b.name) + '</span>'
+                + (b.is_required ? '<span style="font-size:.6rem;color:#fcd34d">&#9733; обяз.</span>' : '')
+                + '</div>'
+                + (cfg.hint ? '<div style="font-size:.72rem;color:#94a3b8">' + esc(cfg.hint) + '</div>' : '')
+                + '</div>';
+        }).join('');
+
+    $('tplReviewResult').style.display = 'none';
+    $('tplRegenForm').style.display = 'none';
+    $('tplRegenProgress').style.display = 'none';
+    $('btnAiReview').disabled = false;
+    $('btnAiReview').innerHTML = 'AI Ревью';
+    $('btnAiRegen').disabled = false;
+    $('tplEditorFooterActions').innerHTML = '';
+}
+
+// ── AI Review ──
+async function runAiReview() {
+    $('btnAiReview').disabled = true;
+    $('btnAiReview').innerHTML = '<span class="spinner"></span> Анализ...';
+    $('btnAiRegen').disabled = true;
+    $('tplRegenForm').style.display = 'none';
+    $('tplRegenProgress').style.display = 'none';
+    $('tplReviewResult').style.display = '';
+    $('tplReviewResult').innerHTML = '<div style="text-align:center;padding:20px"><span class="spinner"></span><div style="font-size:.82rem;color:#94a3b8;margin-top:8px">AI анализирует шаблон...</div></div>';
+
+    tplPreReviewData = JSON.parse(JSON.stringify(tplEditorData));
+
+    try {
+        var res = await api('templates/' + tplEditorData.id + '/ai-review', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({}),
+        });
+
+        if (!res.success) { toast(res.error || 'Ошибка', true); resetReviewUI(); return; }
+
+        var d = res.data;
+        var score = d.score || 0;
+        var scoreColor = score >= 8 ? '#4ade80' : score >= 5 ? '#fbbf24' : '#f87171';
+        tplReviewImproved = d.improved_template;
+
+        var html = '<div class="tpl-review-box">'
+            + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+            + '<span style="font-size:.82rem;font-weight:700;color:#f1f5f9">Результат ревью</span>'
+            + '<span class="tpl-score" style="color:' + scoreColor + '">' + score + '/10</span>'
+            + '</div>';
+
+        if (d.suggestions && d.suggestions.length) {
+            html += '<div style="margin-bottom:12px">';
+            d.suggestions.forEach(function(s) {
+                html += '<div class="gen-review-suggestion">&#8226; ' + esc(s) + '</div>';
+            });
+            html += '</div>';
+        }
+
+        if (tplReviewImproved && tplReviewImproved.blocks && tplReviewImproved.blocks.length) {
+            html += '<div style="font-size:.72rem;color:#64748b;margin-bottom:6px;margin-top:12px;text-transform:uppercase">Улучшенная версия — блоки (' + tplReviewImproved.blocks.length + '):</div>';
+            tplReviewImproved.blocks.forEach(function(b) {
+                html += '<div class="gen-tpl-item tpl-diff-block" style="padding:8px;margin-bottom:4px">'
+                    + '<div style="display:flex;gap:8px;align-items:center">'
+                    + '<span class="gen-block-chip">' + esc(b.type) + '</span>'
+                    + '<span style="font-size:.8rem;font-weight:600;color:#e2e8f0">' + esc(b.name) + '</span>'
+                    + '</div>'
+                    + (b.hint ? '<div style="font-size:.72rem;color:#94a3b8;margin-top:4px">' + esc(b.hint) + '</div>' : '')
+                    + '</div>';
+            });
+        }
+
+        html += '</div>';
+        $('tplReviewResult').innerHTML = html;
+
+        var footerHtml = '';
+        if (tplReviewImproved && tplReviewImproved.blocks && tplReviewImproved.blocks.length) {
+            footerHtml += '<button class="btn btn-success btn-sm" onclick="applyReview()">Применить улучшения</button>';
+        }
+        footerHtml += '<button class="btn btn-ghost btn-sm" onclick="dismissReview()">Оставить как есть</button>';
+        $('tplEditorFooterActions').innerHTML = footerHtml;
+
+    } catch(e) {
+        toast('Ошибка: ' + e.message, true);
+        resetReviewUI();
+    }
+
+    $('btnAiReview').innerHTML = 'AI Ревью';
+    $('btnAiReview').disabled = false;
+    $('btnAiRegen').disabled = false;
+}
+
+function resetReviewUI() {
+    $('btnAiReview').innerHTML = 'AI Ревью';
+    $('btnAiReview').disabled = false;
+    $('btnAiRegen').disabled = false;
+    $('tplReviewResult').style.display = 'none';
+    $('tplEditorFooterActions').innerHTML = '';
+}
+
+async function applyReview() {
+    if (!tplReviewImproved) return;
+
+    try {
+        var res = await api('templates/' + tplEditorData.id + '/ai-apply', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ template: tplReviewImproved }),
+        });
+
+        if (!res.success) { toast(res.error || 'Ошибка', true); return; }
+
+        tplEditorData = res.data;
+        renderTplEditor();
+        toast('Улучшения применены');
+        $('tplEditorFooterActions').innerHTML = '<button class="btn btn-warn btn-sm" onclick="rollbackReview()">Откатить изменения</button>';
+        loadTemplates();
+    } catch(e) { toast('Ошибка: ' + e.message, true); }
+}
+
+async function rollbackReview() {
+    if (!tplPreReviewData) { toast('Нет данных для отката', true); return; }
+
+    var original = tplPreReviewData;
+    var templateData = {
+        name: original.name,
+        description: original.description,
+        gpt_system_prompt: original.gpt_system_prompt,
+        css_class: original.css_class,
+        blocks: (original.blocks || []).map(function(b, i) {
+            var cfg = parseTplBlockConfig(b);
+            return {
+                type: b.type,
+                name: b.name,
+                hint: cfg.hint || '',
+                fields: cfg.fields || [],
+                sort_order: b.sort_order || (i + 1),
+                is_required: b.is_required,
+            };
+        }),
+    };
+
+    try {
+        var res = await api('templates/' + tplEditorData.id + '/ai-apply', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ template: templateData }),
+        });
+
+        if (!res.success) { toast(res.error || 'Ошибка', true); return; }
+
+        tplEditorData = res.data;
+        tplPreReviewData = null;
+        renderTplEditor();
+        toast('Откат выполнен');
+        loadTemplates();
+    } catch(e) { toast('Ошибка: ' + e.message, true); }
+}
+
+function dismissReview() {
+    $('tplReviewResult').style.display = 'none';
+    $('tplEditorFooterActions').innerHTML = '';
+    tplReviewImproved = null;
+}
+
+// ── Regenerate ──
+function openRegenForm() {
+    $('tplReviewResult').style.display = 'none';
+    $('tplRegenProgress').style.display = 'none';
+    $('tplEditorFooterActions').innerHTML = '';
+    $('tplRegenForm').style.display = '';
+    $('tplRegenForm').innerHTML =
+        '<div class="tpl-review-box">'
+        + '<div style="font-size:.82rem;font-weight:700;color:#f1f5f9;margin-bottom:12px">Перегенерация шаблона</div>'
+        + '<div class="form-row">'
+        + '<label>Назначение шаблона — тип статьи</label>'
+        + '<textarea id="tplRegenPurpose" rows="3" placeholder="Опишите тип статьи...">' + esc(tplEditorData.description || '') + '</textarea>'
+        + '<div class="form-hint">Опишите подробно — AI сгенерирует новую структуру блоков</div>'
+        + '</div>'
+        + '<div class="form-row">'
+        + '<label>Дополнительные подсказки (необязательно)</label>'
+        + '<textarea id="tplRegenHints" rows="2" placeholder="Особые требования: нужны таблицы, обязательно FAQ..."></textarea>'
+        + '</div>'
+        + '<div style="display:flex;gap:8px;margin-top:8px">'
+        + '<button class="btn btn-primary btn-sm" onclick="startRegeneration()">Перегенерировать</button>'
+        + '<button class="btn btn-ghost btn-sm" onclick="$(\'tplRegenForm\').style.display=\'none\'">Отмена</button>'
+        + '</div>'
+        + '</div>';
+}
+
+async function startRegeneration() {
+    var purpose = $('tplRegenPurpose').value.trim();
+    if (!purpose) { toast('Опишите назначение', true); return; }
+
+    tplPreReviewData = JSON.parse(JSON.stringify(tplEditorData));
+
+    $('tplRegenForm').style.display = 'none';
+    $('tplRegenProgress').style.display = '';
+    $('tplRegenProgress').innerHTML =
+        '<div style="margin-bottom:16px">'
+        + '<div class="gen-step" id="regenStep1"><span class="gen-step-icon" id="regenStep1Icon">1</span><span class="gen-step-label">Генерация шаблона</span><span class="gen-step-status" id="regenStep1Status"></span></div>'
+        + '<div class="gen-step" id="regenStep2"><span class="gen-step-icon" id="regenStep2Icon">2</span><span class="gen-step-label">Ревью качества</span><span class="gen-step-status" id="regenStep2Status"></span></div>'
+        + '<div class="gen-step" id="regenStep3"><span class="gen-step-icon" id="regenStep3Icon">3</span><span class="gen-step-label">Сохранение</span><span class="gen-step-status" id="regenStep3Status"></span></div>'
+        + '</div>'
+        + '<div id="regenPreview" style="display:none" class="gen-proposal"></div>'
+        + '<div id="regenReview" style="display:none;margin-top:12px"></div>';
+
+    $('btnAiReview').disabled = true;
+    $('btnAiRegen').disabled = true;
+    tplRegenRunning = true;
+
+    var hints = $('tplRegenHints') ? $('tplRegenHints').value.trim() || null : null;
+
+    try {
+        var response = await fetch(API + '?r=templates/' + tplEditorData.id + '/ai-regenerate-sse', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ purpose: purpose, hints: hints }),
+        });
+
+        var reader = response.body.getReader();
+        var decoder = new TextDecoder();
+        var buffer = '';
+
+        while (true) {
+            var chunk = await reader.read();
+            if (chunk.done) break;
+
+            buffer += decoder.decode(chunk.value, {stream: true});
+            var lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            var eventName = '';
+            for (var li = 0; li < lines.length; li++) {
+                var line = lines[li];
+                if (line.indexOf('event: ') === 0) {
+                    eventName = line.substring(7).trim();
+                } else if (line.indexOf('data: ') === 0 && eventName) {
+                    try {
+                        var evData = JSON.parse(line.substring(6));
+                        handleRegenEvent(eventName, evData);
+                    } catch(e) {}
+                    eventName = '';
+                }
+            }
+        }
+    } catch(e) {
+        toast('Ошибка: ' + e.message, true);
+    }
+
+    tplRegenRunning = false;
+    $('btnAiReview').disabled = false;
+    $('btnAiRegen').disabled = false;
+}
+
+function handleRegenEvent(event, data) {
+    switch (event) {
+        case 'start':
+            $('regenStep1').className = 'gen-step active';
+            $('regenStep1Status').innerHTML = '<span class="spinner"></span>';
+            break;
+
+        case 'generation_start':
+            $('regenStep1').className = 'gen-step active';
+            $('regenStep1Status').innerHTML = '<span class="spinner"></span> AI подбирает блоки...';
+            break;
+
+        case 'generation_done':
+            $('regenStep1').className = 'gen-step done';
+            $('regenStep1Icon').innerHTML = '&#10003;';
+            $('regenStep1Status').textContent = 'Готово';
+            if (data.template) renderRegenPreview(data.template);
+            break;
+
+        case 'review_start':
+            $('regenStep2').className = 'gen-step active';
+            $('regenStep2Status').innerHTML = '<span class="spinner"></span> AI проверяет...';
+            break;
+
+        case 'review_done':
+            $('regenStep2').className = 'gen-step done';
+            $('regenStep2Icon').innerHTML = '&#10003;';
+            var review = data.review || {};
+            var score = review.score || 0;
+            var scoreColor = score >= 8 ? '#4ade80' : score >= 5 ? '#fbbf24' : '#f87171';
+            $('regenStep2Status').innerHTML = '<span style="color:' + scoreColor + ';font-weight:700">' + score + '/10</span>';
+
+            if (review.suggestions && review.suggestions.length) {
+                $('regenReview').style.display = '';
+                $('regenReview').innerHTML =
+                    '<div style="font-size:.72rem;color:#64748b;margin-bottom:6px;text-transform:uppercase">Рекомендации:</div>'
+                    + review.suggestions.map(function(s) { return '<div class="gen-review-suggestion">&#8226; ' + esc(s) + '</div>'; }).join('');
+            }
+
+            if (data.template) renderRegenPreview(data.template);
+            break;
+
+        case 'save_start':
+            $('regenStep3').className = 'gen-step active';
+            $('regenStep3Status').innerHTML = '<span class="spinner"></span> Сохранение...';
+            break;
+
+        case 'save_done':
+            $('regenStep3').className = 'gen-step done';
+            $('regenStep3Icon').innerHTML = '&#10003;';
+            $('regenStep3Status').textContent = 'Сохранено';
+            toast('Шаблон перегенерирован');
+            reloadTplEditor(data.template_id);
+            loadTemplates();
+            $('tplEditorFooterActions').innerHTML = '<button class="btn btn-warn btn-sm" onclick="rollbackReview()">Откатить изменения</button>';
+            break;
+
+        case 'done':
+            var usage = data.usage || {};
+            if (usage.total_tokens && $('regenStep3Status')) {
+                $('regenStep3Status').textContent += ' (' + usage.total_tokens + ' токенов)';
+            }
+            break;
+
+        case 'error':
+            toast('Ошибка: ' + (data.message || 'Неизвестная ошибка'), true);
+            ['regenStep1','regenStep2','regenStep3'].forEach(function(id) {
+                if ($(id) && $(id).classList.contains('active')) {
+                    $(id).className = 'gen-step error';
+                    $(id + 'Icon').innerHTML = '&#10007;';
+                    $(id + 'Status').textContent = data.message || 'Ошибка';
+                }
+            });
+            tplRegenRunning = false;
+            $('btnAiReview').disabled = false;
+            $('btnAiRegen').disabled = false;
+            break;
+    }
+}
+
+function renderRegenPreview(template) {
+    var blocks = template.blocks || [];
+    $('regenPreview').style.display = '';
+    $('regenPreview').innerHTML =
+        '<div style="font-weight:700;color:#f1f5f9;margin-bottom:4px">' + esc(template.name) + '</div>'
+        + '<div style="font-size:.78rem;color:#94a3b8;margin-bottom:10px">' + esc(template.description || '') + '</div>'
+        + '<div style="font-size:.72rem;color:#64748b;margin-bottom:6px">Блоки (' + blocks.length + '):</div>'
+        + blocks.map(function(b) {
+            return '<div class="gen-tpl-item" style="padding:10px;margin-bottom:6px">'
+                + '<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">'
+                + '<span class="gen-block-chip">' + esc(b.type) + '</span>'
+                + '<span style="font-size:.82rem;font-weight:600;color:#e2e8f0">' + esc(b.name) + '</span>'
+                + (b.is_required ? '<span style="font-size:.6rem;color:#fcd34d">&#9733; обяз.</span>' : '')
+                + '</div>'
+                + (b.hint ? '<div style="font-size:.72rem;color:#94a3b8">' + esc(b.hint) + '</div>' : '')
+                + '</div>';
+        }).join('');
+}
+
+async function reloadTplEditor(templateId) {
+    try {
+        var res = await api('templates/' + templateId);
+        if (res.success) {
+            tplEditorData = res.data;
+            $('tplEditorTitle').textContent = tplEditorData.name;
+        }
+    } catch(e) {}
 }
 
 // ═══════════════════ UTILS ═══════════════════
