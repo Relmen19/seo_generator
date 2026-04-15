@@ -296,7 +296,7 @@ requireAuth();
         .block-cm-editor .CodeMirror { height: auto; min-height: 220px; font-size: .82rem; line-height: 1.5; }
 
         .block-preview-frame {
-            width: 100%; min-height: 300px; max-height: 600px;
+            width: 100%; min-height: 600px; max-height: 600px;
             border: 1px solid #334155; border-radius: 6px; background: #fff;
         }
 
@@ -1809,6 +1809,12 @@ requireAuth();
                 body: JSON.stringify({type: block.type, content: content})
             });
             const html = await resp.text();
+            frame.onload = () => {
+                const doc = frame.contentDocument;
+                doc.querySelectorAll('.reveal').forEach(el => {
+                    el.classList.add('vis');
+                });
+            };
             frame.srcdoc = html;
         } catch(e) {
             frame.srcdoc = '<div style="padding:20px;font-family:system-ui,sans-serif;color:#ef4444">Ошибка рендера: ' + e.message + '</div>';

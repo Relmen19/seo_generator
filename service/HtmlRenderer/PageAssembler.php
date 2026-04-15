@@ -165,10 +165,6 @@ class PageAssembler
 
         $logo = '/uploads/' . ($this->siteProfile['icon_path'] ?? '') ?: (defined('SEO_DEFAULT_LOGO_URL') ? SEO_DEFAULT_LOGO_URL : '');
 
-        $previewBanner = $preview
-            ? '<div class="preview-banner">Предпросмотр — страница не опубликована</div>'
-            : '';
-
         $fullHtml = '<!DOCTYPE html><html lang="ru"><head>'
             . '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">'
             . '<title>' . $title . '</title>'
@@ -184,7 +180,6 @@ class PageAssembler
             . $chartJs
             . $assets->buildStyleTag()
             . '</head><body class="' . $css . '">'
-            . $previewBanner
             . $parallaxHtml
             . $navbarHtml
             . $tocHtml

@@ -61,9 +61,6 @@ class DefaultTheme implements ThemeInterface
             . "\n" . '.section-divider { display:flex; align-items:center; justify-content:center; padding:0; height:1px; position:relative; z-index:2 }'
             . "\n" . '.section-divider-line { width:min(100%,960px); margin:0 auto; height:1px; background:var(--border) }'
 
-            /* ── PREVIEW BANNER ── */
-            . "\n" . '.preview-banner { position:fixed; top:0; left:0; right:0; background:#f59e0b; color:#000; text-align:center; padding:8px; font-weight:700; z-index:9999; font-size:14px }'
-
             /* ── MAIN ── */
             . "\n" . '.page-main { padding-top:64px; position:relative; z-index:1 }'
 
