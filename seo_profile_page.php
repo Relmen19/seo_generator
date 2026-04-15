@@ -1377,11 +1377,27 @@ function renderTplEditor() {
     var t = tplEditorData;
     $('tplEditorTitle').textContent = t.name;
 
-    $('tplEditorInfo').innerHTML =
-        '<div style="font-size:.9rem;color:#94a3b8;margin-bottom:10px">' + esc(t.description || '') + '</div>'
-        + (t.gpt_system_prompt
-            ? '<div style="font-size:.78rem;color:#64748b;padding:10px 12px;background:#0f172a;border-radius:6px;white-space:pre-wrap;word-break:break-word;max-height:120px;overflow-y:auto">' + esc(t.gpt_system_prompt) + '</div>'
-            : '');
+    var infoHtml = '';
+    if (t.description) {
+        infoHtml += '<div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:16px 18px;margin-bottom:14px">'
+            + '<div style="font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px">Описание</div>'
+            + '<div style="font-size:.95rem;color:#e2e8f0;line-height:1.6">' + esc(t.description) + '</div>'
+            + '</div>';
+    }
+    if (t.gpt_system_prompt) {
+        infoHtml += '<div style="background:#0f172a;border:1px solid #1e3a5f;border-radius:10px;padding:16px 18px;margin-bottom:14px">'
+            + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">'
+            + '<span style="font-size:1rem">&#129302;</span>'
+            + '<span style="font-size:.72rem;color:#7dd3fc;text-transform:uppercase;letter-spacing:.5px;font-weight:600">GPT System Prompt</span>'
+            + '</div>'
+            + '<div style="font-size:.9rem;color:#cbd5e1;line-height:1.65;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow-y:auto;font-family:\'JetBrains Mono\',monospace,Consolas,monospace;background:#020617;border:1px solid #1e293b;border-radius:6px;padding:12px 14px">'
+            + esc(t.gpt_system_prompt)
+            + '</div></div>';
+    }
+    if (!t.description && !t.gpt_system_prompt) {
+        infoHtml = '<div style="text-align:center;padding:16px;color:#475569;font-size:.85rem">Нет описания и системного промпта</div>';
+    }
+    $('tplEditorInfo').innerHTML = infoHtml;
 
     var blocks = t.blocks || [];
     $('tplEditorBlocks').innerHTML =

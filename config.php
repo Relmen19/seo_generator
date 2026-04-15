@@ -28,6 +28,7 @@ if (!defined('AI_REQUEST_TIMEOUT')) {
 // ── GPT / AI ──────────────────────────────────────────────────────────────────
 define('GPT_API_KEY',       getenv('GPT_API_KEY')       ?: getenv('OPENAI_API_KEY') ?: '');
 define('GPT_DEFAULT_MODEL', getenv('GPT_DEFAULT_MODEL') ?: 'gpt-4o');
+define('GOOGLE_API_KEY',    getenv('GOOGLE_API_KEY')    ?: '');
 const GPT_TIMEOUT = AI_REQUEST_TIMEOUT;
 
 // SEO-specific AI tuning (differs from main AI_TEMPERATURE / MAX_TOKENS)

@@ -30,10 +30,12 @@ use Throwable;
 class ImageGeneratorService {
 
     const GPT_IMAGE_GENERATE_URL = 'https://api.openai.com/v1/images/generations';
+    const GOOGLE_IMAGEN_URL = 'https://generativelanguage.googleapis.com/v1beta/models/%s:predict';
 
     private Database  $db;
     private GptClient $gpt;
     private string $apiKey;
+    private string $googleApiKey;
     private string $dalleModel;
     private string $defaultSize;
 
@@ -43,6 +45,7 @@ class ImageGeneratorService {
         $this->db        = Database::getInstance();
         $this->gpt       = $gpt ?? new GptClient();
         $this->apiKey    = GPT_API_KEY;
+        $this->googleApiKey = defined('GOOGLE_API_KEY') ? GOOGLE_API_KEY : '';
         $this->dalleModel = defined('DALLE_MODEL') ? DALLE_MODEL : 'dall-e-3';
         $this->defaultSize = defined('DALLE_SIZE') ? DALLE_SIZE : '1024x1024';
     }
@@ -87,7 +90,7 @@ class ImageGeneratorService {
             ? $options['custom_prompt']
             : $this->craftDallePrompt($context, $options);
 
-        $result = $this->callDalle($dallePrompt, $options);
+        $result = $this->callImageApi($dallePrompt, $options);
 
 
         $imageId = $this->saveImage([
@@ -175,7 +178,7 @@ class ImageGeneratorService {
     }
 
     public function generateCustom(int $articleId, string $prompt, array $options = []): array {
-        $result = $this->callDalle($prompt, $options);
+        $result = $this->callImageApi($prompt, $options);
 
         $imageId = $this->saveImage([
             'article_id'  => $articleId,
@@ -259,6 +262,17 @@ class ImageGeneratorService {
         return $prompt;
     }
 
+    private function isGoogleModel(): bool {
+        return strpos($this->dalleModel, 'imagen') === 0;
+    }
+
+    private function callImageApi(string $prompt, array $options = []): array {
+        if ($this->isGoogleModel()) {
+            return $this->callGoogleImagen($prompt, $options);
+        }
+        return $this->callDalle($prompt, $options);
+    }
+
     private function callDalle(string $prompt, array $options = []): array {
         $size    = $options['size']    ?? $this->defaultSize;
         $quality = $options['quality'] ?? 'standard';
@@ -315,6 +329,72 @@ class ImageGeneratorService {
         return [
             'b64_json'       => $imageData['b64_json'],
             'revised_prompt' => $imageData['revised_prompt'] ?? null,
+        ];
+    }
+
+    private function callGoogleImagen(string $prompt, array $options = []): array {
+        if (empty($this->googleApiKey)) {
+            throw new RuntimeException('GOOGLE_API_KEY не задан. Задайте его в .env для использования Imagen.');
+        }
+
+        $size = $options['size'] ?? $this->defaultSize;
+        $aspectMap = [
+            '1024x1024' => '1:1',
+            '1792x1024' => '16:9',
+            '1024x1792' => '9:16',
+        ];
+        $aspectRatio = $aspectMap[$size] ?? '1:1';
+
+        $url = sprintf(self::GOOGLE_IMAGEN_URL, $this->dalleModel) . '?key=' . $this->googleApiKey;
+
+        $payload = [
+            'instances' => [
+                ['prompt' => $prompt],
+            ],
+            'parameters' => [
+                'sampleCount' => 1,
+                'aspectRatio' => $aspectRatio,
+            ],
+        ];
+
+        $json = json_encode($payload, JSON_UNESCAPED_UNICODE);
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $json,
+            CURLOPT_HTTPHEADER     => [
+                'Content-Type: application/json',
+            ],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => AI_REQUEST_TIMEOUT,
+            CURLOPT_CONNECTTIMEOUT => 15,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        if ($response === false) {
+            $err = curl_error($ch);
+            curl_close($ch);
+            throw new RuntimeException("Google Imagen curl error: {$err}");
+        }
+        curl_close($ch);
+
+        $data = json_decode($response, true);
+
+        if ($httpCode >= 400) {
+            $errMsg = $data['error']['message'] ?? "HTTP {$httpCode}";
+            throw new RuntimeException("Google Imagen API error: {$errMsg}");
+        }
+
+        $prediction = $data['predictions'][0] ?? null;
+        if (!$prediction || empty($prediction['bytesBase64Encoded'])) {
+            throw new RuntimeException('Google Imagen вернул пустой ответ');
+        }
+
+        return [
+            'b64_json'       => $prediction['bytesBase64Encoded'],
+            'revised_prompt' => null,
         ];
     }
 

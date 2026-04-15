@@ -401,30 +401,6 @@ requireAuth();
         .json-status.valid { color: #10b981; }
         .json-status.invalid { color: #ef4444; }
 
-        .list-item-json {
-            margin-top: 6px;
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            border-radius: 4px;
-            padding: 6px 8px;
-            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-            font-size: .68rem;
-            line-height: 1.4;
-            color: #94a3b8;
-            max-height: 120px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            word-break: break-all;
-            cursor: text;
-        }
-        .list-item-json-toggle {
-            font-size: .65rem;
-            color: #6366f1;
-            cursor: pointer;
-            margin-top: 4px;
-            user-select: none;
-        }
-        .list-item-json-toggle:hover { color: #818cf8; }
 
         .tree-item[data-depth="1"] { padding-left: 20px; }
         .tree-item[data-depth="2"] { padding-left: 40px; }
@@ -978,6 +954,7 @@ requireAuth();
                                     <option value="dall-e-3">DALL-E 3 (лучшее качество)</option>
                                     <option value="dall-e-2">DALL-E 2 (быстрее)</option>
                                     <option value="gpt-image-1">GPT-Image-1 (новинка)</option>
+                                    <option value="imagen-3.0-generate-002">Google Imagen 3 (Nano Banano)</option>
                                 </select>
                             </div>
                             <div style="display:flex;flex-direction:column;gap:4px">
@@ -1212,7 +1189,7 @@ requireAuth();
                         </div>
                         <div class="form-group">
                             <label>Тип</label>
-                            <select id="tgtType">
+                            <select id="tgtType" onchange="updateTgtConfigFormVisibility()">
                                 <option value="hostia">Hostia</option>
                                 <option value="ftp">FTP</option>
                                 <option value="ssh">SSH</option>
@@ -1231,14 +1208,57 @@ requireAuth();
                             </select>
                         </div>
                         <div class="form-group full">
-                            <label>Config (JSON)</label>
-                            <textarea id="tgtConfig" class="json-editor" rows="8" placeholder='{"publish_endpoint":"https://example.com/admin/seo_generator/deploy/publish.php"}'></textarea>
-                            <span class="json-status" id="tgtConfigStatus"></span>
-                            <span style="font-size:.7rem;color:#475569;margin-top:4px;display:block">
-                                Hostia: укажите <code style="color:#a5b4fc">publish_endpoint</code> — полный URL до publish.php на целевом хосте.
-                                Если не указан, используется <code style="color:#a5b4fc">base_url + /admin/seo_generator/deploy/publish.php</code>.
-                                FTP/SSH: <code style="color:#a5b4fc">host, username, password, port, document_root</code>.
-                            </span>
+                            <label>Config</label>
+                            <div class="block-view-tabs" style="margin-bottom:8px">
+                                <button class="bvt active" data-tab="form" onclick="switchTgtConfigTab('form',this)">Форма</button>
+                                <button class="bvt" data-tab="json" onclick="switchTgtConfigTab('json',this)">JSON</button>
+                            </div>
+                            <div id="tgtConfigTabForm" class="block-tab-content">
+                                <div id="tgtConfigFormHostia">
+                                    <div class="form-group" style="margin-bottom:8px">
+                                        <label style="font-size:.72rem;color:#64748b">publish_endpoint</label>
+                                        <input type="text" id="tgtCfgPublishEndpoint" placeholder="https://example.com/admin/seo_generator/deploy/publish.php" onchange="syncTgtFormToJson()">
+                                    </div>
+                                </div>
+                                <div id="tgtConfigFormFtp" style="display:none">
+                                    <div style="display:grid;grid-template-columns:1fr 100px;gap:8px;margin-bottom:8px">
+                                        <div class="form-group"><label style="font-size:.72rem;color:#64748b">host</label>
+                                            <input type="text" id="tgtCfgHost" placeholder="ftp.example.com" onchange="syncTgtFormToJson()"></div>
+                                        <div class="form-group"><label style="font-size:.72rem;color:#64748b">port</label>
+                                            <input type="text" id="tgtCfgPort" placeholder="21" onchange="syncTgtFormToJson()"></div>
+                                    </div>
+                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                                        <div class="form-group"><label style="font-size:.72rem;color:#64748b">username</label>
+                                            <input type="text" id="tgtCfgUsername" onchange="syncTgtFormToJson()"></div>
+                                        <div class="form-group"><label style="font-size:.72rem;color:#64748b">password</label>
+                                            <input type="password" id="tgtCfgPassword" onchange="syncTgtFormToJson()"></div>
+                                    </div>
+                                    <div class="form-group" style="margin-bottom:8px">
+                                        <label style="font-size:.72rem;color:#64748b">document_root</label>
+                                        <input type="text" id="tgtCfgDocRoot" placeholder="/var/www/html" onchange="syncTgtFormToJson()">
+                                    </div>
+                                </div>
+                                <div id="tgtConfigFormApi" style="display:none">
+                                    <div class="form-group" style="margin-bottom:8px">
+                                        <label style="font-size:.72rem;color:#64748b">endpoint</label>
+                                        <input type="text" id="tgtCfgApiEndpoint" placeholder="https://api.example.com/publish" onchange="syncTgtFormToJson()">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom:8px">
+                                        <label style="font-size:.72rem;color:#64748b">api_key</label>
+                                        <input type="text" id="tgtCfgApiKey" onchange="syncTgtFormToJson()">
+                                    </div>
+                                </div>
+                                <span style="font-size:.7rem;color:#475569;display:block;margin-top:4px">
+                                    Дополнительные поля можно добавить через вкладку JSON.
+                                </span>
+                            </div>
+                            <div id="tgtConfigTabJson" class="block-tab-content" style="display:none">
+                                <div class="json-toolbar">
+                                    <button class="btn btn-xs btn-ghost" onclick="formatTgtConfigJson()">Format</button>
+                                    <button class="btn btn-xs btn-ghost" onclick="copyTgtConfigJson()">Copy</button>
+                                </div>
+                                <div id="tgtConfigCm" class="block-cm-editor"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2712,25 +2732,13 @@ requireAuth();
         const f = s ? rows.filter(r => r.name.toLowerCase().includes(s)||r.slug.toLowerCase().includes(s)) : rows;
         $('templateCount').textContent = f.length + ' шаблонов';
         if (!f.length) { $('templateList').innerHTML = '<div style="padding:30px;text-align:center;color:#475569;font-size:.85rem">&#128196; Нет шаблонов<br><span style="font-size:.75rem;color:#334155;margin-top:6px;display:block">Создайте шаблон через раздел Профиля</span></div>'; return; }
-        $('templateList').innerHTML = f.map(r => {
-            const blocks = r.blocks || [];
-            const blocksJson = blocks.length
-                ? blocks.map(b => {
-                    const cfg = typeof b.config === 'string' ? (function(){ try { return JSON.parse(b.config); } catch(e) { return {}; } })() : (b.config || {});
-                    return { type: b.type, name: b.name, required: !!b.is_required, hint: cfg.hint || undefined };
-                })
-                : [];
-            const jsonStr = blocksJson.length ? JSON.stringify(blocksJson, null, 2) : '';
-            const uid = 'tplJson_' + r.id;
-            return '<div class="list-item '+(activeEditor==='template'&&r.id==tplId?'selected':'')+'" onclick="selectTemplate('+r.id+')">'
-                +'<div class="list-item-body"><div class="list-item-name">'+esc(r.name)+'</div>'
-                +'<div class="list-item-sub">'+esc(r.slug)+' &middot; '+(r.blocks_count||0)+' блоков</div>'
-                +'<div class="list-item-meta"><span class="tag type">'+esc(r.css_class||'—')+'</span>'
-                +'<span class="tag">'+(r.is_active?'Активен':'Неактивен')+'</span></div>'
-                +(jsonStr ? '<div class="list-item-json-toggle" onclick="event.stopPropagation();toggleListJson(\''+uid+'\')">{ } JSON блоков</div>'
-                    +'<div class="list-item-json" id="'+uid+'" style="display:none" onclick="event.stopPropagation()">'+esc(jsonStr)+'</div>' : '')
-                +'</div></div>';
-        }).join('');
+        $('templateList').innerHTML = f.map(r =>
+            '<div class="list-item '+(activeEditor==='template'&&r.id==tplId?'selected':'')+'" onclick="selectTemplate('+r.id+')">'
+            +'<div class="list-item-body"><div class="list-item-name">'+esc(r.name)+'</div>'
+            +'<div class="list-item-sub">'+esc(r.slug)+' &middot; '+(r.blocks_count||0)+' блоков</div>'
+            +'<div class="list-item-meta"><span class="tag type">'+esc(r.css_class||'—')+'</span>'
+            +'<span class="tag">'+(r.is_active?'Активен':'Неактивен')+'</span></div></div></div>'
+        ).join('');
     }
     function refreshTplDropdown() {
         const items = allTemplates.map(t => ({value: t.id, label: t.name + ' (' + t.slug + ')'}));
@@ -2773,29 +2781,124 @@ requireAuth();
         } catch(e) { toast(e.message, true); }
     }
 
+    let tplJsonEditors = {};
+    let tplBlockConfigs = {};
+
     function renderTplBlocks(blocks) {
+        tplJsonEditors = {};
+        tplBlockConfigs = {};
         $('tplBlocksEmpty').style.display = blocks.length ? 'none' : 'block';
         if (!blocks.length) { $('tplBlocksList').innerHTML=''; return; }
-        $('tplBlocksList').innerHTML = blocks.map(b =>
-            '<div class="block-item" data-block-id="'+b.id+'" draggable="true">'
-            +'<div class="block-header" onclick="toggleBlock(this)">'
-            +'<div class="block-header-left"><span class="drag-handle" onclick="event.stopPropagation()" title="Перетащить">&#8942;&#8942;</span>'
-            +'<span class="block-type">'+esc(b.type)+'</span><span class="block-name">'+esc(b.name)+'</span>'
-            +(b.is_required?'<span class="tag" style="border-color:#f59e0b;color:#fcd34d;font-size:.6rem">обяз.</span>':'')
-            +'</div><div class="block-header-right">'
-            +'<button class="btn btn-xs btn-red" onclick="event.stopPropagation();deleteTplBlock('+b.id+')" title="Удалить">&#10005;</button>'
-            +'<span class="collapse-arrow">&#9660;</span>'
-            +'</div></div><div class="block-body hidden">'
-            +'<div class="form-group" style="margin-bottom:8px"><label>Название</label>'
-            +'<input type="text" value="'+esc(b.name||'')+'" onchange="updateTplBlock('+b.id+',\'name\',this.value)"></div>'
-            +'<div class="form-group" style="margin-bottom:8px"><label>Обязательный</label>'
-            +'<select onchange="updateTplBlock('+b.id+',\'is_required\',parseInt(this.value))">'
-            +'<option value="1" '+(b.is_required?'selected':'')+'>Да</option><option value="0" '+(!b.is_required?'selected':'')+'>Нет</option></select></div>'
-            +'<div class="form-group"><label>Config (JSON)</label>'
-            +'<textarea class="json-editor" rows="6" onchange="updateTplBlock('+b.id+',\'config\',this.value)" oninput="validateJsonInline(this)">'+esc(jsonPretty(b.config))+'</textarea></div>'
-            +'</div></div>'
-        ).join('');
+        $('tplBlocksList').innerHTML = blocks.map(function(b) {
+            let cfg = {};
+            if (typeof b.config === 'object' && b.config) cfg = b.config;
+            else if (typeof b.config === 'string' && b.config) { try { cfg = JSON.parse(b.config); } catch(e) {} }
+            tplBlockConfigs[b.id] = cfg;
+            return '<div class="block-item" data-block-id="'+b.id+'" draggable="true">'
+                +'<div class="block-header" onclick="toggleBlock(this)">'
+                +'<div class="block-header-left"><span class="drag-handle" onclick="event.stopPropagation()" title="Перетащить">&#8942;&#8942;</span>'
+                +'<span class="block-type">'+esc(b.type)+'</span><span class="block-name">'+esc(b.name)+'</span>'
+                +(b.is_required?'<span class="tag" style="border-color:#f59e0b;color:#fcd34d;font-size:.6rem">обяз.</span>':'')
+                +'</div><div class="block-header-right">'
+                +'<button class="btn btn-xs btn-red" onclick="event.stopPropagation();deleteTplBlock('+b.id+')" title="Удалить">&#10005;</button>'
+                +'<span class="collapse-arrow">&#9660;</span>'
+                +'</div></div><div class="block-body hidden">'
+                +'<div class="form-group" style="margin-bottom:8px"><label>Название</label>'
+                +'<input type="text" value="'+esc(b.name||'')+'" onchange="updateTplBlock('+b.id+',\'name\',this.value)"></div>'
+                +'<div class="form-group" style="margin-bottom:8px"><label>Обязательный</label>'
+                +'<select onchange="updateTplBlock('+b.id+',\'is_required\',parseInt(this.value))">'
+                +'<option value="1" '+(b.is_required?'selected':'')+'>Да</option><option value="0" '+(!b.is_required?'selected':'')+'>Нет</option></select></div>'
+                // Tabs: Form / JSON
+                +'<div class="block-view-tabs">'
+                +'<button class="bvt active" data-tab="form" onclick="event.stopPropagation();switchTplBlockTab('+b.id+',\'form\',this)">Форма</button>'
+                +'<button class="bvt" data-tab="json" onclick="event.stopPropagation();switchTplBlockTab('+b.id+',\'json\',this)">JSON</button>'
+                +'</div>'
+                // Tab: Form
+                +'<div id="tbtab_form_'+b.id+'" class="block-tab-content">'
+                +'<div class="form-group" style="margin-bottom:8px"><label>Hint (подсказка для GPT)</label>'
+                +'<textarea rows="3" onchange="updateTplBlockCfgField('+b.id+',\'hint\',this.value)">'+esc(cfg.hint||'')+'</textarea></div>'
+                +'<div class="form-group" style="margin-bottom:8px"><label>Fields (поля)</label>'
+                +'<textarea rows="2" onchange="updateTplBlockCfgField('+b.id+',\'fields\',this.value)" placeholder="Через запятую: title, text, items...">'+esc((cfg.fields||[]).join?.(', ')||'')+'</textarea></div>'
+                +'</div>'
+                // Tab: JSON
+                +'<div id="tbtab_json_'+b.id+'" class="block-tab-content" style="display:none">'
+                +'<div class="json-toolbar">'
+                +'<button class="btn btn-xs btn-ghost" onclick="event.stopPropagation();formatTplBlockJson('+b.id+')">Format</button>'
+                +'<button class="btn btn-xs btn-ghost" onclick="event.stopPropagation();copyTplBlockJson('+b.id+')">Copy</button>'
+                +'</div>'
+                +'<div id="tbc_'+b.id+'" class="block-cm-editor"></div>'
+                +'</div>'
+                +'</div></div>';
+        }).join('');
         initDragSort('tplBlocksList', saveTplBlocksOrder);
+    }
+
+    function switchTplBlockTab(blockId, tab, btn) {
+        ['form','json'].forEach(function(t) {
+            var el = document.getElementById('tbtab_' + t + '_' + blockId);
+            if (el) el.style.display = t === tab ? 'block' : 'none';
+        });
+        if (btn) {
+            var wrap = btn.closest('.block-view-tabs');
+            if (wrap) wrap.querySelectorAll('.bvt').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+        }
+        if (tab === 'json') initTplJsonEditor(blockId);
+    }
+
+    function initTplJsonEditor(blockId) {
+        var el = document.getElementById('tbc_' + blockId);
+        if (!el) return;
+        if (tplJsonEditors[blockId]) { tplJsonEditors[blockId].refresh(); return; }
+        var editor = CodeMirror(el, {
+            value: jsonPretty(tplBlockConfigs[blockId] || {}),
+            mode: { name: 'javascript', json: true },
+            theme: 'dracula',
+            lineNumbers: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            tabSize: 2,
+            indentWithTabs: false,
+            lineWrapping: true
+        });
+        editor.on('blur', function() { saveTplBlockJson(blockId); });
+        tplJsonEditors[blockId] = editor;
+    }
+
+    function saveTplBlockJson(blockId) {
+        var ed = tplJsonEditors[blockId];
+        if (!ed) return;
+        var val = ed.getValue();
+        try {
+            var parsed = JSON.parse(val);
+            tplBlockConfigs[blockId] = parsed;
+            updateTplBlock(blockId, 'config', val);
+        } catch(e) { /* invalid json, skip save */ }
+    }
+
+    function formatTplBlockJson(blockId) {
+        var ed = tplJsonEditors[blockId];
+        if (!ed) return;
+        try { ed.setValue(JSON.stringify(JSON.parse(ed.getValue()), null, 2)); } catch(e) { toast('Невалидный JSON', true); }
+    }
+
+    function copyTplBlockJson(blockId) {
+        var ed = tplJsonEditors[blockId];
+        if (!ed) return;
+        navigator.clipboard.writeText(ed.getValue()).then(function() { toast('JSON скопирован'); });
+    }
+
+    function updateTplBlockCfgField(blockId, field, value) {
+        if (!tplBlockConfigs[blockId]) tplBlockConfigs[blockId] = {};
+        if (field === 'fields') {
+            tplBlockConfigs[blockId][field] = value.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+        } else {
+            tplBlockConfigs[blockId][field] = value;
+        }
+        if (tplJsonEditors[blockId]) {
+            tplJsonEditors[blockId].setValue(jsonPretty(tplBlockConfigs[blockId]));
+        }
+        updateTplBlock(blockId, 'config', JSON.stringify(tplBlockConfigs[blockId]));
     }
     function addTemplateBlock() {
         if (!tplId) { toast('Сначала сохраните шаблон', true); return; }
@@ -2891,25 +2994,17 @@ requireAuth();
     function renderTargetList(rows) {
         $('targetCount').textContent = rows.length + ' хостов';
         if (!rows.length) { $('targetList').innerHTML = '<div style="padding:30px;text-align:center;color:#475569;font-size:.85rem">&#127760; Нет хостов для публикации</div>'; return; }
-        $('targetList').innerHTML = rows.map(r => {
-            let cfgJson = '';
-            if (r.config) {
-                try {
-                    const cfg = typeof r.config === 'string' ? JSON.parse(r.config) : r.config;
-                    cfgJson = JSON.stringify(cfg, null, 2);
-                } catch(e) {}
-            }
-            const uid = 'tgtJson_' + r.id;
-            return '<div class="list-item '+(activeEditor==='target'&&r.id==tgtId?'selected':'')+'" onclick="selectTarget('+r.id+')">'
-                +'<div class="list-item-body"><div class="list-item-name">'+esc(r.name)+'</div>'
-                +'<div class="list-item-sub">'+esc(r.base_url)+'</div>'
-                +'<div class="list-item-meta"><span class="tag type">'+esc(r.type)+'</span>'
-                +'<span class="tag">'+(r.is_active?'Активен':'Неактивен')+'</span></div>'
-                +(cfgJson ? '<div class="list-item-json-toggle" onclick="event.stopPropagation();toggleListJson(\''+uid+'\')">{ } Config</div>'
-                    +'<div class="list-item-json" id="'+uid+'" style="display:none" onclick="event.stopPropagation()">'+esc(cfgJson)+'</div>' : '')
-                +'</div></div>';
-        }).join('');
+        $('targetList').innerHTML = rows.map(r =>
+            '<div class="list-item '+(activeEditor==='target'&&r.id==tgtId?'selected':'')+'" onclick="selectTarget('+r.id+')">'
+            +'<div class="list-item-body"><div class="list-item-name">'+esc(r.name)+'</div>'
+            +'<div class="list-item-sub">'+esc(r.base_url)+'</div>'
+            +'<div class="list-item-meta"><span class="tag type">'+esc(r.type)+'</span>'
+            +'<span class="tag">'+(r.is_active?'Активен':'Неактивен')+'</span></div></div></div>'
+        ).join('');
     }
+    let tgtConfigEditor = null;
+    let tgtConfigData = {};
+
     async function selectTarget(id) {
         if (dirty && !confirm('Несохранённые изменения. Продолжить?')) return;
         try {
@@ -2918,8 +3013,11 @@ requireAuth();
             showEditor('targetEditor', 'Хост #'+t.id, t.id);
             $('tgtName').value = t.name||''; $('tgtType').value = t.type||'hostia';
             $('tgtBaseUrl').value = t.base_url||''; $('tgtIsActive').value = t.is_active?'1':'0';
-            $('tgtConfig').value = jsonPretty(t.config);
-            validateJsonField('tgtConfig','tgtConfigStatus');
+            tgtConfigData = (typeof t.config === 'object' && t.config) ? t.config : {};
+            populateTgtConfigForm(tgtConfigData);
+            updateTgtConfigFormVisibility();
+            if (tgtConfigEditor) { tgtConfigEditor.setValue(jsonPretty(tgtConfigData)); }
+            switchTgtConfigTab('form', document.querySelector('#targetEditor .bvt[data-tab="form"]'));
             loadTargetsList();
         } catch(e) { toast(e.message, true); }
     }
@@ -2929,12 +3027,20 @@ requireAuth();
         showEditor('targetEditor', 'Новый хост', null);
         ['tgtName','tgtBaseUrl'].forEach(id => $(id).value='');
         $('tgtType').value = 'hostia'; $('tgtIsActive').value = '1';
-        $('tgtConfig').value = '{\n  \n}'; $('tgtConfigStatus').textContent = '';
+        tgtConfigData = {};
+        populateTgtConfigForm({});
+        updateTgtConfigFormVisibility();
+        if (tgtConfigEditor) { tgtConfigEditor.setValue('{\n  \n}'); }
+        switchTgtConfigTab('form', document.querySelector('#targetEditor .bvt[data-tab="form"]'));
         switchTab('targets'); $('tgtName').focus();
     }
     async function saveTarget() {
-        let config;
-        try { config = JSON.parse($('tgtConfig').value); } catch(e) { toast('Config: невалидный JSON', true); return; }
+        var config;
+        if (tgtConfigEditor) {
+            try { config = JSON.parse(tgtConfigEditor.getValue()); } catch(e) { toast('Config: невалидный JSON', true); return; }
+        } else {
+            config = tgtConfigData;
+        }
         const body = {name:$('tgtName').value, type:$('tgtType').value, base_url:$('tgtBaseUrl').value,
             is_active:parseInt($('tgtIsActive').value), config};
         try {
@@ -2944,6 +3050,85 @@ requireAuth();
             $('btnDelete').style.display = 'inline-flex'; $('btnDuplicate').style.display = 'inline-flex';
             loadTargetsList();
         } catch(e) { toast(e.message, true); }
+    }
+
+    function switchTgtConfigTab(tab, btn) {
+        ['Form','Json'].forEach(function(t) {
+            var el = document.getElementById('tgtConfigTab' + t);
+            if (el) el.style.display = t.toLowerCase() === tab ? 'block' : 'none';
+        });
+        if (btn) {
+            var wrap = btn.closest('.block-view-tabs');
+            if (wrap) wrap.querySelectorAll('.bvt').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+        }
+        if (tab === 'json') initTgtConfigEditor();
+    }
+
+    function initTgtConfigEditor() {
+        var el = document.getElementById('tgtConfigCm');
+        if (!el) return;
+        if (tgtConfigEditor) { tgtConfigEditor.setValue(jsonPretty(tgtConfigData)); tgtConfigEditor.refresh(); return; }
+        tgtConfigEditor = CodeMirror(el, {
+            value: jsonPretty(tgtConfigData),
+            mode: { name: 'javascript', json: true },
+            theme: 'dracula',
+            lineNumbers: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            tabSize: 2,
+            indentWithTabs: false,
+            lineWrapping: true
+        });
+        tgtConfigEditor.on('blur', function() {
+            try { tgtConfigData = JSON.parse(tgtConfigEditor.getValue()); populateTgtConfigForm(tgtConfigData); } catch(e) {}
+        });
+    }
+
+    function formatTgtConfigJson() {
+        if (!tgtConfigEditor) return;
+        try { tgtConfigEditor.setValue(JSON.stringify(JSON.parse(tgtConfigEditor.getValue()), null, 2)); } catch(e) { toast('Невалидный JSON', true); }
+    }
+    function copyTgtConfigJson() {
+        if (!tgtConfigEditor) return;
+        navigator.clipboard.writeText(tgtConfigEditor.getValue()).then(function() { toast('JSON скопирован'); });
+    }
+
+    function updateTgtConfigFormVisibility() {
+        var type = $('tgtType').value;
+        $('tgtConfigFormHostia').style.display = (type === 'hostia') ? 'block' : 'none';
+        $('tgtConfigFormFtp').style.display = (type === 'ftp' || type === 'ssh') ? 'block' : 'none';
+        $('tgtConfigFormApi').style.display = (type === 'api') ? 'block' : 'none';
+    }
+
+    function populateTgtConfigForm(cfg) {
+        $('tgtCfgPublishEndpoint').value = cfg.publish_endpoint || '';
+        $('tgtCfgHost').value = cfg.host || '';
+        $('tgtCfgPort').value = cfg.port || '';
+        $('tgtCfgUsername').value = cfg.username || '';
+        $('tgtCfgPassword').value = cfg.password || '';
+        $('tgtCfgDocRoot').value = cfg.document_root || '';
+        $('tgtCfgApiEndpoint').value = cfg.endpoint || '';
+        $('tgtCfgApiKey').value = cfg.api_key || '';
+    }
+
+    function syncTgtFormToJson() {
+        var type = $('tgtType').value;
+        if (type === 'hostia') {
+            var ep = $('tgtCfgPublishEndpoint').value.trim();
+            if (ep) tgtConfigData.publish_endpoint = ep;
+            else delete tgtConfigData.publish_endpoint;
+        } else if (type === 'ftp' || type === 'ssh') {
+            tgtConfigData.host = $('tgtCfgHost').value.trim();
+            tgtConfigData.port = $('tgtCfgPort').value.trim() || (type === 'ftp' ? '21' : '22');
+            tgtConfigData.username = $('tgtCfgUsername').value;
+            tgtConfigData.password = $('tgtCfgPassword').value;
+            tgtConfigData.document_root = $('tgtCfgDocRoot').value.trim();
+        } else if (type === 'api') {
+            tgtConfigData.endpoint = $('tgtCfgApiEndpoint').value.trim();
+            tgtConfigData.api_key = $('tgtCfgApiKey').value;
+        }
+        if (tgtConfigEditor) { tgtConfigEditor.setValue(jsonPretty(tgtConfigData)); }
     }
 
     let imgPreviewId = null;
@@ -3575,11 +3760,6 @@ requireAuth();
     function toast(msg, err) {
         const t=$('toast'); t.textContent=msg; t.className='toast'+(err?' error':'');
         setTimeout(()=>t.classList.add('show'),10); setTimeout(()=>t.classList.remove('show'),3000);
-    }
-    function toggleListJson(id) {
-        const el = $(id);
-        if (!el) return;
-        el.style.display = el.style.display === 'none' ? '' : 'none';
     }
     async function deleteAllBlocks() {
         if (!artId) { toast('Сначала сохраните статью', true); return; }
