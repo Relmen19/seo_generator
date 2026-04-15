@@ -65,6 +65,27 @@ class HtmlRendererService {
         return $this->renderBlock($type, $content, []);
     }
 
+    public function renderSingleBlockPreview(string $type, array $content): string {
+        $blockHtml = $this->renderBlock($type, $content, []);
+
+        $fonts = '<link rel="preconnect" href="https://fonts.googleapis.com">'
+            . '<link href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;500;700;900&family=Onest:wght@300;400;500&display=swap" rel="stylesheet">';
+
+        $chartJs = strpos($blockHtml, 'chartjs-wrap') !== false
+            ? '<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>'
+            : '';
+
+        return '<!DOCTYPE html><html lang="ru"><head>'
+            . '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">'
+            . $fonts
+            . $chartJs
+            . $this->getStylesheet()
+            . '</head><body>'
+            . $blockHtml
+            . $this->getScripts(0)
+            . '</body></html>';
+    }
+
     private function renderBlock(string $type, array $content, array $meta): string {
         $id = 'block-' . ($meta['id'] ?? uniqid());
         switch ($type) {

@@ -62,11 +62,18 @@ class SeoBlockType extends AbstractEntity {
     }
 
     public function toFullArray(): array {
-        return array_merge(
-            ['code' => $this->code],
-            $this->toArray(),
-            ['created_at' => $this->createdAt],
-        );
+        return [
+            'code'         => $this->code,
+            'display_name' => $this->displayName,
+            'description'  => $this->description,
+            'category'     => $this->category,
+            'icon'         => $this->icon,
+            'json_schema'  => $this->jsonSchema,
+            'gpt_hint'     => $this->gptHint,
+            'is_active'    => (int)$this->isActive,
+            'sort_order'   => $this->sortOrder,
+            'created_at'   => $this->createdAt,
+        ];
     }
 
     public function getCode(): string { return $this->code; }

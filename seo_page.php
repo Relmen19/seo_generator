@@ -292,6 +292,8 @@ requireAuth();
         .json-toolbar {
             display: flex; gap: 6px; margin-bottom: 6px;
         }
+        .block-cm-editor { border: 1px solid #334155; border-radius: 6px; overflow: hidden; }
+        .block-cm-editor .CodeMirror { height: auto; min-height: 220px; font-size: .82rem; line-height: 1.5; }
 
         .block-preview-frame {
             width: 100%; min-height: 300px; max-height: 600px;
@@ -573,6 +575,12 @@ requireAuth();
             .img-layout-grid { grid-template-columns: repeat(4, 1fr); }
         }
     </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5/lib/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5/theme/dracula.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5/lib/codemirror.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5/addon/edit/closebrackets.min.js"></script>
 </head>
 <body>
 <div class="topbar">
@@ -1643,6 +1651,45 @@ requireAuth();
 
     /* ── Состояние контента блоков ── */
     let blockContents = {};
+    let jsonEditors = {};
+
+    function getBlockJsonValue(blockId) {
+        return jsonEditors[blockId] ? jsonEditors[blockId].getValue() : '';
+    }
+
+    function setBlockJsonValue(blockId, str) {
+        const ed = jsonEditors[blockId];
+        if (!ed) return;
+        if (ed.getValue() !== str) ed.setValue(str);
+    }
+
+    function initJsonEditor(blockId) {
+        const el = document.getElementById('bc_' + blockId);
+        if (!el) return;
+        if (jsonEditors[blockId]) { jsonEditors[blockId].refresh(); return; }
+        const editor = CodeMirror(el, {
+            value: jsonPretty(blockContents[blockId] || {}),
+            mode: { name: 'javascript', json: true },
+            theme: 'dracula',
+            lineNumbers: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            tabSize: 2,
+            indentWithTabs: false,
+            lineWrapping: true
+        });
+        editor.on('change', function(cm) {
+            try {
+                const parsed = JSON.parse(cm.getValue());
+                blockContents[blockId] = parsed;
+                const block = artBlocks.find(function(b) { return b.id === blockId; });
+                const formTab = document.getElementById('btab_form_' + blockId);
+                if (formTab && block) formTab.innerHTML = renderBlockFormEditor(blockId, block.type, parsed);
+            } catch(e) { /* invalid JSON */ }
+        });
+        editor.on('blur', function() { saveBlockJson(blockId); });
+        jsonEditors[blockId] = editor;
+    }
 
     /* ── 3-view: переключение табов ── */
     function switchBlockTab(blockId, tab, btn) {
@@ -1656,6 +1703,7 @@ requireAuth();
             btn.classList.add('active');
         }
         if (tab === 'preview') renderBlockPreview(blockId);
+        if (tab === 'json') initJsonEditor(blockId);
     }
 
     /* ── 3-view: HTML-превью блока ── */
@@ -1683,42 +1731,27 @@ requireAuth();
 
     /* ── 3-view: JSON-редактор ── */
     function formatBlockJson(blockId) {
-        const ta = document.getElementById('bc_' + blockId);
-        if (!ta) return;
+        const ed = jsonEditors[blockId];
+        if (!ed) return;
         try {
-            ta.value = JSON.stringify(JSON.parse(ta.value), null, 2);
-            ta.classList.remove('error');
+            ed.setValue(JSON.stringify(JSON.parse(ed.getValue()), null, 2));
         } catch(e) { toast('Невалидный JSON', true); }
     }
 
     function copyBlockJson(blockId) {
-        const ta = document.getElementById('bc_' + blockId);
-        if (!ta) return;
-        navigator.clipboard.writeText(ta.value).then(() => toast('JSON скопирован')).catch(() => toast('Не удалось скопировать', true));
-    }
-
-    function onBlockJsonInput(blockId, textarea) {
-        validateJsonInline(textarea);
-        try {
-            const parsed = JSON.parse(textarea.value);
-            blockContents[blockId] = parsed;
-            const formTab = document.getElementById('btab_form_' + blockId);
-            const block = artBlocks.find(function(b) { return b.id === blockId; });
-            if (formTab && block) {
-                formTab.innerHTML = renderBlockFormEditor(blockId, block.type, parsed);
-            }
-        } catch(e) { /* invalid JSON — не синхронизируем */ }
+        navigator.clipboard.writeText(getBlockJsonValue(blockId))
+            .then(() => toast('JSON скопирован'))
+            .catch(() => toast('Не удалось скопировать', true));
     }
 
     async function saveBlockJson(blockId) {
-        const ta = document.getElementById('bc_' + blockId);
-        if (!ta) return;
-        await updateArtBlock(blockId, 'content', ta.value);
+        const val = getBlockJsonValue(blockId);
+        if (!val) return;
+        await updateArtBlock(blockId, 'content', val);
     }
 
     function syncFormToJson(blockId) {
-        const ta = document.getElementById('bc_' + blockId);
-        if (ta) ta.value = jsonPretty(blockContents[blockId]);
+        setBlockJsonValue(blockId, jsonPretty(blockContents[blockId]));
     }
 
     /* ── 3-view: обновление из формы ── */
@@ -1843,6 +1876,7 @@ requireAuth();
     }
 
     function renderArticleBlocks(blocks) {
+        jsonEditors = {};
         $('artBlocksEmpty').style.display = blocks.length ? 'none' : 'block';
         if (!blocks.length) { $('artBlocksList').innerHTML=''; return; }
         $('artBlocksList').innerHTML = blocks.map(b => {
@@ -1919,9 +1953,7 @@ requireAuth();
                 +'<button class="btn btn-xs btn-ghost" onclick="event.stopPropagation();formatBlockJson('+b.id+')">Format</button>'
                 +'<button class="btn btn-xs btn-ghost" onclick="event.stopPropagation();copyBlockJson('+b.id+')">Copy</button>'
                 +'</div>'
-                +'<textarea class="json-editor" rows="10" id="bc_'+b.id+'" '
-                +'oninput="onBlockJsonInput('+b.id+',this)" '
-                +'onchange="saveBlockJson('+b.id+')">'+esc(jsonPretty(b.content))+'</textarea>'
+                +'<div id="bc_'+b.id+'" class="block-cm-editor"></div>'
                 +'</div>'
                 // Tab: Превью
                 +'<div id="btab_preview_'+b.id+'" class="block-tab-content" style="display:none">'
@@ -2137,11 +2169,7 @@ requireAuth();
                 +', токены: '+d.usage.total_tokens, 'log-ok');
             toast('Блок перегенерирован');
 
-            const ta = document.getElementById('bc_'+blockId);
-            if (ta) {
-                ta.value = jsonPretty(d.content);
-                ta.classList.remove('error');
-            }
+            setBlockJsonValue(blockId, jsonPretty(d.content));
             // Обновляем состояние и форму
             try {
                 const newContent = typeof d.content === 'object' ? d.content : JSON.parse(d.content);
@@ -2928,9 +2956,8 @@ requireAuth();
                     btn.classList.toggle('active', btn.dataset.layout === layout);
                 });
             }
-            /* Update JSON editor textarea if visible */
-            const ta = $('bc_'+blockId);
-            if (ta) ta.value = jsonPretty(content);
+            blockContents[blockId] = content;
+            setBlockJsonValue(blockId, jsonPretty(content));
         } catch(e) { toast(e.message, true); }
     }
 
@@ -2977,26 +3004,20 @@ requireAuth();
 
     function pickImageForBlock(blockId) {
         openImgPicker(async (imgId) => {
-            const ta = $('bc_'+blockId);
-            if (!ta) return;
-            let content;
-            try { content = JSON.parse(ta.value || '{}'); } catch(e) { content = {}; }
-            content.image_id = imgId;
-            ta.value = jsonPretty(content);
-            await updateArtBlock(blockId, 'content', ta.value);
+            if (!blockContents[blockId]) blockContents[blockId] = {};
+            blockContents[blockId].image_id = imgId;
+            setBlockJsonValue(blockId, jsonPretty(blockContents[blockId]));
+            await updateArtBlock(blockId, 'content', JSON.stringify(blockContents[blockId]));
             toast('Изображение #'+imgId+' привязано к блоку');
             if (artId) await loadArticleBlocks(artId);
         });
     }
 
     async function unlinkImageFromBlock(blockId) {
-        const ta = $('bc_'+blockId);
-        if (!ta) return;
-        let content;
-        try { content = JSON.parse(ta.value || '{}'); } catch(e) { content = {}; }
-        delete content.image_id;
-        ta.value = jsonPretty(content);
-        await updateArtBlock(blockId, 'content', ta.value);
+        if (!blockContents[blockId]) return;
+        delete blockContents[blockId].image_id;
+        setBlockJsonValue(blockId, jsonPretty(blockContents[blockId]));
+        await updateArtBlock(blockId, 'content', JSON.stringify(blockContents[blockId]));
         toast('Изображение снято с блока');
         if (artId) await loadArticleBlocks(artId);
     }

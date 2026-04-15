@@ -453,13 +453,7 @@ class ArticleController extends AbstractController {
         }
 
         $service = new HtmlRendererService();
-        $html    = $service->renderSingleBlock($type, $content);
-
-        $wrapped = '<!DOCTYPE html><html><head><meta charset="utf-8">'
-            . '<style>*{box-sizing:border-box}body{font-family:system-ui,-apple-system,sans-serif;'
-            . 'padding:16px;background:#fff;color:#111;line-height:1.6;margin:0}'
-            . 'img{max-width:100%;height:auto}</style>'
-            . '</head><body>' . $html . '</body></html>';
+        $wrapped = $service->renderSingleBlockPreview($type, $content);
 
         header('Content-Type: text/html; charset=utf-8');
         echo $wrapped;
