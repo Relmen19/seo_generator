@@ -8,6 +8,7 @@ use Seo\Entity\SeoArticle;
 use Seo\Entity\SeoArticleBlock;
 use Seo\Entity\SeoCatalog;
 use Seo\Entity\SeoAuditLog;
+use Seo\Service\HtmlRendererService;
 
 /*
      GET             /articles                  список с фильтрами и пагинацией
@@ -27,6 +28,11 @@ use Seo\Entity\SeoAuditLog;
 class ArticleController extends AbstractController {
 
     public function dispatch(string $method, ?string $action, ?int $id): void {
+        if ($action === 'render-block' && $method === 'POST') {
+            $this->renderBlock();
+            return;
+        }
+
         if ($id !== null && $action !== null) {
             switch ($action) {
                 case 'blocks':
@@ -432,5 +438,31 @@ class ArticleController extends AbstractController {
 
             if (!empty($rows)) $this->error("Slug '{$data['slug']}' уже существует, выберите другой");
         }
+    }
+
+    private function renderBlock(): void {
+        $body    = $this->getJsonBody();
+        $type    = trim($body['type'] ?? '');
+        $content = $body['content'] ?? [];
+
+        if ($type === '') {
+            $this->error('Параметр type обязателен', 400);
+        }
+        if (!is_array($content)) {
+            $content = [];
+        }
+
+        $service = new HtmlRendererService();
+        $html    = $service->renderSingleBlock($type, $content);
+
+        $wrapped = '<!DOCTYPE html><html><head><meta charset="utf-8">'
+            . '<style>*{box-sizing:border-box}body{font-family:system-ui,-apple-system,sans-serif;'
+            . 'padding:16px;background:#fff;color:#111;line-height:1.6;margin:0}'
+            . 'img{max-width:100%;height:auto}</style>'
+            . '</head><body>' . $html . '</body></html>';
+
+        header('Content-Type: text/html; charset=utf-8');
+        echo $wrapped;
+        exit;
     }
 }

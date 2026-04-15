@@ -221,16 +221,36 @@ requireAuth();
             font-size: .72rem; text-transform: uppercase; letter-spacing: .5px; color: #64748b;
         }
         .form-group input, .form-group select, .form-group textarea {
-            padding: 8px 10px; background: #0f172a; border: 1px solid #334155;
-            border-radius: 6px; color: #e2e8f0; font-size: .85rem; outline: none;
-            font-family: inherit;
+            padding: 10px 14px; background: #0f172a; border: 1px solid #334155;
+            border-radius: 6px; color: #e2e8f0; font-size: .9rem; outline: none;
+            font-family: inherit; line-height: 1.4;
         }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #6366f1; }
         .form-group input:disabled, .form-group textarea:disabled { opacity: .5; cursor: not-allowed; }
+        .form-group select:disabled { opacity: .5; cursor: not-allowed; }
+        .label-hint { font-size: .68rem; color: #475569; text-transform: none; letter-spacing: 0; margin-left: 4px; font-weight: 400; }
+
+        .version-badge {
+            display: inline-flex; align-items: center;
+            background: #1e293b; border: 1px solid #4338ca; color: #a5b4fc;
+            padding: 6px 14px; border-radius: 20px; font-size: .85rem; font-weight: 600;
+            letter-spacing: .5px;
+        }
+        .url-field-wrap {
+            display: flex; align-items: center; gap: 6px;
+            background: #0f172a; border: 1px solid #334155;
+            border-radius: 6px; padding: 8px 10px; min-height: 42px;
+        }
+        .url-link {
+            flex: 1; color: #22d3ee; font-size: .85rem; text-decoration: none;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .url-link:hover { text-decoration: underline; }
+        .url-link.empty { color: #475569; pointer-events: none; }
 
         .json-editor {
             font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-            font-size: .8rem;
+            font-size: .82rem;
             line-height: 1.5;
             tab-size: 2;
             white-space: pre;
@@ -238,6 +258,52 @@ requireAuth();
             resize: vertical;
         }
         .json-editor.error { border-color: #ef4444 !important; }
+
+        /* 3-view block tabs */
+        .block-view-tabs {
+            display: flex; gap: 2px; margin-bottom: 10px;
+            border-bottom: 1px solid #334155; padding-bottom: 0;
+        }
+        .bvt {
+            padding: 5px 14px; font-size: .75rem; font-weight: 600;
+            color: #64748b; background: transparent; border: none;
+            border-bottom: 2px solid transparent; cursor: pointer;
+            transition: .15s; margin-bottom: -1px;
+        }
+        .bvt:hover { color: #94a3b8; }
+        .bvt.active { color: #a5b4fc; border-bottom-color: #6366f1; }
+
+        .block-tab-content { padding-top: 2px; }
+
+        .block-form-editor { display: flex; flex-direction: column; gap: 10px; }
+        .block-form-editor .form-group { margin-bottom: 0; }
+
+        .array-field-list { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+        .block-form-array-item {
+            background: #0a1628; border: 1px solid #334155; border-radius: 6px; padding: 10px;
+        }
+        .array-item-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 8px; font-size: .72rem; color: #64748b; font-weight: 600;
+            text-transform: uppercase; letter-spacing: .4px;
+        }
+        .block-form-array-item .form-group { margin-bottom: 6px; }
+
+        .json-toolbar {
+            display: flex; gap: 6px; margin-bottom: 6px;
+        }
+
+        .block-preview-frame {
+            width: 100%; min-height: 300px; max-height: 600px;
+            border: 1px solid #334155; border-radius: 6px; background: #fff;
+        }
+
+        .no-schema-hint {
+            padding: 14px; color: #64748b; font-size: .82rem; text-align: center;
+            background: #0a1628; border-radius: 6px; border: 1px dashed #334155;
+        }
+        .no-schema-hint a { color: #6366f1; cursor: pointer; }
+        .no-schema-hint a:hover { text-decoration: underline; }
 
         .empty-state {
             display: flex; flex-direction: column; align-items: center;
@@ -590,7 +656,7 @@ requireAuth();
             <div class="list-toolbar">
                 <div class="search-row">
                     <input type="text" id="searchTemplate" placeholder="Поиск шаблонов...">
-                    <!-- Создание шаблонов через AI на вкладке профиля -->
+                    <a href="/seo_profile_page.php" class="btn btn-ghost btn-sm" title="Создание шаблонов — в разделе Профиля" style="white-space:nowrap;font-size:.72rem">&#8599; Профиль</a>
                 </div>
             </div>
             <div class="item-list" id="templateList"></div>
@@ -826,10 +892,12 @@ requireAuth();
                 </div>
 
                 <div class="section-block">
-                    <h3>Дополнительно</h3>
+                    <h3>Настройки статьи
+                        <span style="font-size:.72rem;font-weight:400;color:#475569;margin-left:6px">AI-модель и системные данные</span>
+                    </h3>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label>GPT Model</label>
+                            <label>AI Модель генерации <span class="label-hint">используется при генерации блоков</span></label>
                             <select id="artGptModel">
                                 <option value="gpt-4o">GPT-4o</option>
                                 <option value="gpt-4o-mini">GPT-4o Mini</option>
@@ -840,20 +908,26 @@ requireAuth();
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Версия</label>
-                            <input type="number" id="artVersion" disabled>
-                        </div>
-                        <div class="form-group">
                             <label>Создатель</label>
                             <input type="text" id="artCreatedBy" placeholder="manager">
                         </div>
                         <div class="form-group">
+                            <label>Версия</label>
+                            <span class="version-badge" id="artVersionBadge">—</span>
+                        </div>
+                        <div class="form-group">
                             <label>Опубликованный URL</label>
-                            <input type="text" id="artPublishedUrl" disabled>
+                            <div class="url-field-wrap">
+                                <a id="artPublishedUrl" href="#" target="_blank" class="url-link empty">не опубликована</a>
+                                <button class="btn btn-xs btn-ghost" onclick="copyPublishedUrl()" title="Скопировать URL">⎘</button>
+                            </div>
                         </div>
                         <div class="form-group full">
-                            <label>Лог генерации (JSON, read-only)</label>
-                            <textarea id="artGenLog" class="json-editor" rows="4" disabled></textarea>
+                            <label style="cursor:pointer;user-select:none" onclick="toggleGenLog()">
+                                Лог генерации
+                                <span id="genLogToggleIcon" style="color:#64748b;font-size:.7rem;margin-left:4px">▶ показать</span>
+                            </label>
+                            <textarea id="artGenLog" class="json-editor" rows="6" disabled style="display:none"></textarea>
                         </div>
                     </div>
                 </div>
@@ -1298,6 +1372,7 @@ requireAuth();
     document.addEventListener('DOMContentLoaded', () => {
         if (!currentProfileId) { window.location.href = '/seo_profile_page.php'; return; }
         loadProfileHeader();
+        loadBlockTypeSchemas();
         loadCatalogsList();
         loadArticlesList();
         loadTemplatesList();
@@ -1454,10 +1529,12 @@ requireAuth();
             $('artArticlePlan').value = art.article_plan||'';
             $('artGptModel').value = art.gpt_model||'gpt-4o';
             $('genModel').value = art.gpt_model||'gpt-4o';
-            $('artVersion').value = art.version||1;
+            setVersionBadge(art.version||1);
             $('artCreatedBy').value = art.created_by||'';
-            $('artPublishedUrl').value = art.published_url||'';
+            setPublishedUrl(art.published_url||'');
             $('artGenLog').value = art.generation_log ? jsonPretty(art.generation_log) : '';
+            $('artGenLog').style.display = 'none';
+            $('genLogToggleIcon').textContent = '▶ показать';
 
             $('btnUnpublish').style.display = art.status==='published' ? 'inline-flex' : 'none';
             $('pubResult').style.display = 'none';
@@ -1477,9 +1554,10 @@ requireAuth();
         artId = null; artBlocks = []; artImages = []; artTemplateTplBlocks = [];
         activeEditor = 'article';
         showEditor('articleEditor', 'Новая статья', null, '<span class="status-badge status-draft">Черновик</span>');
-        ['artTitle','artSlug','artKeywords','artMetaTitle','artMetaDesc','artMetaKeywords','artArticlePlan','artCreatedBy','artPublishedUrl','artGenLog'].forEach(id => $(id).value='');
+        ['artTitle','artSlug','artKeywords','artMetaTitle','artMetaDesc','artMetaKeywords','artArticlePlan','artCreatedBy','artGenLog'].forEach(id => $(id).value='');
         $('artStatus').value = 'draft'; ssArtCatalog.clear(); ssArtTemplate.clear();
-        $('artGptModel').value = 'gpt-4o'; $('artVersion').value = 1;
+        $('artGptModel').value = 'gpt-4o'; setVersionBadge(1); setPublishedUrl('');
+        $('artGenLog').style.display = 'none'; $('genLogToggleIcon').textContent = '▶ показать';
         $('genModel').value = 'gpt-4o';
         $('genLog').style.display='none'; $('genLog').innerHTML='';
         $('genProgress').classList.remove('active');
@@ -1514,6 +1592,246 @@ requireAuth();
             await loadAllCatalogArticles();
             renderCatalogTree();
         } catch(e) { toast(e.message, true); }
+    }
+
+    /* ── Настройки статьи: вспомогательные функции ── */
+    function setVersionBadge(version) {
+        $('artVersionBadge').textContent = 'v' + (version || 1);
+    }
+
+    function setPublishedUrl(url) {
+        const a = $('artPublishedUrl');
+        if (url) {
+            a.href = url;
+            a.textContent = url;
+            a.classList.remove('empty');
+        } else {
+            a.href = '#';
+            a.textContent = 'не опубликована';
+            a.classList.add('empty');
+        }
+    }
+
+    function copyPublishedUrl() {
+        const a = $('artPublishedUrl');
+        if (a.classList.contains('empty')) { toast('URL не задан', true); return; }
+        navigator.clipboard.writeText(a.href).then(() => toast('URL скопирован')).catch(() => toast('Не удалось скопировать', true));
+    }
+
+    function toggleGenLog() {
+        const ta = $('artGenLog');
+        const icon = $('genLogToggleIcon');
+        const visible = ta.style.display !== 'none';
+        ta.style.display = visible ? 'none' : 'block';
+        icon.textContent = visible ? '▶ показать' : '▼ скрыть';
+    }
+
+    /* ── Схемы блоков ── */
+    let blockTypeSchemas = {};
+
+    async function loadBlockTypeSchemas() {
+        try {
+            const data = await api('block-types');
+            const items = data.data || data.items || data || [];
+            items.forEach(function(bt) {
+                if (bt.code && bt.json_schema) {
+                    blockTypeSchemas[bt.code] = bt.json_schema;
+                }
+            });
+        } catch(e) { console.warn('loadBlockTypeSchemas:', e); }
+    }
+
+    /* ── Состояние контента блоков ── */
+    let blockContents = {};
+
+    /* ── 3-view: переключение табов ── */
+    function switchBlockTab(blockId, tab, btn) {
+        ['form','json','preview'].forEach(function(t) {
+            const el = document.getElementById('btab_' + t + '_' + blockId);
+            if (el) el.style.display = t === tab ? 'block' : 'none';
+        });
+        if (btn) {
+            const wrap = btn.closest('.block-view-tabs');
+            if (wrap) wrap.querySelectorAll('.bvt').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+        }
+        if (tab === 'preview') renderBlockPreview(blockId);
+    }
+
+    /* ── 3-view: HTML-превью блока ── */
+    async function renderBlockPreview(blockId) {
+        const content = blockContents[blockId] || {};
+        const block = artBlocks.find(function(b) { return b.id === blockId; });
+        if (!block) return;
+
+        const frame = document.getElementById('bprev_' + blockId);
+        if (!frame) return;
+        frame.srcdoc = '<div style="padding:20px;font-family:system-ui,sans-serif;color:#888">Загрузка превью...</div>';
+
+        try {
+            const resp = await fetch(API + '?r=articles/render-block', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({type: block.type, content: content})
+            });
+            const html = await resp.text();
+            frame.srcdoc = html;
+        } catch(e) {
+            frame.srcdoc = '<div style="padding:20px;font-family:system-ui,sans-serif;color:#ef4444">Ошибка рендера: ' + e.message + '</div>';
+        }
+    }
+
+    /* ── 3-view: JSON-редактор ── */
+    function formatBlockJson(blockId) {
+        const ta = document.getElementById('bc_' + blockId);
+        if (!ta) return;
+        try {
+            ta.value = JSON.stringify(JSON.parse(ta.value), null, 2);
+            ta.classList.remove('error');
+        } catch(e) { toast('Невалидный JSON', true); }
+    }
+
+    function copyBlockJson(blockId) {
+        const ta = document.getElementById('bc_' + blockId);
+        if (!ta) return;
+        navigator.clipboard.writeText(ta.value).then(() => toast('JSON скопирован')).catch(() => toast('Не удалось скопировать', true));
+    }
+
+    function onBlockJsonInput(blockId, textarea) {
+        validateJsonInline(textarea);
+        try {
+            const parsed = JSON.parse(textarea.value);
+            blockContents[blockId] = parsed;
+            const formTab = document.getElementById('btab_form_' + blockId);
+            const block = artBlocks.find(function(b) { return b.id === blockId; });
+            if (formTab && block) {
+                formTab.innerHTML = renderBlockFormEditor(blockId, block.type, parsed);
+            }
+        } catch(e) { /* invalid JSON — не синхронизируем */ }
+    }
+
+    async function saveBlockJson(blockId) {
+        const ta = document.getElementById('bc_' + blockId);
+        if (!ta) return;
+        await updateArtBlock(blockId, 'content', ta.value);
+    }
+
+    function syncFormToJson(blockId) {
+        const ta = document.getElementById('bc_' + blockId);
+        if (ta) ta.value = jsonPretty(blockContents[blockId]);
+    }
+
+    /* ── 3-view: обновление из формы ── */
+    function updateBlockField(blockId, field, value) {
+        if (!blockContents[blockId]) blockContents[blockId] = {};
+        blockContents[blockId][field] = value;
+        syncFormToJson(blockId);
+        updateArtBlock(blockId, 'content', JSON.stringify(blockContents[blockId]));
+    }
+
+    function updateArrayItem(blockId, field, idx, subKey, value) {
+        if (!blockContents[blockId]) blockContents[blockId] = {};
+        if (!Array.isArray(blockContents[blockId][field])) blockContents[blockId][field] = [];
+        if (!blockContents[blockId][field][idx]) blockContents[blockId][field][idx] = {};
+        blockContents[blockId][field][idx][subKey] = value;
+        syncFormToJson(blockId);
+        updateArtBlock(blockId, 'content', JSON.stringify(blockContents[blockId]));
+    }
+
+    function addArrayItem(blockId, field) {
+        if (!blockContents[blockId]) blockContents[blockId] = {};
+        if (!Array.isArray(blockContents[blockId][field])) blockContents[blockId][field] = [];
+        const schema = blockTypeSchemas[artBlocks.find(function(b) { return b.id === blockId; })?.type] || {};
+        const fieldDef = (schema.fields || {})[field] || {};
+        const subFields = fieldDef.items || {};
+        const newItem = {};
+        Object.keys(subFields).forEach(function(k) { newItem[k] = ''; });
+        blockContents[blockId][field].push(newItem);
+        syncFormToJson(blockId);
+        updateArtBlock(blockId, 'content', JSON.stringify(blockContents[blockId]));
+        // Перерисовать форму
+        const block = artBlocks.find(function(b) { return b.id === blockId; });
+        const formTab = document.getElementById('btab_form_' + blockId);
+        if (formTab && block) {
+            formTab.innerHTML = renderBlockFormEditor(blockId, block.type, blockContents[blockId]);
+        }
+    }
+
+    function removeArrayItem(blockId, field, idx) {
+        if (!blockContents[blockId] || !Array.isArray(blockContents[blockId][field])) return;
+        blockContents[blockId][field].splice(idx, 1);
+        syncFormToJson(blockId);
+        updateArtBlock(blockId, 'content', JSON.stringify(blockContents[blockId]));
+        const block = artBlocks.find(function(b) { return b.id === blockId; });
+        const formTab = document.getElementById('btab_form_' + blockId);
+        if (formTab && block) {
+            formTab.innerHTML = renderBlockFormEditor(blockId, block.type, blockContents[blockId]);
+        }
+    }
+
+    /* ── 3-view: генератор структурных форм ── */
+    function renderBlockFormEditor(blockId, blockType, content) {
+        const schema = blockTypeSchemas[blockType];
+        if (!schema || !schema.fields) {
+            return '<div class="no-schema-hint">Схема полей не найдена для типа <b>' + esc(blockType) + '</b>. '
+                + '<a onclick="switchBlockTab(' + blockId + ',\'json\',document.querySelector(\'#blockItem_' + blockId + ' .bvt[data-tab=json]\'))">Открыть JSON</a></div>';
+        }
+
+        var html = '<div class="block-form-editor">';
+        Object.keys(schema.fields).forEach(function(field) {
+            var def = schema.fields[field];
+            var val = (content && content[field] !== undefined) ? content[field] : '';
+            var type = (typeof def === 'string') ? def : (def.type || 'string');
+
+            if (type === 'array') {
+                html += renderArrayFieldEditor(blockId, field, def, Array.isArray(val) ? val : []);
+            } else {
+                var strVal = (val === null || val === undefined) ? '' : String(val);
+                var isLong = strVal.length > 80 || field === 'text' || field === 'content' || field === 'html' || field === 'description';
+                var required = def.required ? ' *' : '';
+                html += '<div class="form-group">';
+                html += '<label>' + esc(field) + required + '</label>';
+                if (isLong) {
+                    html += '<textarea rows="4" onchange="updateBlockField(' + blockId + ',\'' + field + '\',this.value)">' + esc(strVal) + '</textarea>';
+                } else {
+                    html += '<input type="text" value="' + esc(strVal) + '" onchange="updateBlockField(' + blockId + ',\'' + field + '\',this.value)">';
+                }
+                html += '</div>';
+            }
+        });
+        html += '</div>';
+        return html;
+    }
+
+    function renderArrayFieldEditor(blockId, field, def, items) {
+        var subFields = (typeof def === 'object' && def.items && typeof def.items === 'object') ? def.items : {};
+        var html = '<div class="form-group full"><label>' + esc(field) + '</label>';
+        html += '<div class="array-field-list" id="afl_' + blockId + '_' + field + '">';
+
+        items.forEach(function(item, idx) {
+            html += '<div class="block-form-array-item">';
+            html += '<div class="array-item-header"><span>' + esc(field) + ' #' + (idx + 1) + '</span>';
+            html += '<button class="btn btn-xs btn-red" onclick="removeArrayItem(' + blockId + ',\'' + field + '\',' + idx + ')">✕</button></div>';
+
+            Object.keys(subFields).forEach(function(subKey) {
+                var subVal = (item && item[subKey] !== undefined) ? String(item[subKey]) : '';
+                var isLong = subKey === 'answer' || subKey === 'content' || subKey === 'text' || subKey === 'description' || subKey === 'html' || subVal.length > 80;
+                html += '<div class="form-group">';
+                html += '<label>' + esc(subKey) + '</label>';
+                if (isLong) {
+                    html += '<textarea rows="3" onchange="updateArrayItem(' + blockId + ',\'' + field + '\',' + idx + ',\'' + subKey + '\',this.value)">' + esc(subVal) + '</textarea>';
+                } else {
+                    html += '<input type="text" value="' + esc(subVal) + '" onchange="updateArrayItem(' + blockId + ',\'' + field + '\',' + idx + ',\'' + subKey + '\',this.value)">';
+                }
+                html += '</div>';
+            });
+            html += '</div>';
+        });
+
+        html += '</div>';
+        html += '<button class="btn btn-xs btn-ghost" style="margin-top:6px" onclick="addArrayItem(' + blockId + ',\'' + field + '\')">+ Добавить ' + esc(field) + '</button>';
+        html += '</div>';
+        return html;
     }
 
     async function loadArticleBlocks(articleId) {
@@ -1565,6 +1883,8 @@ requireAuth();
                     + '</div></div></div>';
             }
 
+            blockContents[b.id] = content;
+
             return '<div class="block-item" data-block-id="'+b.id+'" id="blockItem_'+b.id+'" draggable="true">'
                 +'<div class="block-header" onclick="toggleBlock(this)">'
                 +'<div class="block-header-left">'
@@ -1581,11 +1901,35 @@ requireAuth();
                 +'</div></div>'
                 +'<div class="block-body hidden">'
                 +imgSection
-                +'<div class="form-group" style="margin-bottom:8px"><label>Название блока</label>'
+                +'<div class="form-group" style="margin-bottom:10px"><label>Название блока</label>'
                 +'<input type="text" value="'+esc(b.name||'')+'" onchange="updateArtBlock('+b.id+',\'name\',this.value)"></div>'
-                +'<div class="form-group" style="margin-bottom:8px"><label>Content (JSON)</label>'
-                +'<textarea class="json-editor" rows="8" id="bc_'+b.id+'" onchange="updateArtBlock('+b.id+',\'content\',this.value)" oninput="validateJsonInline(this)">'+esc(jsonPretty(b.content))+'</textarea></div>'
-                +'<div class="form-group"><label>GPT Prompt <span style="font-size:.7rem;color:#64748b">(доп. инструкции для генерации этого блока)</span></label>'
+                // 3-view tabs
+                +'<div class="block-view-tabs">'
+                +'<button class="bvt active" data-tab="form" onclick="event.stopPropagation();switchBlockTab('+b.id+',\'form\',this)">Форма</button>'
+                +'<button class="bvt" data-tab="json" onclick="event.stopPropagation();switchBlockTab('+b.id+',\'json\',this)">JSON</button>'
+                +'<button class="bvt" data-tab="preview" onclick="event.stopPropagation();switchBlockTab('+b.id+',\'preview\',this)">Превью</button>'
+                +'</div>'
+                // Tab: Форма
+                +'<div id="btab_form_'+b.id+'" class="block-tab-content">'
+                +renderBlockFormEditor(b.id, b.type, content)
+                +'</div>'
+                // Tab: JSON
+                +'<div id="btab_json_'+b.id+'" class="block-tab-content" style="display:none">'
+                +'<div class="json-toolbar">'
+                +'<button class="btn btn-xs btn-ghost" onclick="event.stopPropagation();formatBlockJson('+b.id+')">Format</button>'
+                +'<button class="btn btn-xs btn-ghost" onclick="event.stopPropagation();copyBlockJson('+b.id+')">Copy</button>'
+                +'</div>'
+                +'<textarea class="json-editor" rows="10" id="bc_'+b.id+'" '
+                +'oninput="onBlockJsonInput('+b.id+',this)" '
+                +'onchange="saveBlockJson('+b.id+')">'+esc(jsonPretty(b.content))+'</textarea>'
+                +'</div>'
+                // Tab: Превью
+                +'<div id="btab_preview_'+b.id+'" class="block-tab-content" style="display:none">'
+                +'<button class="btn btn-xs btn-ghost" style="margin-bottom:8px" onclick="event.stopPropagation();renderBlockPreview('+b.id+')">&#8635; Обновить превью</button>'
+                +'<iframe id="bprev_'+b.id+'" class="block-preview-frame" sandbox="allow-scripts allow-same-origin"></iframe>'
+                +'</div>'
+                // GPT Prompt (после табов)
+                +'<div class="form-group" style="margin-top:10px"><label>GPT Prompt <span class="label-hint">(доп. инструкции для генерации этого блока)</span></label>'
                 +'<textarea rows="3" id="bp_'+b.id+'" onchange="updateArtBlock('+b.id+',\'gpt_prompt\',this.value)">'+esc(b.gpt_prompt||'')+'</textarea></div>'
                 +'</div></div>';
         }).join('');
@@ -1798,6 +2142,16 @@ requireAuth();
                 ta.value = jsonPretty(d.content);
                 ta.classList.remove('error');
             }
+            // Обновляем состояние и форму
+            try {
+                const newContent = typeof d.content === 'object' ? d.content : JSON.parse(d.content);
+                blockContents[blockId] = newContent;
+                const block = artBlocks.find(function(b) { return b.id === blockId; });
+                const formTab = document.getElementById('btab_form_'+blockId);
+                if (formTab && block) {
+                    formTab.innerHTML = renderBlockFormEditor(blockId, block.type, newContent);
+                }
+            } catch(e) {}
 
             const el = document.getElementById('blockItem_'+blockId);
             if (el) {
@@ -1949,7 +2303,7 @@ requireAuth();
             const data = await api('articles/'+artId);
             const art = data.data;
             $('artGenLog').value = art.generation_log ? jsonPretty(art.generation_log) : '';
-            $('artVersion').value = art.version||1;
+            setVersionBadge(art.version||1);
         } catch(e) {}
     }
 
@@ -2211,7 +2565,7 @@ requireAuth();
         const s = $('searchTemplate').value.toLowerCase();
         const f = s ? rows.filter(r => r.name.toLowerCase().includes(s)||r.slug.toLowerCase().includes(s)) : rows;
         $('templateCount').textContent = f.length + ' шаблонов';
-        if (!f.length) { $('templateList').innerHTML = '<div style="padding:30px;text-align:center;color:#475569">Нет шаблонов</div>'; return; }
+        if (!f.length) { $('templateList').innerHTML = '<div style="padding:30px;text-align:center;color:#475569;font-size:.85rem">&#128196; Нет шаблонов<br><span style="font-size:.75rem;color:#334155;margin-top:6px;display:block">Создайте шаблон через раздел Профиля</span></div>'; return; }
         $('templateList').innerHTML = f.map(r =>
             '<div class="list-item '+(activeEditor==='template'&&r.id==tplId?'selected':'')+'" onclick="selectTemplate('+r.id+')">'
             +'<div class="list-item-body"><div class="list-item-name">'+esc(r.name)+'</div>'
@@ -2326,7 +2680,7 @@ requireAuth();
     }
     function renderLinkList(rows) {
         $('linkCount').textContent = rows.length + ' ссылок';
-        if (!rows.length) { $('linkList').innerHTML = '<div style="padding:30px;text-align:center;color:#475569">Нет ссылок</div>'; return; }
+        if (!rows.length) { $('linkList').innerHTML = '<div style="padding:30px;text-align:center;color:#475569;font-size:.85rem">&#128279; Нет ссылок</div>'; return; }
         $('linkList').innerHTML = rows.map(r =>
             '<div class="list-item '+(activeEditor==='link'&&r.id==lnkId?'selected':'')+'" onclick="selectLink('+r.id+')">'
             +'<div class="list-item-body"><div class="list-item-name">{{link:'+esc(r.key)+'}}</div>'
@@ -2378,7 +2732,7 @@ requireAuth();
     }
     function renderTargetList(rows) {
         $('targetCount').textContent = rows.length + ' хостов';
-        if (!rows.length) { $('targetList').innerHTML = '<div style="padding:30px;text-align:center;color:#475569">Нет хостов</div>'; return; }
+        if (!rows.length) { $('targetList').innerHTML = '<div style="padding:30px;text-align:center;color:#475569;font-size:.85rem">&#127760; Нет хостов для публикации</div>'; return; }
         $('targetList').innerHTML = rows.map(r =>
             '<div class="list-item '+(activeEditor==='target'&&r.id==tgtId?'selected':'')+'" onclick="selectTarget('+r.id+')">'
             +'<div class="list-item-body"><div class="list-item-name">'+esc(r.name)+'</div>'
@@ -2816,7 +3170,7 @@ requireAuth();
                 + '<br>Размер: '+(d.html_size/1024).toFixed(1)+' KB'
                 + '<br>Время: '+esc(d.published_at);
 
-            $('artPublishedUrl').value = d.published_url;
+            setPublishedUrl(d.published_url);
             $('artStatus').value = 'published';
             $('btnUnpublish').style.display = 'inline-flex';
             toast('Статья опубликована');
@@ -2888,12 +3242,19 @@ requireAuth();
     }
     function renderAuditList(rows) {
         $('auditCount').textContent = rows.length + ' записей';
-        if (!rows.length) { $('auditList').innerHTML = '<div style="padding:30px;text-align:center;color:#475569">Нет записей</div>'; return; }
-        $('auditList').innerHTML = rows.map(r =>
-            '<div class="list-item '+(activeEditor==='audit'&&r.id==auditId?'selected':'')+'" onclick="selectAudit('+r.id+')">'
-            +'<div class="list-item-body"><div class="list-item-name">'+esc(r.action)+' &rarr; '+esc(r.entity_type)+' #'+r.entity_id+'</div>'
-            +'<div class="list-item-sub">'+esc(r.actor||'system')+' &middot; '+fmtDate(r.created_at)+'</div></div></div>'
-        ).join('');
+        if (!rows.length) { $('auditList').innerHTML = '<div style="padding:30px;text-align:center;color:#475569;font-size:.85rem">&#128203; Нет записей в логе</div>'; return; }
+        const actionIcon = {create:'&#43;', update:'&#9998;', delete:'&#10005;', publish:'&#9654;', unpublish:'&#9646;', generate:'&#10024;'};
+        const actionColor = {create:'#6ee7b7', update:'#93c5fd', delete:'#fca5a5', publish:'#86efac', unpublish:'#fcd34d', generate:'#c4b5fd'};
+        $('auditList').innerHTML = rows.map(r => {
+            const icon = actionIcon[r.action] || '&#8226;';
+            const color = actionColor[r.action] || '#94a3b8';
+            return '<div class="list-item '+(activeEditor==='audit'&&r.id==auditId?'selected':'')+'" onclick="selectAudit('+r.id+')">'
+                +'<div style="width:22px;height:22px;border-radius:4px;background:rgba(0,0,0,.3);border:1px solid '+color+';display:flex;align-items:center;justify-content:center;font-size:.65rem;color:'+color+';flex-shrink:0;margin-top:2px">'+icon+'</div>'
+                +'<div class="list-item-body"><div class="list-item-name" style="color:'+color+'">'+esc(r.action)+'</div>'
+                +'<div class="list-item-sub">'+esc(r.entity_type)+' #'+r.entity_id+' &middot; '+esc(r.actor||'system')+'</div>'
+                +'<div class="list-item-sub" title="'+esc(fmtDate(r.created_at))+'">'+fmtRelative(r.created_at)+'</div>'
+                +'</div></div>';
+        }).join('');
     }
     async function selectAudit(id) {
         try {
@@ -3022,6 +3383,15 @@ requireAuth();
     function $(id) { return document.getElementById(id); }
     function esc(s) { if(s===null||s===undefined)return''; const d=document.createElement('div'); d.textContent=String(s); return d.innerHTML; }
     function fmtDate(d) { if(!d)return''; return new Date(d).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+    function fmtRelative(d) {
+        if (!d) return '';
+        const diff = Math.floor((Date.now() - new Date(d)) / 1000);
+        if (diff < 60) return 'только что';
+        if (diff < 3600) return Math.floor(diff/60) + ' мин. назад';
+        if (diff < 86400) return Math.floor(diff/3600) + ' ч. назад';
+        if (diff < 86400*7) return Math.floor(diff/86400) + ' дн. назад';
+        return fmtDate(d);
+    }
     function closeModal(id) { $(id).classList.remove('show'); }
     function jsonPretty(val) {
         if (!val) return '';
