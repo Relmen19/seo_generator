@@ -110,7 +110,7 @@ class IntentController extends AbstractController {
             $this->error('Тело запроса пустое', 422);
         }
 
-        $allowed = ['label_ru', 'label_en', 'color', 'sort_order', 'description', 'gpt_hint', 'article_tone', 'article_open', 'is_active'];
+        $allowed = ['label_ru', 'label_en', 'color', 'sort_order', 'description', 'gpt_hint', 'article_tone', 'article_open', 'is_active', 'profile_id'];
         $fields  = [];
         foreach ($allowed as $field) {
             if (array_key_exists($field, $data)) {
@@ -124,6 +124,9 @@ class IntentController extends AbstractController {
 
         if (isset($fields['is_active'])) {
             $fields['is_active'] = (int)(bool)$fields['is_active'];
+        }
+        if (array_key_exists('profile_id', $fields)) {
+            $fields['profile_id'] = $fields['profile_id'] !== null ? (int)$fields['profile_id'] : null;
         }
         if (isset($fields['sort_order'])) {
             $fields['sort_order'] = (int)$fields['sort_order'];
@@ -177,6 +180,9 @@ class IntentController extends AbstractController {
     }
 
     private function applyFields(SeoIntentType $intent, array $data): void {
+        if (array_key_exists('profile_id', $data)) {
+            $intent->setProfileId($data['profile_id'] !== null ? (int)$data['profile_id'] : null);
+        }
         if (isset($data['label_ru'])) {
             $intent->setLabelRu(trim((string)$data['label_ru']));
         }

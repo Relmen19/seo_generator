@@ -374,6 +374,10 @@ class ImageGeneratorService {
             ->toArray());
     }
 
+    public function setDalleModel(string $model): void {
+        $this->dalleModel = $model;
+    }
+
     public function getLastResult(): array {
         return $this->lastResult;
     }

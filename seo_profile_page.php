@@ -170,10 +170,34 @@ requireAuth();
         .tpl-card { cursor: pointer; transition: border-color .2s; }
         .tpl-card:hover { border-color: #6366f1; }
         .tpl-ai-bar { display: flex; gap: 6px; flex-wrap: wrap; }
-        .tpl-review-box { border: 1px solid #334155; border-radius: 8px; padding: 16px; background: #0f172a; }
-        .tpl-score { font-size: 1.1rem; font-weight: 700; }
+        .tpl-review-box { border: 1px solid #334155; border-radius: 8px; padding: 20px; background: #0f172a; }
+        .tpl-score { font-size: 1.3rem; font-weight: 700; }
         .tpl-diff-block { border-color: #059669 !important; }
         .tpl-diff-block .gen-block-chip { border-color: #059669; color: #4ade80; }
+
+        /* ── Template card improvements ── */
+        .tpl-card .tpl-card-name { font-size: 1rem; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
+        .tpl-card .tpl-card-meta { font-size: .8rem; color: #64748b; margin-bottom: 8px; }
+        .tpl-card .tpl-card-blocks { display: flex; gap: 4px; flex-wrap: wrap; }
+        .tpl-card .tpl-card-actions { display: flex; gap: 6px; margin-top: 10px; }
+
+        /* ── Template editor modal improvements ── */
+        #tplEditorModal .wizard-body { font-size: .9rem; }
+        #tplEditorModal .gen-tpl-item { padding: 14px; margin-bottom: 8px; }
+        #tplEditorModal .gen-block-chip { font-size: .78rem; padding: 3px 10px; }
+
+        /* ── Intent management ── */
+        .intent-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin-bottom: 8px; transition: border-color .2s; }
+        .intent-card:hover { border-color: #6366f1; }
+        .intent-card.is-global { border-left: 3px solid #475569; }
+        .intent-card.is-custom { border-left: 3px solid #6366f1; }
+        .intent-header { display: flex; align-items: center; gap: 12px; }
+        .intent-color { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+        .intent-info { flex: 1; min-width: 0; }
+        .intent-name { font-size: .92rem; font-weight: 600; color: #f1f5f9; }
+        .intent-code { font-size: .72rem; color: #475569; font-family: monospace; }
+        .intent-desc { font-size: .78rem; color: #94a3b8; margin-top: 4px; }
+        .intent-actions { display: flex; gap: 6px; flex-shrink: 0; }
     </style>
 </head>
 <body>
@@ -343,7 +367,13 @@ requireAuth();
 
     <!-- Tab: Intents -->
     <div class="ws-content" id="tabIntents" style="display:none">
-        <div class="section-title"><span>Интенты профиля</span></div>
+        <div class="section-title">
+            <span>Интенты профиля</span>
+            <div style="display:flex;gap:6px">
+                <button class="ai-badge" id="btnAiGenIntents" onclick="aiGenerateIntents()">+ AI Интенты</button>
+                <button class="btn btn-primary btn-sm" onclick="openAddIntentModal()">+ Новый интент</button>
+            </div>
+        </div>
         <div id="intentsList"></div>
     </div>
 </div>
@@ -521,6 +551,45 @@ requireAuth();
         <div class="wizard-footer">
             <button class="btn btn-ghost" onclick="closeTplEditor()">Закрыть</button>
             <div style="display:flex;gap:8px" id="tplEditorFooterActions"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════ MODAL: Intent Editor ═══════════════════ -->
+<div class="wizard-overlay" id="intentModal">
+    <div class="wizard" style="max-width:640px">
+        <div class="wizard-header" style="padding-bottom:16px">
+            <div class="wizard-title" id="intentModalTitle">Новый интент</div>
+        </div>
+        <div class="wizard-body">
+            <div class="form-grid">
+                <div class="form-row">
+                    <label>Код (латиница, a-z0-9_)</label>
+                    <input type="text" id="intentCode" placeholder="my_intent" pattern="[a-z0-9_]{1,30}">
+                </div>
+                <div class="form-row">
+                    <label>Цвет</label>
+                    <input type="color" id="intentColor" value="#6366f1" style="width:100%;height:36px;cursor:pointer">
+                </div>
+                <div class="form-row"><label>Название (RU)</label><input type="text" id="intentLabelRu" placeholder="Проверка симптомов"></div>
+                <div class="form-row"><label>Название (EN)</label><input type="text" id="intentLabelEn" placeholder="Symptom check"></div>
+                <div class="form-row full"><label>Описание</label><textarea id="intentDesc" rows="2" placeholder="Когда этот интент применяется..."></textarea></div>
+                <div class="form-row full"><label>GPT Hint (подсказка для AI)</label><textarea id="intentGptHint" rows="2" placeholder="Как AI должен распознавать этот интент..."></textarea></div>
+                <div class="form-row full"><label>Тон статьи</label><textarea id="intentTone" rows="2" placeholder="Как должна быть написана статья с этим интентом..."></textarea></div>
+                <div class="form-row full"><label>Открывающая фраза</label><input type="text" id="intentOpen" placeholder="Предлагаемое начало статьи..."></div>
+                <div class="form-row">
+                    <label>Статус</label>
+                    <select id="intentActive"><option value="1">Активен</option><option value="0">Неактивен</option></select>
+                </div>
+            </div>
+            <div id="intentAiPanel" style="margin-top:12px;padding:12px;background:#1e1b4b;border:1px solid #312e81;border-radius:8px">
+                <div style="font-size:.75rem;color:#a5b4fc;font-weight:600;margin-bottom:6px">AI-подсказка</div>
+                <div style="font-size:.78rem;color:#94a3b8">Заполните описание и GPT Hint — AI будет использовать их для подбора тона и структуры статей.</div>
+            </div>
+        </div>
+        <div class="wizard-footer">
+            <button class="btn btn-ghost" onclick="$('intentModal').classList.remove('show')">Отмена</button>
+            <button class="btn btn-primary" onclick="saveIntent()">Сохранить</button>
         </div>
     </div>
 </div>
@@ -830,17 +899,26 @@ async function loadTemplates() {
                 </div>`;
             return;
         }
-        $('templatesList').innerHTML = templates.map(t => `
-            <div class="settings-section tpl-card" style="margin-bottom:10px" onclick="openTplEditor(${t.id})">
-                <div style="display:flex;justify-content:space-between;align-items:center">
-                    <div style="flex:1;min-width:0">
-                        <div style="font-weight:600;color:#f1f5f9">${esc(t.name)}</div>
-                        <div style="font-size:.72rem;color:#64748b;margin-top:2px">${esc(t.slug || '')} &middot; ${(t.blocks || []).length} блоков</div>
-                    </div>
-                    <span class="ai-badge" style="font-size:.65rem;padding:2px 8px" onclick="event.stopPropagation();openTplEditor(${t.id})">AI</span>
-                </div>
-            </div>
-        `).join('');
+        $('templatesList').innerHTML = templates.map(t => {
+            const blocks = t.blocks || [];
+            const blockChips = blocks.map(b => {
+                const cfg = typeof b.config === 'object' ? b.config : (function(){ try { return JSON.parse(b.config || '{}'); } catch(e) { return {}; } })();
+                return '<span class="gen-block-chip">' + esc(b.type) + '</span>';
+            }).join('');
+            return '<div class="settings-section tpl-card" style="margin-bottom:10px" onclick="openTplEditor(' + t.id + ')">'
+                + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+                + '<div style="flex:1;min-width:0">'
+                + '<div class="tpl-card-name">' + esc(t.name) + '</div>'
+                + '<div class="tpl-card-meta">' + esc(t.slug || '') + ' &middot; ' + blocks.length + ' блоков'
+                + (t.is_active ? '' : ' &middot; <span style="color:#fca5a5">неактивен</span>') + '</div>'
+                + (blocks.length ? '<div class="tpl-card-blocks">' + blockChips + '</div>' : '')
+                + '</div>'
+                + '<div class="tpl-card-actions">'
+                + '<button class="ai-badge" style="font-size:.72rem;padding:4px 10px" onclick="event.stopPropagation();openRegenFormDirect(' + t.id + ')" title="Перегенерировать">AI Regen</button>'
+                + '<button class="btn btn-danger btn-sm" style="padding:4px 8px;font-size:.68rem" onclick="event.stopPropagation();deleteTemplate(' + t.id + ',\'' + esc(t.name) + '\')" title="Удалить">&#10005;</button>'
+                + '</div>'
+                + '</div></div>';
+        }).join('');
     } catch(e) { $('templatesList').innerHTML = '<div style="color:#64748b">Ошибка загрузки</div>'; }
 }
 
@@ -1300,23 +1378,24 @@ function renderTplEditor() {
     $('tplEditorTitle').textContent = t.name;
 
     $('tplEditorInfo').innerHTML =
-        '<div style="font-size:.82rem;color:#94a3b8;margin-bottom:8px">' + esc(t.description || '') + '</div>'
+        '<div style="font-size:.9rem;color:#94a3b8;margin-bottom:10px">' + esc(t.description || '') + '</div>'
         + (t.gpt_system_prompt
-            ? '<div style="font-size:.72rem;color:#475569;padding:8px;background:#0f172a;border-radius:6px;white-space:pre-wrap;word-break:break-word">' + esc(t.gpt_system_prompt) + '</div>'
+            ? '<div style="font-size:.78rem;color:#64748b;padding:10px 12px;background:#0f172a;border-radius:6px;white-space:pre-wrap;word-break:break-word;max-height:120px;overflow-y:auto">' + esc(t.gpt_system_prompt) + '</div>'
             : '');
 
     var blocks = t.blocks || [];
     $('tplEditorBlocks').innerHTML =
-        '<div style="font-size:.72rem;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">Блоки (' + blocks.length + ')</div>'
-        + blocks.map(function(b) {
+        '<div style="font-size:.78rem;color:#64748b;margin-bottom:10px;text-transform:uppercase;letter-spacing:.3px;font-weight:600">Блоки (' + blocks.length + ')</div>'
+        + blocks.map(function(b, idx) {
             var cfg = parseTplBlockConfig(b);
-            return '<div class="gen-tpl-item" style="padding:10px;margin-bottom:6px">'
-                + '<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">'
+            return '<div class="gen-tpl-item" style="padding:14px;margin-bottom:8px">'
+                + '<div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">'
+                + '<span style="font-size:.72rem;color:#475569;font-weight:700;min-width:20px">' + (idx + 1) + '.</span>'
                 + '<span class="gen-block-chip">' + esc(b.type) + '</span>'
-                + '<span style="font-size:.82rem;font-weight:600;color:#e2e8f0">' + esc(b.name) + '</span>'
-                + (b.is_required ? '<span style="font-size:.6rem;color:#fcd34d">&#9733; обяз.</span>' : '')
+                + '<span style="font-size:.9rem;font-weight:600;color:#e2e8f0">' + esc(b.name) + '</span>'
+                + (b.is_required ? '<span style="font-size:.68rem;color:#fcd34d;background:#422006;padding:1px 6px;border-radius:3px">обяз.</span>' : '')
                 + '</div>'
-                + (cfg.hint ? '<div style="font-size:.72rem;color:#94a3b8">' + esc(cfg.hint) + '</div>' : '')
+                + (cfg.hint ? '<div style="font-size:.82rem;color:#94a3b8;padding-left:30px">' + esc(cfg.hint) + '</div>' : '')
                 + '</div>';
         }).join('');
 
@@ -1326,7 +1405,7 @@ function renderTplEditor() {
     $('btnAiReview').disabled = false;
     $('btnAiReview').innerHTML = 'AI Ревью';
     $('btnAiRegen').disabled = false;
-    $('tplEditorFooterActions').innerHTML = '';
+    $('tplEditorFooterActions').innerHTML = '<button class="btn btn-danger btn-sm" onclick="deleteTemplateFromEditor()">Удалить шаблон</button>';
 }
 
 // ── AI Review ──
@@ -1672,6 +1751,219 @@ async function reloadTplEditor(templateId) {
             $('tplEditorTitle').textContent = tplEditorData.name;
         }
     } catch(e) {}
+}
+
+// ═══════════════════ TEMPLATE MANAGEMENT ═══════════════════
+
+async function deleteTemplate(id, name) {
+    if (!confirm('Удалить шаблон "' + name + '"?')) return;
+    try {
+        var res = await api('templates/' + id, { method: 'DELETE' });
+        if (!res.success) { toast(res.error || 'Ошибка', true); return; }
+        toast('Шаблон удалён');
+        loadTemplates();
+    } catch(e) { toast('Ошибка сети', true); }
+}
+
+async function deleteTemplateFromEditor() {
+    if (!tplEditorData) return;
+    if (!confirm('Удалить шаблон "' + tplEditorData.name + '"?')) return;
+    try {
+        var res = await api('templates/' + tplEditorData.id, { method: 'DELETE' });
+        if (!res.success) { toast(res.error || 'Ошибка', true); return; }
+        toast('Шаблон удалён');
+        closeTplEditor();
+        loadTemplates();
+    } catch(e) { toast('Ошибка сети', true); }
+}
+
+async function openRegenFormDirect(templateId) {
+    await openTplEditor(templateId);
+    setTimeout(function() { openRegenForm(); }, 100);
+}
+
+// ═══════════════════ INTENT MANAGEMENT ═══════════════════
+
+let allDefaultIntents = [];
+let profileIntents = [];
+let intentEditing = null;
+
+async function loadIntents() {
+    var pid = currentProfile.id;
+    try {
+        // Load all intents (defaults + profile-specific)
+        var resAll = await api('intents?profile_id=' + pid);
+        var intents = resAll.data || [];
+
+        // Separate global vs custom
+        allDefaultIntents = intents.filter(function(i) { return i.profile_id === null; });
+        profileIntents = intents.filter(function(i) { return i.profile_id !== null; });
+
+        renderIntentsTab(intents);
+    } catch(e) { $('intentsList').innerHTML = '<div style="color:#64748b">Ошибка загрузки</div>'; }
+}
+
+function renderIntentsTab(intents) {
+    if (intents.length === 0 && allDefaultIntents.length === 0) {
+        $('intentsList').innerHTML =
+            '<div class="empty-state">'
+            + '<div class="empty-state-icon">&#127919;</div>'
+            + '<div class="empty-state-title">Нет интентов</div>'
+            + '<div class="empty-state-text">Добавьте интенты из библиотеки или создайте свои</div>'
+            + '<button class="btn btn-primary" onclick="openAddIntentModal()">+ Добавить интент</button>'
+            + '</div>';
+        return;
+    }
+
+    var html = '';
+
+    // Custom intents (profile-specific)
+    if (profileIntents.length > 0) {
+        html += '<div style="font-size:.78rem;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px;font-weight:600">Кастомные интенты профиля (' + profileIntents.length + ')</div>';
+        html += profileIntents.map(function(i) {
+            return renderIntentCard(i, true);
+        }).join('');
+    }
+
+    // Global/default intents
+    if (allDefaultIntents.length > 0) {
+        html += '<div style="font-size:.78rem;color:#64748b;margin:16px 0 8px;text-transform:uppercase;letter-spacing:.3px;font-weight:600">Общие интенты (' + allDefaultIntents.length + ')</div>';
+        html += allDefaultIntents.map(function(i) {
+            return renderIntentCard(i, false);
+        }).join('');
+    }
+
+    $('intentsList').innerHTML = html;
+}
+
+function renderIntentCard(intent, isCustom) {
+    var cardClass = isCustom ? 'is-custom' : 'is-global';
+    return '<div class="intent-card ' + cardClass + '">'
+        + '<div class="intent-header">'
+        + '<span class="intent-color" style="background:' + esc(intent.color || '#6366f1') + '"></span>'
+        + '<div class="intent-info">'
+        + '<div class="intent-name">' + esc(intent.label_ru || intent.code) + '</div>'
+        + '<div class="intent-code">' + esc(intent.code) + (intent.is_active ? '' : ' &middot; <span style="color:#fca5a5">неактивен</span>') + '</div>'
+        + (intent.description ? '<div class="intent-desc">' + esc(intent.description) + '</div>' : '')
+        + '</div>'
+        + '<div class="intent-actions">'
+        + '<button class="btn btn-ghost btn-sm" style="font-size:.68rem;padding:3px 8px" onclick="editIntent(\'' + esc(intent.code) + '\')" title="Редактировать">&#9998;</button>'
+        + (isCustom ? '<button class="btn btn-danger btn-sm" style="font-size:.68rem;padding:3px 8px" onclick="deleteIntent(\'' + esc(intent.code) + '\')" title="Удалить">&#10005;</button>' : '')
+        + '</div>'
+        + '</div></div>';
+}
+
+function openAddIntentModal() {
+    intentEditing = null;
+    $('intentModalTitle').textContent = 'Новый интент';
+    $('intentCode').value = '';
+    $('intentCode').disabled = false;
+    $('intentLabelRu').value = '';
+    $('intentLabelEn').value = '';
+    $('intentColor').value = '#6366f1';
+    $('intentDesc').value = '';
+    $('intentGptHint').value = '';
+    $('intentTone').value = '';
+    $('intentOpen').value = '';
+    $('intentActive').value = '1';
+    $('intentAiPanel').style.display = '';
+    $('intentModal').classList.add('show');
+}
+
+async function editIntent(code) {
+    try {
+        var res = await api('intents/' + code);
+        if (!res.success) { toast(res.error || 'Ошибка', true); return; }
+        var i = res.data;
+        intentEditing = code;
+        $('intentModalTitle').textContent = 'Редактировать: ' + (i.label_ru || code);
+        $('intentCode').value = i.code;
+        $('intentCode').disabled = true;
+        $('intentLabelRu').value = i.label_ru || '';
+        $('intentLabelEn').value = i.label_en || '';
+        $('intentColor').value = i.color || '#6366f1';
+        $('intentDesc').value = i.description || '';
+        $('intentGptHint').value = i.gpt_hint || '';
+        $('intentTone').value = i.article_tone || '';
+        $('intentOpen').value = i.article_open || '';
+        $('intentActive').value = i.is_active ? '1' : '0';
+        $('intentAiPanel').style.display = i.profile_id === null ? 'none' : '';
+        $('intentModal').classList.add('show');
+    } catch(e) { toast('Ошибка сети', true); }
+}
+
+async function saveIntent() {
+    var code = $('intentCode').value.trim();
+    if (!code) { toast('Код обязателен', true); return; }
+
+    var body = {
+        code: code,
+        label_ru: $('intentLabelRu').value.trim(),
+        label_en: $('intentLabelEn').value.trim(),
+        color: $('intentColor').value,
+        description: $('intentDesc').value.trim(),
+        gpt_hint: $('intentGptHint').value.trim(),
+        article_tone: $('intentTone').value.trim() || null,
+        article_open: $('intentOpen').value.trim() || null,
+        is_active: parseInt($('intentActive').value),
+        profile_id: currentProfile.id,
+    };
+
+    try {
+        var res;
+        if (intentEditing) {
+            delete body.code;
+            res = await api('intents/' + intentEditing, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body),
+            });
+        } else {
+            res = await api('intents', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body),
+            });
+        }
+        if (!res.success) { toast(res.error || 'Ошибка', true); return; }
+        toast(intentEditing ? 'Интент обновлён' : 'Интент создан');
+        $('intentModal').classList.remove('show');
+        loadIntents();
+    } catch(e) { toast('Ошибка сети', true); }
+}
+
+async function deleteIntent(code) {
+    if (!confirm('Удалить интент "' + code + '"?')) return;
+    try {
+        var res = await api('intents/' + code, { method: 'DELETE' });
+        if (!res.success) { toast(res.error || 'Ошибка', true); return; }
+        toast('Интент удалён');
+        loadIntents();
+    } catch(e) { toast('Ошибка сети', true); }
+}
+
+async function aiGenerateIntents() {
+    if (!currentProfile) return;
+    var niche = currentProfile.niche || currentProfile.name || '';
+
+    $('btnAiGenIntents').disabled = true;
+    $('btnAiGenIntents').innerHTML = '<span class="spinner"></span> Генерация...';
+
+    try {
+        var res = await api('profiles/' + currentProfile.id + '/generate-intents', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ niche: niche }),
+        });
+        if (!res.success) { toast(res.error || 'Ошибка AI', true); return; }
+        toast('Интенты сгенерированы: ' + (res.data.count || 0));
+        loadIntents();
+    } catch(e) {
+        toast('Ошибка сети', true);
+    } finally {
+        $('btnAiGenIntents').disabled = false;
+        $('btnAiGenIntents').innerHTML = '+ AI Интенты';
+    }
 }
 
 // ═══════════════════ UTILS ═══════════════════

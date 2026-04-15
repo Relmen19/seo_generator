@@ -246,20 +246,30 @@ class ImageController extends AbstractController {
         $this->success($image->toArrayLight(), 201);
     }
 
-    //  article_id, block_id, size, quality, style, custom_prompt
+    //  article_id, block_id (optional), size, quality, style, custom_prompt
     private function generate(): void {
         $data = $this->getJsonBody();
         $articleId = (int)($data['article_id'] ?? 0);
         $blockId   = (int)($data['block_id'] ?? 0);
 
-        if ($articleId <= 0 || $blockId <= 0) $this->error('article_id и block_id обязательны', 422);
+        if ($articleId <= 0) $this->error('article_id обязателен', 422);
 
-
-        $options = array_intersect_key($data, array_flip(['size', 'quality', 'style', 'custom_prompt', 'prompt_model']));
+        $options = array_intersect_key($data, array_flip(['size', 'quality', 'style', 'custom_prompt', 'prompt_model', 'model']));
 
         try {
             $service = new ImageGeneratorService();
-            $result = $service->generateForBlock($articleId, $blockId, $options);
+            if (!empty($options['model'])) {
+                $service->setDalleModel($options['model']);
+            }
+            if ($blockId > 0) {
+                $result = $service->generateForBlock($articleId, $blockId, $options);
+            } else {
+                $prompt = $options['custom_prompt'] ?? '';
+                if (empty($prompt)) {
+                    $this->error('custom_prompt обязателен при генерации без block_id', 422);
+                }
+                $result = $service->generateCustom($articleId, $prompt, $options);
+            }
             $this->success($result, 201);
         } catch (Throwable $e) {
             $this->error($e->getMessage(), 500);
@@ -274,10 +284,13 @@ class ImageController extends AbstractController {
         if ($articleId <= 0) $this->error('article_id обязателен', 422);
 
 
-        $options = array_intersect_key($data, array_flip(['overwrite', 'size', 'quality', 'style', 'prompt_model']));
+        $options = array_intersect_key($data, array_flip(['overwrite', 'size', 'quality', 'style', 'prompt_model', 'model']));
 
         try {
             $service = new ImageGeneratorService();
+            if (!empty($options['model'])) {
+                $service->setDalleModel($options['model']);
+            }
             $result = $service->generateForArticle($articleId, $options);
             $this->success($result);
         } catch (Throwable $e) {

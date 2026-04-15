@@ -50,6 +50,9 @@ class ArticleController extends AbstractController {
                 case 'reorder':
                     $method === 'PUT' ? $this->reorderBlocks($id) : $this->methodNotAllowed();
                     return;
+                case 'clear-blocks':
+                    $method === 'DELETE' ? $this->clearBlocks($id) : $this->methodNotAllowed();
+                    return;
             }
         }
 
@@ -390,6 +393,27 @@ class ArticleController extends AbstractController {
         if ($deleted === 0) $this->notFound('Блок статьи');
 
         $this->success(['deleted' => true]);
+    }
+
+    private function clearBlocks(int $articleId): void {
+        $existing = $this->db->fetchOne(
+            "SELECT id FROM " . SeoArticle::SEO_ARTICLE_TABLE . " WHERE id = :aid",
+            [':aid' => $articleId]
+        );
+        if ($existing === null) $this->notFound('Статья');
+
+        $deleted = $this->db->delete(
+            SeoArticleBlock::SEO_ART_BLOCK_TABLE,
+            'article_id = :aid',
+            [':aid' => $articleId]
+        );
+
+        $this->db->insert(SeoAuditLog::SEO_AUDIT_LOG_TABLE, SeoAuditLog::articleAction(
+            $articleId, SeoAuditLog::ACTION_DELETE, $_GET['actor'] ?? 'admin',
+            ['action' => 'clear_all_blocks', 'deleted_count' => $deleted]
+        )->toArray());
+
+        $this->success(['deleted' => true, 'count' => $deleted]);
     }
 
     private function reorderBlocks(int $articleId): void {

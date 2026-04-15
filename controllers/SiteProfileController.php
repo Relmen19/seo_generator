@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Seo\Controller;
 
+use Seo\Entity\SeoIntentType;
 use Seo\Entity\SeoSiteProfile;
+use Seo\Service\GptClient;
 use Seo\Service\TemplateGeneratorService;
 
 /*
@@ -52,6 +54,10 @@ class SiteProfileController extends AbstractController {
         // POST /profiles/generate-from-description (action-only, no id)
         if ($action === 'generate-from-description' && $method === 'POST') {
             $this->generateFromDescription();
+            return;
+        }
+        if ($id !== null && $action === 'generate-intents' && $method === 'POST') {
+            $this->generateIntents($id);
             return;
         }
 
@@ -443,5 +449,89 @@ PROMPT
             'profile' => $result['data'],
             'usage'   => $result['usage'],
         ]);
+    }
+
+    private function generateIntents(int $profileId): void {
+        $profile = $this->db->fetchOne(
+            "SELECT * FROM " . SeoSiteProfile::TABLE . " WHERE id = :id",
+            [':id' => $profileId]
+        );
+        if ($profile === null) {
+            $this->notFound('Профиль');
+        }
+
+        $data = $this->getJsonBody();
+        $niche = $data['niche'] ?? $profile['niche'] ?? $profile['name'] ?? '';
+
+        $gpt = new GptClient();
+        $result = $gpt->chatJson([
+            [
+                'role' => 'system',
+                'content' => <<<PROMPT
+Ты — эксперт по SEO и поисковым интентам. Сгенерируй 5-8 типов интентов для ниши, описанной пользователем.
+
+Каждый интент — это тип поискового запроса/статьи. Ответь JSON-массивом объектов:
+[
+  {
+    "code": "уникальный_код_snake_case_латиницей",
+    "label_ru": "Название на русском",
+    "label_en": "English label",
+    "color": "#hex_цвет",
+    "description": "Когда применяется этот интент (1-2 предложения)",
+    "gpt_hint": "Как AI должен распознать этот тип запроса (1-2 предложения)",
+    "article_tone": "Каким тоном писать статью (1 предложение)",
+    "article_open": "Пример открывающей фразы статьи"
+  }
+]
+
+Правила:
+- code: только a-z, 0-9 и _ (длина 1-30)
+- color: различные HEX-цвета для визуального различения
+- Генерируй интенты, специфичные для указанной ниши
+- Не дублируй стандартные интенты (info, comparison, transactional и т.п.)
+PROMPT
+            ],
+            [
+                'role' => 'user',
+                'content' => "Ниша: {$niche}\nОписание проекта: " . ($profile['description'] ?? ''),
+            ],
+        ], [
+            'temperature' => SEO_TEMPERATURE_CREATIVE,
+            'max_tokens'  => SEO_MAX_TOKENS_SMALL,
+        ]);
+
+        $intents = $result['data'];
+        if (!is_array($intents)) {
+            $this->error('AI вернул невалидный ответ', 500);
+        }
+
+        $count = 0;
+        foreach ($intents as $intentData) {
+            $code = $intentData['code'] ?? '';
+            if (!SeoIntentType::isValidCode($code)) {
+                continue;
+            }
+
+            // Check if code already exists
+            $existing = $this->db->fetchOne(
+                "SELECT code FROM " . SeoIntentType::TABLE . " WHERE code = :code",
+                [':code' => $code]
+            );
+            if ($existing !== null) {
+                continue;
+            }
+
+            $intent = new SeoIntentType($intentData);
+            $intent->setCode($code);
+            $intent->setProfileId($profileId);
+
+            $this->db->insert(
+                SeoIntentType::TABLE,
+                array_merge(['code' => $code], $intent->toArray())
+            );
+            $count++;
+        }
+
+        $this->success(['count' => $count, 'total_generated' => count($intents)]);
     }
 }

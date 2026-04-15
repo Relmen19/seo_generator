@@ -401,6 +401,31 @@ requireAuth();
         .json-status.valid { color: #10b981; }
         .json-status.invalid { color: #ef4444; }
 
+        .list-item-json {
+            margin-top: 6px;
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: .68rem;
+            line-height: 1.4;
+            color: #94a3b8;
+            max-height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            cursor: text;
+        }
+        .list-item-json-toggle {
+            font-size: .65rem;
+            color: #6366f1;
+            cursor: pointer;
+            margin-top: 4px;
+            user-select: none;
+        }
+        .list-item-json-toggle:hover { color: #818cf8; }
+
         .tree-item[data-depth="1"] { padding-left: 20px; }
         .tree-item[data-depth="2"] { padding-left: 40px; }
         .tree-item[data-depth="3"] { padding-left: 60px; }
@@ -929,7 +954,8 @@ requireAuth();
 
                 <div class="section-block">
                     <h3>Блоки контента
-                        <button class="btn btn-sm btn-ghost" style="margin-left:auto" onclick="addArticleBlock()">+ Блок</button>
+                        <button class="btn btn-sm btn-red" style="margin-left:auto;margin-right:6px" onclick="deleteAllBlocks()" title="Удалить все блоки">Удалить все</button>
+                        <button class="btn btn-sm btn-ghost" onclick="addArticleBlock()">+ Блок</button>
                     </h3>
                     <div class="blocks-list" id="artBlocksList"></div>
                     <div id="artBlocksEmpty" style="font-size:.82rem;color:#475569;padding:10px 0;text-align:center;">
@@ -2686,13 +2712,25 @@ requireAuth();
         const f = s ? rows.filter(r => r.name.toLowerCase().includes(s)||r.slug.toLowerCase().includes(s)) : rows;
         $('templateCount').textContent = f.length + ' шаблонов';
         if (!f.length) { $('templateList').innerHTML = '<div style="padding:30px;text-align:center;color:#475569;font-size:.85rem">&#128196; Нет шаблонов<br><span style="font-size:.75rem;color:#334155;margin-top:6px;display:block">Создайте шаблон через раздел Профиля</span></div>'; return; }
-        $('templateList').innerHTML = f.map(r =>
-            '<div class="list-item '+(activeEditor==='template'&&r.id==tplId?'selected':'')+'" onclick="selectTemplate('+r.id+')">'
-            +'<div class="list-item-body"><div class="list-item-name">'+esc(r.name)+'</div>'
-            +'<div class="list-item-sub">'+esc(r.slug)+' &middot; '+(r.blocks_count||0)+' блоков</div>'
-            +'<div class="list-item-meta"><span class="tag type">'+esc(r.css_class||'—')+'</span>'
-            +'<span class="tag">'+(r.is_active?'Активен':'Неактивен')+'</span></div></div></div>'
-        ).join('');
+        $('templateList').innerHTML = f.map(r => {
+            const blocks = r.blocks || [];
+            const blocksJson = blocks.length
+                ? blocks.map(b => {
+                    const cfg = typeof b.config === 'string' ? (function(){ try { return JSON.parse(b.config); } catch(e) { return {}; } })() : (b.config || {});
+                    return { type: b.type, name: b.name, required: !!b.is_required, hint: cfg.hint || undefined };
+                })
+                : [];
+            const jsonStr = blocksJson.length ? JSON.stringify(blocksJson, null, 2) : '';
+            const uid = 'tplJson_' + r.id;
+            return '<div class="list-item '+(activeEditor==='template'&&r.id==tplId?'selected':'')+'" onclick="selectTemplate('+r.id+')">'
+                +'<div class="list-item-body"><div class="list-item-name">'+esc(r.name)+'</div>'
+                +'<div class="list-item-sub">'+esc(r.slug)+' &middot; '+(r.blocks_count||0)+' блоков</div>'
+                +'<div class="list-item-meta"><span class="tag type">'+esc(r.css_class||'—')+'</span>'
+                +'<span class="tag">'+(r.is_active?'Активен':'Неактивен')+'</span></div>'
+                +(jsonStr ? '<div class="list-item-json-toggle" onclick="event.stopPropagation();toggleListJson(\''+uid+'\')">{ } JSON блоков</div>'
+                    +'<div class="list-item-json" id="'+uid+'" style="display:none" onclick="event.stopPropagation()">'+esc(jsonStr)+'</div>' : '')
+                +'</div></div>';
+        }).join('');
     }
     function refreshTplDropdown() {
         const items = allTemplates.map(t => ({value: t.id, label: t.name + ' (' + t.slug + ')'}));
@@ -2853,13 +2891,24 @@ requireAuth();
     function renderTargetList(rows) {
         $('targetCount').textContent = rows.length + ' хостов';
         if (!rows.length) { $('targetList').innerHTML = '<div style="padding:30px;text-align:center;color:#475569;font-size:.85rem">&#127760; Нет хостов для публикации</div>'; return; }
-        $('targetList').innerHTML = rows.map(r =>
-            '<div class="list-item '+(activeEditor==='target'&&r.id==tgtId?'selected':'')+'" onclick="selectTarget('+r.id+')">'
-            +'<div class="list-item-body"><div class="list-item-name">'+esc(r.name)+'</div>'
-            +'<div class="list-item-sub">'+esc(r.base_url)+'</div>'
-            +'<div class="list-item-meta"><span class="tag type">'+esc(r.type)+'</span>'
-            +'<span class="tag">'+(r.is_active?'Активен':'Неактивен')+'</span></div></div></div>'
-        ).join('');
+        $('targetList').innerHTML = rows.map(r => {
+            let cfgJson = '';
+            if (r.config) {
+                try {
+                    const cfg = typeof r.config === 'string' ? JSON.parse(r.config) : r.config;
+                    cfgJson = JSON.stringify(cfg, null, 2);
+                } catch(e) {}
+            }
+            const uid = 'tgtJson_' + r.id;
+            return '<div class="list-item '+(activeEditor==='target'&&r.id==tgtId?'selected':'')+'" onclick="selectTarget('+r.id+')">'
+                +'<div class="list-item-body"><div class="list-item-name">'+esc(r.name)+'</div>'
+                +'<div class="list-item-sub">'+esc(r.base_url)+'</div>'
+                +'<div class="list-item-meta"><span class="tag type">'+esc(r.type)+'</span>'
+                +'<span class="tag">'+(r.is_active?'Активен':'Неактивен')+'</span></div>'
+                +(cfgJson ? '<div class="list-item-json-toggle" onclick="event.stopPropagation();toggleListJson(\''+uid+'\')">{ } Config</div>'
+                    +'<div class="list-item-json" id="'+uid+'" style="display:none" onclick="event.stopPropagation()">'+esc(cfgJson)+'</div>' : '')
+                +'</div></div>';
+        }).join('');
     }
     async function selectTarget(id) {
         if (dirty && !confirm('Несохранённые изменения. Продолжить?')) return;
@@ -3526,6 +3575,21 @@ requireAuth();
     function toast(msg, err) {
         const t=$('toast'); t.textContent=msg; t.className='toast'+(err?' error':'');
         setTimeout(()=>t.classList.add('show'),10); setTimeout(()=>t.classList.remove('show'),3000);
+    }
+    function toggleListJson(id) {
+        const el = $(id);
+        if (!el) return;
+        el.style.display = el.style.display === 'none' ? '' : 'none';
+    }
+    async function deleteAllBlocks() {
+        if (!artId) { toast('Сначала сохраните статью', true); return; }
+        if (!artBlocks.length) { toast('Нет блоков для удаления', true); return; }
+        if (!confirm('Удалить все блоки статьи (' + artBlocks.length + ' шт.)? Это действие нельзя отменить.')) return;
+        try {
+            await api('articles/'+artId+'/clear-blocks', {method:'DELETE'});
+            toast('Все блоки удалены');
+            await loadArticleBlocks(artId);
+        } catch(e) { toast(e.message, true); }
     }
 </script>
 </body>
