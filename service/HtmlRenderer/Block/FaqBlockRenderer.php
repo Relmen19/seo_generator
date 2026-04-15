@@ -1,0 +1,89 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Seo\Service\HtmlRenderer\Block;
+
+use Seo\Database;
+use Seo\Service\HtmlRenderer\AbstractBlockRenderer;
+
+class FaqBlockRenderer extends AbstractBlockRenderer
+{
+    public function __construct(Database $db)
+    {
+        parent::__construct($db);
+    }
+
+    public function renderHtml(array $content, string $id): string
+    {
+        $c = $content;
+        $items   = $c['items'] ?? [];
+        [$imgTop, $imgH, $imgBot, $bgStyle] = $this->resolveBlockImages($c, 'right');
+        $bgAttr = $bgStyle ? ' style="' . $bgStyle . '" ' : '';
+        $schema  = ['@context' => 'https://schema.org', '@type' => 'FAQPage', 'mainEntity' => []];
+
+        $h = '<section id="' . $id . '" class="block-faq reveal' . ($bgStyle ? ' has-bg-img' : '') . '"' . $bgAttr . ' data-toc="FAQ">'
+            . '<div class="container">'
+            . $imgTop
+            . $imgH
+            . '<h2 class="sec-title">Часто задаваемые вопросы</h2>'
+            . '<div class="faq-list">';
+
+        foreach ($items as $it) {
+            $q = $this->e($it['question'] ?? '');
+            $a = $this->e($it['answer'] ?? '');
+            $h .= '<div class="faq-item">'
+                . '<button class="faq-q">' . $q . '<span class="faq-arr">+</span></button>'
+                . '<div class="faq-a"><div class="faq-a-in">' . $a . '</div></div>'
+                . '</div>';
+            $schema['mainEntity'][] = [
+                '@type'          => 'Question',
+                'name'           => $it['question'] ?? '',
+                'acceptedAnswer' => ['@type' => 'Answer', 'text' => $it['answer'] ?? ''],
+            ];
+        }
+        $h .= '</div><div class="clearfix"></div>'
+            . $imgBot
+            . '</div></section>' . "\n";
+        if (!empty($schema['mainEntity'])) {
+            $h .= '<script type="application/ld+json">'
+                . json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                . '</script>' . "\n";
+        }
+        return $h;
+    }
+
+    public function getCss(): string
+    {
+        return '.block-faq { }'
+            . "\n" . '.faq-list { display:flex; flex-direction:column; gap:10px; max-width:780px }'
+            . "\n" . '.faq-item { border:1px solid var(--border); border-radius:var(--r); overflow:hidden; transition:border-color .25s; background:rgba(255,255,255,.5); backdrop-filter:blur(8px) }'
+            . "\n" . '[data-theme="dark"] .faq-item { background:rgba(255,255,255,.04) }'
+            . "\n" . '.faq-item:hover,.faq-item.open { border-color:rgba(37,99,235,.3) }'
+            . "\n" . '.faq-q { width:100%; background:transparent; color:var(--dark); font-family:var(--fb); font-size:15px; font-weight:500; padding:18px 22px; text-align:left; border:none; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:16px; transition:background .2s }'
+            . "\n" . '.faq-q:hover { background:var(--blue-light) }'
+            . "\n" . '.faq-arr { font-size:20px; color:var(--blue); transition:transform .3s; flex-shrink:0; font-weight:300 }'
+            . "\n" . '.faq-a { max-height:0; overflow:hidden; transition:max-height .4s ease }'
+            . "\n" . '.faq-a-in { padding:18px 22px; border-top:1px solid var(--border); color:var(--slate); line-height:1.65; font-size:.95rem }'
+            . "\n" . '.faq-item.open .faq-arr { transform:rotate(45deg) }'
+            . "\n" . '.faq-item.open .faq-a { max-height:600px }'
+            . "\n" . '.faq-item.open .faq-q { background:var(--blue-light) }';
+    }
+
+    public function getJs(): string
+    {
+        return '(function(){'
+            . 'document.querySelectorAll(".faq-q").forEach(function(btn){'
+            . 'btn.addEventListener("click",function(){'
+            . 'var item=btn.closest(".faq-item"),open=item.classList.contains("open");'
+            . 'document.querySelectorAll(".faq-item.open").forEach(function(i){i.classList.remove("open")});'
+            . 'if(!open)item.classList.add("open")'
+            . '})});'
+            . '})();';
+    }
+
+    public function getTocLabel(array $content, array $meta): string
+    {
+        return 'FAQ';
+    }
+}

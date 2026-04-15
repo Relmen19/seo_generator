@@ -1,0 +1,363 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Seo\Service\HtmlRenderer;
+
+use RuntimeException;
+use Seo\Database;
+use Seo\Entity\SeoArticle;
+use Seo\Entity\SeoArticleBlock;
+use Seo\Entity\SeoLinkConstant;
+use Seo\Entity\SeoTemplate;
+use Seo\Service\HtmlRenderer\Component\DividerComponent;
+use Seo\Service\HtmlRenderer\Component\FooterComponent;
+use Seo\Service\HtmlRenderer\Component\NavbarComponent;
+use Seo\Service\HtmlRenderer\Component\NavSearchComponent;
+use Seo\Service\HtmlRenderer\Component\ParallaxComponent;
+use Seo\Service\HtmlRenderer\Component\TocComponent;
+use Seo\Service\HtmlRenderer\Component\TrackingComponent;
+use Seo\Service\HtmlRenderer\Theme\DefaultTheme;
+use Seo\Service\HtmlRenderer\Theme\ThemeInterface;
+
+class PageAssembler
+{
+    private Database $db;
+    private BlockRegistry $registry;
+    private ?array $siteProfile = null;
+    private ThemeInterface $theme;
+
+    public function __construct(Database $db, BlockRegistry $registry)
+    {
+        $this->db = $db;
+        $this->registry = $registry;
+        $this->theme = new DefaultTheme();
+    }
+
+    public function setSiteProfile(?array $profile): self
+    {
+        $this->siteProfile = $profile;
+        return $this;
+    }
+
+    public function setTheme(ThemeInterface $theme): self
+    {
+        $this->theme = $theme;
+        return $this;
+    }
+
+    public function render(int $articleId, bool $preview = false): string
+    {
+        $article  = $this->loadArticle($articleId);
+        $blocks   = $this->loadBlocks($articleId);
+        $links    = $this->loadLinks($articleId);
+        $template = $article['template_id']
+            ? $this->loadTemplate((int)$article['template_id'])
+            : null;
+
+        if ($this->siteProfile === null && !empty($article['profile_id'])) {
+            $this->siteProfile = $this->db->fetchOne(
+                "SELECT * FROM seo_site_profiles WHERE id = ?", [$article['profile_id']]
+            );
+        }
+
+        $assets = new AssetCollector();
+        $assets->addTheme($this->theme);
+
+        // Components
+        $parallax  = new ParallaxComponent();
+        $navbar    = new NavbarComponent();
+        $navSearch = new NavSearchComponent();
+        $toc       = new TocComponent();
+        $footer    = new FooterComponent();
+        $divider   = new DividerComponent();
+        $tracking  = new TrackingComponent((int)$article['id']);
+
+        $assets->addComponent($parallax);
+        $assets->addComponent($navbar);
+        $assets->addComponent($navSearch);
+        $assets->addComponent($toc);
+        $assets->addComponent($footer);
+        $assets->addComponent($divider);
+        $assets->addComponent($tracking);
+
+        // Render blocks
+        $visibleBlocks = [];
+        $bodyHtml = '';
+        foreach ($blocks as $idx => $block) {
+            if (!(int)($block['is_visible'] ?? 1)) continue;
+            $content = is_string($block['content'])
+                ? json_decode($block['content'], true)
+                : ($block['content'] ?? []);
+
+            $renderer = $this->registry->get($block['type']);
+            if (!$renderer) {
+                $bodyHtml .= "<!-- unknown block: {$block['type']} -->\n";
+                $visibleBlocks[] = $block;
+                continue;
+            }
+
+            if ($idx > 0 && $block['type'] !== 'hero') {
+                $bodyHtml .= $divider->renderHtml([]);
+            }
+
+            $blockId = 'block-' . ($block['id'] ?? uniqid());
+            $bodyHtml .= $renderer->renderHtml($content, $blockId);
+            $assets->addBlock($renderer);
+            $visibleBlocks[] = $block;
+        }
+
+        // Build TOC — provide block renderers keyed by type
+        $blockRenderers = [];
+        foreach ($visibleBlocks as $vb) {
+            $t = $vb['type'];
+            if (!isset($blockRenderers[$t])) {
+                $r = $this->registry->get($t);
+                if ($r) {
+                    $blockRenderers[$t] = $r;
+                }
+            }
+        }
+        $tocContext = [
+            'blocks' => $visibleBlocks,
+            'blockRenderers' => $blockRenderers,
+        ];
+        $tocHtml = $toc->renderHtml($tocContext);
+
+        // Build navbar search
+        $navSearchHtml = $navSearch->renderHtml(['articleId' => (int)$article['id']]);
+
+        // Build navbar
+        $navbarContext = [
+            'article'     => $article,
+            'template'    => $template,
+            'siteProfile' => $this->siteProfile,
+            'navSearch'   => $navSearchHtml,
+        ];
+        $navbarHtml = $navbar->renderHtml($navbarContext);
+
+        // Build parallax
+        $parallaxHtml = $parallax->renderHtml([]);
+
+        // Build footer
+        $footerHtml = $footer->renderHtml([
+            'article'     => $article,
+            'template'    => $template,
+            'siteProfile' => $this->siteProfile,
+        ]);
+
+        // Related articles
+        $relatedHtml = $this->renderRelatedArticles($article);
+
+        // Assemble document
+        $title = $this->e($article['meta_title'] ?: $article['title']);
+        $desc  = $this->e($article['meta_description'] ?? '');
+        $kw    = $this->e($article['meta_keywords'] ?? '');
+        $css   = $template ? $this->e($template['css_class'] ?? '') : '';
+        $url   = $this->e($article['published_url'] ?? '');
+
+        $chartJs = strpos($bodyHtml, 'chartjs-wrap') !== false
+            ? '<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>'
+            : '';
+
+        $fonts = '<link rel="preconnect" href="https://fonts.googleapis.com">'
+            . '<link href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;500;700;900&family=Onest:wght@300;400;500&display=swap" rel="stylesheet">';
+
+        $logo = '/uploads/' . ($this->siteProfile['icon_path'] ?? '') ?: (defined('SEO_DEFAULT_LOGO_URL') ? SEO_DEFAULT_LOGO_URL : '');
+
+        $previewBanner = $preview
+            ? '<div class="preview-banner">Предпросмотр — страница не опубликована</div>'
+            : '';
+
+        $fullHtml = '<!DOCTYPE html><html lang="ru"><head>'
+            . '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">'
+            . '<title>' . $title . '</title>'
+            . '<meta name="description" content="' . $desc . '">'
+            . '<meta name="keywords" content="' . $kw . '">'
+            . '<meta property="og:title" content="' . $title . '">'
+            . '<meta property="og:description" content="' . $desc . '">'
+            . '<meta property="og:type" content="article">'
+            . '<meta property="og:url" content="' . $url . '">'
+            . '<link rel="canonical" href="' . $url . '">'
+            . '<link rel="icon" href="' . $logo . '">'
+            . $fonts
+            . $chartJs
+            . $assets->buildStyleTag()
+            . '</head><body class="' . $css . '">'
+            . $previewBanner
+            . $parallaxHtml
+            . $navbarHtml
+            . $tocHtml
+            . '<main class="page-main" id="pageMain">' . $bodyHtml . $relatedHtml . '</main>'
+            . $footerHtml
+            . $assets->buildScriptTag()
+            . '</body></html>';
+
+        return $this->replaceLinkPlaceholders($fullHtml, $links);
+    }
+
+    /**
+     * Render a single block with minimal page wrapping (for preview).
+     */
+    public function renderSingleBlockPreview(string $type, array $content): string
+    {
+        $renderer = $this->registry->get($type);
+        if (!$renderer) {
+            return '<!-- unknown block: ' . htmlspecialchars($type) . ' -->';
+        }
+
+        $assets = new AssetCollector();
+        $assets->addTheme($this->theme);
+        $assets->addBlock($renderer);
+
+        $blockHtml = $renderer->renderHtml($content, 'block-preview');
+
+        $fonts = '<link rel="preconnect" href="https://fonts.googleapis.com">'
+            . '<link href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;500;700;900&family=Onest:wght@300;400;500&display=swap" rel="stylesheet">';
+
+        $chartJs = strpos($blockHtml, 'chartjs-wrap') !== false
+            ? '<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>'
+            : '';
+
+        return '<!DOCTYPE html><html lang="ru"><head>'
+            . '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">'
+            . $fonts
+            . $chartJs
+            . $assets->buildStyleTag()
+            . '</head><body>'
+            . $blockHtml
+            . $assets->buildScriptTag()
+            . '</body></html>';
+    }
+
+    /**
+     * Render a single block without page wrapper.
+     */
+    public function renderSingleBlock(string $type, array $content): string
+    {
+        $renderer = $this->registry->get($type);
+        if (!$renderer) {
+            return "<!-- unknown block: {$type} -->\n";
+        }
+        return $renderer->renderHtml($content, 'block-' . uniqid());
+    }
+
+    private function renderRelatedArticles(array $article): string
+    {
+        $articleId = (int)$article['id'];
+        $catalogId = (int)($article['catalog_id'] ?? 0);
+        $searchUrl = json_encode(SEO_SEARCH_SCRIPT);
+        $trackUrl  = json_encode(SEO_TRACK_SCRIPT);
+        $baseUrl   = json_encode(SEO_BASE_ART_URL);
+
+        $html  = '<section class="related-articles reveal" id="relatedArticles">';
+        $html .= '<div class="container">';
+        $html .= '<h2 class="ra-heading">Читайте также</h2>';
+        $html .= '<div class="ra-grid" id="raGrid">';
+        $html .= '<div class="ra-skeleton"></div>';
+        $html .= '<div class="ra-skeleton"></div>';
+        $html .= '<div class="ra-skeleton"></div>';
+        $html .= '<div class="ra-skeleton"></div>';
+        $html .= '</div>';
+        $html .= '</div>';
+        $html .= '</section>';
+        $html .= '<script>';
+        $html .= '(function(){';
+        $html .= 'var SEARCH=' . $searchUrl . ',';
+        $html .= 'TRACK=' . $trackUrl . ',';
+        $html .= 'BASE=' . $baseUrl . ',';
+        $html .= 'AID=' . $articleId . ',';
+        $html .= 'CID=' . $catalogId . ';';
+        $html .= 'function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}';
+        $html .= 'function buildUrl(u){return u;}';
+        $html .= 'function renderCards(items){';
+        $html .=   'var grid=document.getElementById("raGrid");';
+        $html .=   'if(!grid)return;';
+        $html .=   'if(!items||!items.length){document.getElementById("relatedArticles").style.display="none";return;}';
+        $html .=   'grid.innerHTML=items.map(function(it){';
+        $html .=     'var href=buildUrl(it.url);';
+        $html .=     'var desc=it.description?"<p class=\"ra-card-desc\">"+esc(it.description.substring(0,120))+"</p>":"";';
+        $html .=     'return "<a class=\"ra-card\" href=\""+esc(href)+"\" data-aid=\""+it.id+"\">"';
+        $html .=       '+"<span class=\"ra-card-title\">"+esc(it.title)+"</span>"';
+        $html .=       '+desc';
+        $html .=       '+"<span class=\"ra-card-arrow\">\u2192</span>"';
+        $html .=       '+"</a>";';
+        $html .=   '}).join("");';
+        $html .=   'grid.querySelectorAll(".ra-card").forEach(function(a){';
+        $html .=     'a.addEventListener("click",function(){';
+        $html .=       'var toAid=parseInt(a.getAttribute("data-aid")||"0");';
+        $html .=       'if(toAid)navigator.sendBeacon(TRACK+"?aid="+toAid);';
+        $html .=     '});';
+        $html .=   '});';
+        $html .= '}';
+        $html .= 'var url=SEARCH+"?related=1&exclude="+AID+"&limit=4"+(CID?"&catalog_id="+CID:"");';
+        $html .= 'fetch(url)';
+        $html .=   '.then(function(r){return r.json();})';
+        $html .=   '.then(function(d){renderCards(d.results||[]);})';
+        $html .=   '.catch(function(){document.getElementById("relatedArticles").style.display="none";});';
+        $html .= '})();';
+        $html .= '</script>';
+
+        return $html;
+    }
+
+    private function replaceLinkPlaceholders(string $html, array $links): string
+    {
+        $searchBase = SEO_SEARCH_SCRIPT;
+        foreach ($links as $lnk) {
+            $key = $lnk['key'] ?? '';
+            if (!$key) continue;
+
+            $url = $lnk['url'] ?? '';
+            $tracked = (int)($lnk['is_tracked'] ?? 1);
+
+            if ($tracked && $url !== '') {
+                $finalUrl = htmlspecialchars(
+                    $searchBase . '?link=' . urlencode($key),
+                    ENT_QUOTES, 'UTF-8'
+                );
+            } elseif ($url !== '') {
+                $finalUrl = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+            } else {
+                continue;
+            }
+
+            $html = str_replace('{{link:' . $key . '}}', $finalUrl, $html);
+        }
+        $html = preg_replace('/\{\{link:[^}]+\}\}/', '#', $html);
+        return $html;
+    }
+
+    private function loadArticle(int $id): array
+    {
+        $r = $this->db->fetchOne("SELECT * FROM " . SeoArticle::SEO_ARTICLE_TABLE . " WHERE id = ?", [$id]);
+        if (!$r) throw new RuntimeException("Статья #{$id} не найдена");
+        return $r;
+    }
+
+    private function loadBlocks(int $articleId): array
+    {
+        return $this->db->fetchAll(
+            "SELECT * FROM " . SeoArticleBlock::SEO_ART_BLOCK_TABLE . " WHERE article_id = ? ORDER BY sort_order",
+            [$articleId]
+        );
+    }
+
+    private function loadLinks(int $articleId): array
+    {
+        return $this->db->fetchAll(
+            "SELECT * FROM " . SeoLinkConstant::SEO_LINKS_TABLE . " WHERE article_id IS NULL OR article_id = ?",
+            [$articleId]
+        );
+    }
+
+    private function loadTemplate(int $id): array
+    {
+        return $this->db->fetchOne("SELECT * FROM " . SeoTemplate::TABLE . " WHERE id = ?", [$id]) ?? [];
+    }
+
+    private function e(string $s): string
+    {
+        return htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
+    }
+}
