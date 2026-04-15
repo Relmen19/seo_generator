@@ -563,6 +563,90 @@ requireAuth();
         .img-edit-row input { flex: 1; }
         .img-modal-gallery { display: grid; grid-template-columns: repeat(auto-fill,minmax(120px,1fr)); gap: 8px; max-height: 50vh; overflow-y: auto; padding: 8px 0; }
 
+        /* ── Art Settings compact row ── */
+        .art-settings-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 20px;
+            align-items: flex-start;
+        }
+        .art-settings-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+        .art-settings-field > label {
+            font-size: .68rem;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: #64748b;
+            white-space: nowrap;
+        }
+        .art-settings-field > select {
+            padding: 7px 10px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-size: .82rem;
+            outline: none;
+            min-width: 155px;
+        }
+        .art-settings-field > select:focus { border-color: #6366f1; }
+        .art-settings-field > input[type=text] {
+            padding: 7px 10px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-size: .82rem;
+            outline: none;
+            width: 130px;
+        }
+        .art-settings-field > input[type=text]:focus { border-color: #6366f1; }
+        .art-settings-field.field-url { flex: 1; min-width: 200px; max-width: 380px; }
+        .art-settings-field .version-badge { align-self: flex-start; margin-top: 1px; }
+        .art-settings-log { margin-top: 12px; border-top: 1px solid #233044; padding-top: 12px; }
+        .art-settings-log > label {
+            font-size: .68rem;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: #64748b;
+            cursor: pointer;
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 0;
+        }
+
+        /* ── Article Plan editor ── */
+        .plan-badge {
+            font-size: .62rem;
+            padding: 1px 7px;
+            background: #1e1b4b;
+            border: 1px solid #3730a3;
+            border-radius: 20px;
+            color: #818cf8;
+            text-transform: none;
+            letter-spacing: 0;
+            font-weight: 400;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .form-group.plan-field textarea {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: .8rem;
+            line-height: 1.9;
+            color: #c4b5fd;
+            background: #09101e;
+            border-color: #312e81;
+            min-height: 90px;
+        }
+        .form-group.plan-field textarea:focus { border-color: #6366f1; }
+        .form-group.plan-field textarea::placeholder { color: #2a3258; font-style: italic; }
+
         @media (max-width: 800px) {
             .page { flex-direction: column; height: auto; }
             .list-panel { width: 100% !important; min-width: 0 !important; max-height: 40vh; }
@@ -573,6 +657,8 @@ requireAuth();
             .gen-progress-text { margin-top: 0; margin-bottom: 6px; font-size: .72rem; }
             .img-layout-row { flex-wrap: wrap; }
             .img-layout-grid { grid-template-columns: repeat(4, 1fr); }
+            .art-settings-row { gap: 8px 16px; }
+            .art-settings-field.field-url { max-width: 100%; }
         }
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5/lib/codemirror.min.css">
@@ -802,9 +888,9 @@ requireAuth();
                             <label>Meta Keywords</label>
                             <input type="text" id="artMetaKeywords" placeholder="ключевые слова через запятую">
                         </div>
-                        <div class="form-group full">
-                            <label>Article Plan (редакторский план статьи)</label>
-                            <textarea id="artArticlePlan" rows="4" placeholder="[hero] Введение → [richtext] Основной контент → [faq] Вопросы → ..."></textarea>
+                        <div class="form-group full plan-field">
+                            <label>Article Plan <span class="plan-badge">редакторский план</span></label>
+                            <textarea id="artArticlePlan" rows="5" placeholder="[hero] Введение&#10;[richtext] Основной контент&#10;[faq] FAQ и вопросы&#10;[image] Изображение&#10;[cta] Призыв к действию"></textarea>
                         </div>
                     </div>
                 </div>
@@ -903,9 +989,9 @@ requireAuth();
                     <h3>Настройки статьи
                         <span style="font-size:.72rem;font-weight:400;color:#475569;margin-left:6px">AI-модель и системные данные</span>
                     </h3>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>AI Модель генерации <span class="label-hint">используется при генерации блоков</span></label>
+                    <div class="art-settings-row">
+                        <div class="art-settings-field">
+                            <label>AI Модель <span class="label-hint">при генерации</span></label>
                             <select id="artGptModel">
                                 <option value="gpt-4o">GPT-4o</option>
                                 <option value="gpt-4o-mini">GPT-4o Mini</option>
@@ -915,28 +1001,28 @@ requireAuth();
                                 <option value="o3-mini">o3-mini</option>
                             </select>
                         </div>
-                        <div class="form-group">
+                        <div class="art-settings-field">
                             <label>Создатель</label>
                             <input type="text" id="artCreatedBy" placeholder="manager">
                         </div>
-                        <div class="form-group">
+                        <div class="art-settings-field">
                             <label>Версия</label>
                             <span class="version-badge" id="artVersionBadge">—</span>
                         </div>
-                        <div class="form-group">
+                        <div class="art-settings-field field-url">
                             <label>Опубликованный URL</label>
                             <div class="url-field-wrap">
                                 <a id="artPublishedUrl" href="#" target="_blank" class="url-link empty">не опубликована</a>
                                 <button class="btn btn-xs btn-ghost" onclick="copyPublishedUrl()" title="Скопировать URL">⎘</button>
                             </div>
                         </div>
-                        <div class="form-group full">
-                            <label style="cursor:pointer;user-select:none" onclick="toggleGenLog()">
-                                Лог генерации
-                                <span id="genLogToggleIcon" style="color:#64748b;font-size:.7rem;margin-left:4px">▶ показать</span>
-                            </label>
-                            <textarea id="artGenLog" class="json-editor" rows="6" disabled style="display:none"></textarea>
-                        </div>
+                    </div>
+                    <div class="art-settings-log">
+                        <label onclick="toggleGenLog()">
+                            Лог генерации
+                            <span id="genLogToggleIcon" style="color:#64748b;font-size:.7rem">▶ показать</span>
+                        </label>
+                        <textarea id="artGenLog" class="json-editor" rows="6" disabled style="display:none;margin-top:6px"></textarea>
                     </div>
                 </div>
                 <div class="section-block">
