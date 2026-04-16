@@ -22,6 +22,7 @@ class SeoSiteProfile extends AbstractEntity {
     protected ?string $gptRules = null;
     protected string $tone = 'professional';
     protected string $colorScheme = '#6366f1';
+    protected string $theme = 'default';
     protected bool $isActive = true;
 
     protected function hydrate(array $data): void {
@@ -67,6 +68,9 @@ class SeoSiteProfile extends AbstractEntity {
         if (array_key_exists('color_scheme', $data)) {
             $this->colorScheme = (string)$data['color_scheme'];
         }
+        if (array_key_exists('theme', $data)) {
+            $this->theme = (string)$data['theme'];
+        }
         if (array_key_exists('is_active', $data)) {
             $this->isActive = $this->toBool($data['is_active']);
         }
@@ -88,6 +92,7 @@ class SeoSiteProfile extends AbstractEntity {
             'gpt_rules'     => $this->gptRules,
             'tone'          => $this->tone,
             'color_scheme'  => $this->colorScheme,
+            'theme'         => $this->theme,
             'is_active'     => (int)$this->isActive,
         ];
     }
@@ -133,6 +138,9 @@ class SeoSiteProfile extends AbstractEntity {
 
     public function getColorScheme(): string { return $this->colorScheme; }
     public function setColorScheme(string $colorScheme): self { $this->colorScheme = $colorScheme; return $this; }
+
+    public function getTheme(): string { return $this->theme; }
+    public function setTheme(string $theme): self { $this->theme = $theme; return $this; }
 
     public function isActive(): bool { return $this->isActive; }
     public function setIsActive(bool $isActive): self { $this->isActive = $isActive; return $this; }

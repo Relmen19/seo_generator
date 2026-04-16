@@ -15,4 +15,15 @@ interface ThemeInterface
      * Base CSS: reset, typography, container, animations, shared elements.
      */
     public function getBaseCss(): string;
+
+    /**
+     * Google Fonts <link> tags for this theme.
+     */
+    public function getFontLinks(): string;
+
+    /**
+     * CSS class added to <body> for theme-specific component overrides.
+     * Return '' for the default theme (no body class needed).
+     */
+    public function getBodyClass(): string;
 }

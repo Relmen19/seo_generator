@@ -18,6 +18,7 @@ use Seo\Service\HtmlRenderer\Component\ParallaxComponent;
 use Seo\Service\HtmlRenderer\Component\TocComponent;
 use Seo\Service\HtmlRenderer\Component\TrackingComponent;
 use Seo\Service\HtmlRenderer\Theme\DefaultTheme;
+use Seo\Service\HtmlRenderer\Theme\ThemeFactory;
 use Seo\Service\HtmlRenderer\Theme\ThemeInterface;
 
 class PageAssembler
@@ -26,6 +27,7 @@ class PageAssembler
     private BlockRegistry $registry;
     private ?array $siteProfile = null;
     private ThemeInterface $theme;
+    private bool $themeOverridden = false;
 
     public function __construct(Database $db, BlockRegistry $registry)
     {
@@ -43,6 +45,7 @@ class PageAssembler
     public function setTheme(ThemeInterface $theme): self
     {
         $this->theme = $theme;
+        $this->themeOverridden = true;
         return $this;
     }
 
@@ -59,6 +62,11 @@ class PageAssembler
             $this->siteProfile = $this->db->fetchOne(
                 "SELECT * FROM seo_site_profiles WHERE id = ?", [$article['profile_id']]
             );
+        }
+
+        // Auto-select theme from profile (unless explicitly overridden)
+        if (!$this->themeOverridden && $this->siteProfile !== null && !empty($this->siteProfile['theme'])) {
+            $this->theme = ThemeFactory::create($this->siteProfile['theme']);
         }
 
         $assets = new AssetCollector();
@@ -160,10 +168,12 @@ class PageAssembler
             ? '<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>'
             : '';
 
-        $fonts = '<link rel="preconnect" href="https://fonts.googleapis.com">'
-            . '<link href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;500;700;900&family=Onest:wght@300;400;500&display=swap" rel="stylesheet">';
+        $fonts = $this->theme->getFontLinks();
 
         $logo = '/uploads/' . ($this->siteProfile['icon_path'] ?? '') ?: (defined('SEO_DEFAULT_LOGO_URL') ? SEO_DEFAULT_LOGO_URL : '');
+
+        $themeClass = $this->theme->getBodyClass();
+        $bodyClass = trim($css . ($themeClass !== '' ? ' ' . $themeClass : ''));
 
         $fullHtml = '<!DOCTYPE html><html lang="ru"><head>'
             . '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">'
@@ -179,7 +189,7 @@ class PageAssembler
             . $fonts
             . $chartJs
             . $assets->buildStyleTag()
-            . '</head><body class="' . $css . '">'
+            . '</head><body class="' . $bodyClass . '">'
             . $parallaxHtml
             . $navbarHtml
             . $tocHtml
@@ -207,8 +217,8 @@ class PageAssembler
 
         $blockHtml = $renderer->renderHtml($content, 'block-preview');
 
-        $fonts = '<link rel="preconnect" href="https://fonts.googleapis.com">'
-            . '<link href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;500;700;900&family=Onest:wght@300;400;500&display=swap" rel="stylesheet">';
+        $fonts = $this->theme->getFontLinks();
+        $themeClass = $this->theme->getBodyClass();
 
         $chartJs = strpos($blockHtml, 'chartjs-wrap') !== false
             ? '<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>'
@@ -219,7 +229,7 @@ class PageAssembler
             . $fonts
             . $chartJs
             . $assets->buildStyleTag()
-            . '</head><body>'
+            . '</head><body' . ($themeClass !== '' ? ' class="' . $themeClass . '"' : '') . '>'
             . $blockHtml
             . $assets->buildScriptTag()
             . '</body></html>';

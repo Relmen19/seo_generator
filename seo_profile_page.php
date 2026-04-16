@@ -227,6 +227,20 @@ requireAuth();
 
         /* ── Overview description ── */
         .overview-desc { font-size: .85rem; color: #94a3b8; line-height: 1.6; }
+
+        /* ── Theme picker ── */
+        .theme-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+        .theme-card { background: #0f172a; border: 2px solid #334155; border-radius: 10px; padding: 14px; cursor: pointer; transition: .2s; }
+        .theme-card:hover { border-color: #6366f1; }
+        .theme-card.selected { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,.3); }
+        .theme-card-preview { height: 68px; border-radius: 6px; margin-bottom: 10px; overflow: hidden; position: relative; display: flex; flex-direction: column; padding: 8px 10px; gap: 4px; }
+        .theme-card-preview .tp-bar { height: 3px; border-radius: 1px; width: 100%; }
+        .theme-card-preview .tp-line { height: 4px; border-radius: 2px; opacity: .7; }
+        .theme-card-preview .tp-line-sm { height: 3px; border-radius: 1px; opacity: .4; width: 60%; }
+        .theme-card-name { font-size: .88rem; font-weight: 700; color: #f1f5f9; }
+        .theme-card-desc { font-size: .7rem; color: #64748b; margin-top: 2px; line-height: 1.3; }
+        .theme-card-badge { display: inline-block; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; padding: 2px 6px; border-radius: 3px; background: #334155; color: #94a3b8; margin-top: 6px; }
+        .theme-card.selected .theme-card-badge { background: #312e81; color: #a78bfa; }
     </style>
 </head>
 <body>
@@ -382,6 +396,10 @@ requireAuth();
                 <div class="form-row full"><label>Base URL</label><input type="url" id="bBaseUrl" placeholder="https://example.com"></div>
             </div>
         </div>
+        <div class="settings-section">
+            <h3>Тема оформления</h3>
+            <div class="theme-picker" id="brandThemePicker"></div>
+        </div>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
             <button class="btn btn-primary" onclick="saveBranding()">Сохранить брендинг</button>
         </div>
@@ -491,6 +509,10 @@ requireAuth();
                         <div class="form-row full"><label>Base URL</label><input type="url" id="wizBaseUrl" placeholder="https://example.com"></div>
                     </div>
                 </div>
+            </div>
+            <div style="margin-top:4px">
+                <label style="display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-bottom:8px">Тема оформления</label>
+                <div class="theme-picker" id="wizThemePicker"></div>
             </div>
         </div>
 
@@ -634,6 +656,88 @@ let currentProfile = null;
 let wizardStep = 1;
 let wizIconFile = null;
 let genRunning = false;
+
+// ── Theme definitions for picker ──
+const THEMES = {
+    'default': {
+        name: 'Apple Minimal',
+        desc: 'Мягкие градиенты, скруглённые углы, геометрический шрифт Geologica',
+        accent: '#2563EB',
+        bg: '#F8FAFC',
+        text: '#0F172A',
+        muted: '#64748B',
+        darkBg: '#050D1A',
+        darkText: '#E2E8F0',
+        font: 'sans-serif',
+        radius: '6px',
+    },
+    'editorial': {
+        name: 'Editorial',
+        desc: 'Элегантная серифная типографика Playfair Display, тёплые кремовые тона',
+        accent: '#B7312C',
+        bg: '#FBF9F6',
+        text: '#1A1A2E',
+        muted: '#7A7A99',
+        darkBg: '#141422',
+        darkText: '#F0ECE2',
+        font: 'serif',
+        radius: '2px',
+    },
+    'brutalist': {
+        name: 'Brutalist',
+        desc: 'Жёсткая геометрия Space Grotesk + моноширинный JetBrains Mono, контрастные акценты',
+        accent: '#FF5722',
+        bg: '#FFFFFF',
+        text: '#000000',
+        muted: '#666666',
+        darkBg: '#0A0A0A',
+        darkText: '#F5F5F0',
+        font: 'monospace',
+        radius: '0',
+    },
+};
+
+function renderThemePicker(containerId, selectedKey) {
+    const c = $(containerId);
+    if (!c) return;
+    selectedKey = selectedKey || 'default';
+    c.innerHTML = Object.entries(THEMES).map(function(entry) {
+        var k = entry[0], t = entry[1];
+        var sel = k === selectedKey ? ' selected' : '';
+        return '<div class="theme-card' + sel + '" data-theme-key="' + k + '" onclick="selectThemeCard(this,\'' + containerId + '\')">'
+            + '<div class="theme-card-preview" style="background:' + t.bg + ';border-radius:' + t.radius + ';border:1px solid rgba(0,0,0,.1)">'
+            + '<div class="tp-bar" style="background:' + t.accent + '"></div>'
+            + '<div class="tp-line" style="background:' + t.text + ';width:75%;font-family:' + t.font + '"></div>'
+            + '<div class="tp-line-sm" style="background:' + t.muted + ';font-family:' + t.font + '"></div>'
+            + '<div class="tp-line-sm" style="background:' + t.muted + ';width:45%"></div>'
+            + '</div>'
+            + '<div class="theme-card-name">' + esc(t.name) + '</div>'
+            + '<div class="theme-card-desc">' + esc(t.desc) + '</div>'
+            + (sel ? '<div class="theme-card-badge">Выбрано</div>' : '')
+            + '</div>';
+    }).join('');
+}
+
+function selectThemeCard(el, containerId) {
+    var c = $(containerId);
+    c.querySelectorAll('.theme-card').forEach(function(card) {
+        card.classList.remove('selected');
+        var badge = card.querySelector('.theme-card-badge');
+        if (badge) badge.remove();
+    });
+    el.classList.add('selected');
+    var badge = document.createElement('div');
+    badge.className = 'theme-card-badge';
+    badge.textContent = 'Выбрано';
+    el.appendChild(badge);
+}
+
+function getSelectedTheme(containerId) {
+    var c = $(containerId);
+    if (!c) return 'default';
+    var sel = c.querySelector('.theme-card.selected');
+    return sel ? sel.getAttribute('data-theme-key') : 'default';
+}
 
 const $ = id => document.getElementById(id);
 
@@ -846,6 +950,7 @@ function fillBranding() {
     $('bColorText').value = p.color_scheme || '#6366f1';
     $('bLogo').value = p.logo_url || '';
     $('bBaseUrl').value = p.base_url || '';
+    renderThemePicker('brandThemePicker', p.theme || 'default');
 
     const upload = $('brandIconUpload');
     if (p.icon_path) {
@@ -902,6 +1007,7 @@ async function saveBranding() {
         color_scheme: $('bColorText').value || '#6366f1',
         logo_url: $('bLogo').value || null,
         base_url: $('bBaseUrl').value || null,
+        theme: getSelectedTheme('brandThemePicker'),
     };
     try {
         const res = await api(`profiles/${currentProfile.id}`, {
@@ -1039,6 +1145,9 @@ function wizardNext() {
         return;
     }
     updateWizardUI();
+    if (wizardStep === 2) {
+        renderThemePicker('wizThemePicker', 'default');
+    }
 }
 
 function wizardBack() {
@@ -1068,6 +1177,7 @@ function renderWizPreview() {
             <div><span style="color:#64748b">Язык:</span> <span style="color:#e2e8f0">${langLabels[$('wizLang').value] || $('wizLang').value}</span></div>
             <div><span style="color:#64748b">Тон:</span> <span style="color:#e2e8f0">${toneLabels[$('wizTone').value] || $('wizTone').value}</span></div>
             <div style="grid-column:1/-1"><span style="color:#64748b">Цвет:</span> <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${color};vertical-align:middle"></span> ${esc(color)}</div>
+            <div style="grid-column:1/-1"><span style="color:#64748b">Тема:</span> <span style="color:#e2e8f0">${esc((THEMES[getSelectedTheme('wizThemePicker')] || THEMES['default']).name)}</span></div>
         </div>
         ${$('wizPersona').value ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #334155"><div style="font-size:.7rem;color:#64748b;text-transform:uppercase;margin-bottom:4px">GPT Персона</div><div style="font-size:.8rem;color:#94a3b8;white-space:pre-wrap">${esc($('wizPersona').value)}</div></div>` : ''}
     `;
@@ -1085,6 +1195,7 @@ async function createProfileFromWizard() {
         language: $('wizLang').value,
         tone: $('wizTone').value,
         color_scheme: $('wizColorText').value || '#6366f1',
+        theme: getSelectedTheme('wizThemePicker'),
         logo_url: $('wizLogo').value || null,
         base_url: $('wizBaseUrl').value || null,
         gpt_persona: $('wizPersona').value || null,

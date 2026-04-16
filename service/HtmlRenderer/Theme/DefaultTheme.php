@@ -155,4 +155,15 @@ class DefaultTheme implements ThemeInterface
             .   '.blk-img .img-frame img { max-height:200px }'
             . '}';
     }
+
+    public function getFontLinks(): string
+    {
+        return '<link rel="preconnect" href="https://fonts.googleapis.com">'
+            . '<link href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;500;700;900&family=Onest:wght@300;400;500&display=swap" rel="stylesheet">';
+    }
+
+    public function getBodyClass(): string
+    {
+        return '';
+    }
 }
