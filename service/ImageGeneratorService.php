@@ -32,7 +32,7 @@ use Throwable;
 class ImageGeneratorService {
 
     const GPT_IMAGE_GENERATE_URL = 'https://api.openai.com/v1/images/generations';
-    const GOOGLE_IMAGEN_URL = 'https://generativelanguage.googleapis.com/v1beta/models/%s:predict';
+    const GOOGLE_IMAGEN_URL = 'https://generativelanguage.googleapis.com/v1beta';
 
     private Database  $db;
     private GptClient $gpt;
@@ -267,12 +267,15 @@ class ImageGeneratorService {
         return $prompt;
     }
 
-    private function isGoogleModel(): bool {
-        return strpos($this->dalleModel, 'imagen') === 0;
+    private function isGoogleModel(array $options): bool {
+        return $options['model'] === "gemini-2.5-flash-image";
+//        return strpos($this->dalleModel, 'imagen') === 0;
     }
 
     private function callImageApi(string $prompt, array $options = []): array {
-        if ($this->isGoogleModel()) {
+        $isGoogleModel = $this->isGoogleModel($options);
+
+        if ($isGoogleModel) {
             return $this->callGoogleImagen($prompt, $options);
         }
         return $this->callDalle($prompt, $options);
@@ -350,15 +353,15 @@ class ImageGeneratorService {
         ];
         $aspectRatio = $aspectMap[$size] ?? '1:1';
 
-        $url = sprintf(self::GOOGLE_IMAGEN_URL, $this->dalleModel) . '?key=' . $this->googleApiKey;
+        $url = self::GOOGLE_IMAGEN_URL . "/models/" . $options['model'] . ":generateContent?key=" . $this->googleApiKey;
 
         $payload = [
-            'instances' => [
-                ['prompt' => $prompt],
+            'contents' => [
+                ['parts' => [ 'text' => $prompt ] ],
             ],
-            'parameters' => [
-                'sampleCount' => 1,
-                'aspectRatio' => $aspectRatio,
+            'generationConfig' => [
+                'responseModalities' => ["TEXT", "IMAGE"],
+                'imageConfig' => ['aspectRatio' => $aspectRatio],
             ],
         ];
 

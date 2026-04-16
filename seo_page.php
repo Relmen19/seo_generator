@@ -954,7 +954,7 @@ requireAuth();
                                     <option value="dall-e-3">DALL-E 3 (лучшее качество)</option>
                                     <option value="dall-e-2">DALL-E 2 (быстрее)</option>
                                     <option value="gpt-image-1">GPT-Image-1 (новинка)</option>
-                                    <option value="imagen-3.0-generate-002">Google Imagen 3 (Nano Banano)</option>
+                                    <option value="gemini-2.5-flash-image">Google Imagen 3 (Nano Banano)</option>
                                 </select>
                             </div>
                             <div style="display:flex;flex-direction:column;gap:4px">
