@@ -22,12 +22,10 @@ class InfoCardsBlockRenderer extends AbstractBlockRenderer
         $cols   = $layout_type === 'grid-2' ? 'ic-grid--2' : 'ic-grid--3';
 
         /* Image support */
-        $imgLayout = $this->getImageLayout($c, 'right');
-        $imgTop = ($imgLayout === 'top')    ? $this->renderBlockImageOnly($c) : '';
-        $imgBot = ($imgLayout === 'bottom') ? $this->renderBlockImageOnly($c) : '';
-        $imgH   = ($imgLayout !== 'top' && $imgLayout !== 'bottom') ? $this->renderInlineImage($c, 'right') : '';
+        [$imgTop, $imgH, $imgBot, $bgStyle] = $this->resolveBlockImages($c, 'right');
+        $bgAttr = $bgStyle ? ' style="' . $bgStyle . '"' : '';
 
-        $h = '<section id="' . $id . '" class="block-icards reveal" data-toc="' . ($title ?: 'Факты') . '">'
+        $h = '<section id="' . $id . '" class="block-icards reveal' . ($bgStyle ? ' has-bg-img' : '') . '"' . $bgAttr . ' data-toc="' . ($title ?: 'Факты') . '">'
             . '<div class="container">'
             . $imgTop
             . $imgH

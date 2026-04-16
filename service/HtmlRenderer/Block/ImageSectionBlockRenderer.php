@@ -73,7 +73,10 @@ class ImageSectionBlockRenderer extends AbstractBlockRenderer
 
         // Float layouts: left / right (with optional vPos for ordering)
         $revCls = ($hPos === 'right') ? ' imgsec--reverse' : '';
-        $h = '<section id="' . $id . '" class="block-imgsec reveal' . $revCls . '" ' . $tocAttr . '>'
+        $alignCls = '';
+        if ($vPos === 'top') $alignCls = ' imgsec--align-top';
+        elseif ($vPos === 'bottom') $alignCls = ' imgsec--align-bottom';
+        $h = '<section id="' . $id . '" class="block-imgsec reveal' . $revCls . $alignCls . '" ' . $tocAttr . '>'
             . '<div class="container"><div class="imgsec-flex">';
         if ($imgSrc) {
             $h .= '<div class="imgsec-visual">'
@@ -92,6 +95,8 @@ class ImageSectionBlockRenderer extends AbstractBlockRenderer
     {
         return '.block-imgsec { padding:80px 0 }'
             . "\n" . '.imgsec-flex { display:flex; gap:48px; align-items:center }'
+            . "\n" . '.imgsec--align-top .imgsec-flex { align-items:flex-start }'
+            . "\n" . '.imgsec--align-bottom .imgsec-flex { align-items:flex-end }'
             . "\n" . '.imgsec-visual { flex:1; min-width:0 }'
             . "\n" . '.imgsec-text { flex:1; min-width:0 }'
             . "\n" . '.imgsec--reverse .imgsec-flex { flex-direction:row-reverse }'

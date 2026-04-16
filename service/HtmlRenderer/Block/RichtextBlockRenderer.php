@@ -97,17 +97,29 @@ class RichtextBlockRenderer extends AbstractBlockRenderer
         $isFloat = in_array($imageHPos, ['left', 'right']);
 
         if ($imageHtml && !$isTopBottom) {
-            $textCount = 0;
-            $threshold = $isFloat ? 1 : (count($normalized) <= 4 ? 1 : 2);
-            foreach ($normalized as $idx => $nb) {
-                $t = $nb['type'] ?? 'paragraph';
-                if ($t !== 'heading') $textCount++;
-                if ($textCount >= $threshold) {
-                    $insertAfter = $idx;
-                    break;
+            if ($isFloat && $imageVPos === 'bottom') {
+                // Bottom float: place image so last ~2 text blocks wrap around it
+                $textIdxes = [];
+                foreach ($normalized as $idx => $nb) {
+                    if (($nb['type'] ?? 'paragraph') !== 'heading') {
+                        $textIdxes[] = $idx;
+                    }
                 }
+                $pick = max(0, count($textIdxes) - 2);
+                $insertAfter = $textIdxes[$pick] ?? max(0, count($normalized) - 1);
+            } else {
+                $textCount = 0;
+                $threshold = $isFloat ? 1 : (count($normalized) <= 4 ? 1 : 2);
+                foreach ($normalized as $idx => $nb) {
+                    $t = $nb['type'] ?? 'paragraph';
+                    if ($t !== 'heading') $textCount++;
+                    if ($textCount >= $threshold) {
+                        $insertAfter = $idx;
+                        break;
+                    }
+                }
+                if ($insertAfter < 0) $insertAfter = 0;
             }
-            if ($insertAfter < 0) $insertAfter = 0;
         }
 
         $h = '<section id="'.$id.'" class="block-richtext reveal">'
