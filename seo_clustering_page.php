@@ -26,14 +26,14 @@ requireAuth();
         .main-scroll { flex: 1; overflow-y: auto; padding: 24px; }
 
         .sb-section { padding: 14px; border-bottom: 1px solid #334155; }
-        .sb-section h3 { font-size: .72rem; text-transform: uppercase; letter-spacing: .5px; color: #64748b; margin-bottom: 10px; }
+        .sb-section h3 { font-size: .75rem; text-transform: uppercase; letter-spacing: .5px; color: #64748b; margin-bottom: 10px; }
         .sb-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
         input[type="text"], input[type="number"], textarea, select { width: 100%; padding: 8px 10px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-size: .85rem; outline: none; transition: border .2s; }
         input:focus, textarea:focus, select:focus { border-color: #6366f1; }
         textarea { resize: vertical; min-height: 60px; font-family: inherit; }
         .form-row { margin-bottom: 10px; }
-        .form-row label { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .4px; color: #64748b; margin-bottom: 4px; }
+        .form-row label { display: block; font-size: .75rem; text-transform: uppercase; letter-spacing: .4px; color: #64748b; margin-bottom: 4px; }
 
         .btn { padding: 7px 16px; border: none; border-radius: 6px; font-size: .8rem; font-weight: 600; cursor: pointer; transition: .15s; display: inline-flex; align-items: center; gap: 5px; }
         .btn-primary { background: #6366f1; color: #fff; } .btn-primary:hover { background: #818cf8; }
@@ -51,7 +51,7 @@ requireAuth();
         .job-title { font-weight: 600; font-size: .9rem; color: #f1f5f9; margin-bottom: 3px; }
         .job-meta { font-size: .72rem; color: #64748b; display: flex; gap: 12px; flex-wrap: wrap; }
 
-        .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 100px; font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+        .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 100px; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
         .badge-pending { background: #1e3a5f; color: #60a5fa; }
         .badge-collecting { background: #422006; color: #fbbf24; }
         .badge-clustering { background: #3b0764; color: #c084fc; }
@@ -62,7 +62,7 @@ requireAuth();
         .badge-rejected { background: #450a0a; color: #fca5a5; }
         .badge-article_created { background: #134e4a; color: #5eead4; }
         /* Intent badge colors — динамически генерируются из seo_intent_types, fallback */
-        .badge-intent { font-size: .62rem; }
+        .badge-intent { font-size: .7rem; }
         .badge-info { background: #1e3a5f; color: #60a5fa; }
         .badge-symptom_check { background: #500724; color: #f472b6; }
         .badge-diagnosis_interpret { background: #2e1065; color: #a78bfa; }
@@ -249,7 +249,7 @@ requireAuth();
             display: flex;
             gap: 3px;
             margin-top: 9px;
-            opacity: 0;
+            opacity: 0.3;
             transition: opacity .15s;
         }
         .cluster-card:hover .cc-actions { opacity: 1; }
@@ -302,7 +302,7 @@ requireAuth();
 
         /* ── Cluster detail panel (list mode) ── */
         .cluster-detail-panel {
-            width: 320px;
+            width: 380px;
             flex-shrink: 0;
             border-left: 1px solid #1e293b;
             background: #0d1525;
@@ -320,7 +320,7 @@ requireAuth();
         .cdp-meta-label { color: #475569; }
         .cdp-meta-value { color: #94a3b8; font-weight: 500; font-size: .9rem; }
         .cdp-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
-        .cdp-angle { font-size: 1rem; color: #64748b; line-height: 1.6; padding: 12px 14px; background: #111827; border-radius: 6px; border: 1px solid #1e293b; }
+        .cdp-angle { font-size: .95rem; color: #94a3b8; line-height: 1.6; padding: 14px 16px; background: #111827; border-radius: 6px; border: 1px solid #1e293b; white-space: pre-wrap; word-break: break-word; }
         .cdp-actions { display: flex; flex-direction: column; gap: 7px; }
         .cdp-actions .btn { width: 100%; justify-content: center; font-size: 1rem; padding: 9px 16px; }
         .cdp-empty { padding: 40px 20px; text-align: center; color: #2d3f55; font-size: 1rem; }
@@ -377,7 +377,7 @@ requireAuth();
 
         /* ── Keywords table ── */
         .kw-table { width: 100%; border-collapse: collapse; font-size: 1.05rem; }
-        .kw-table th { text-align: left; padding: 12px 18px; font-size: .8rem; text-transform: uppercase; letter-spacing: .4px; color: #475569; border-bottom: 2px solid #1e2d45; background: #0d1a2e; position: sticky; top: 0; z-index: 1; }
+        .kw-table th { text-align: left; padding: 14px 18px; font-size: .82rem; text-transform: uppercase; letter-spacing: .4px; color: #475569; border-bottom: 2px solid #1e2d45; background: #0d1a2e; position: sticky; top: 0; z-index: 1; }
         .kw-table td { padding: 11px 18px; border-bottom: 1px solid rgba(30,45,69,.8); color: #94a3b8; vertical-align: middle; }
         .kw-table td:first-child { color: #e2e8f0; font-size: 1.05rem; }
         .kw-table tr:hover td { background: rgba(99,102,241,.06); }
@@ -394,12 +394,12 @@ requireAuth();
         .log-box.show { display: block; }
         .log-info { color: #94a3b8; } .log-ok { color: #4ade80; } .log-err { color: #f87171; }
 
-        .empty-state { text-align: center; padding: 60px 24px; color: #475569; }
-        .empty-state h3 { font-size: 1rem; color: #64748b; margin-bottom: 6px; }
+        .empty-state { text-align: center; padding: 60px 24px; color: #64748b; }
+        .empty-state h3 { font-size: 1.05rem; color: #94a3b8; margin-bottom: 8px; }
         .empty-state p { font-size: .82rem; max-width: 360px; margin: 0 auto; }
 
         .tab-bar { display: flex; border-bottom: 1px solid #334155; background: #1e293b; flex-shrink: 0; }
-        .tab-btn { padding: 10px 20px; font-size: .8rem; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; transition: .2s; user-select: none; }
+        .tab-btn { padding: 10px 20px; font-size: .85rem; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; transition: .2s; user-select: none; }
         .tab-btn:hover { color: #94a3b8; }
         .tab-btn.active { color: #a5b4fc; border-bottom-color: #6366f1; }
         .tab-content { display: none; }
@@ -410,7 +410,7 @@ requireAuth();
         .toast.error { background: #991b1b; }
 
         .kw-table-wrap { flex: 1; overflow-y: auto; }
-        .muted { color: #64748b; font-size: .78rem; }
+        .muted { color: #64748b; font-size: .82rem; }
         .search-input { max-width: 200px; padding: 5px 8px !important; font-size: .75rem !important; }
         .per-page-select { width: auto !important; padding: 4px 8px !important; font-size: .72rem !important; }
         .manual-counter { font-size: .75rem; color: #64748b; margin-top: 4px; }
@@ -452,17 +452,32 @@ requireAuth();
         .field-hint { font-size: .68rem; color: #475569; margin-top: 3px; line-height: 1.4; }
         .intent-form-scroll { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
         .intent-form-actions { display: flex; gap: 8px; padding-top: 4px; }
+
+        /* ── Topbar profile ── */
+        .topbar-left { display: flex; align-items: center; gap: 12px; }
+        .topbar-back { color: #64748b; text-decoration: none; font-size: 1.1rem; padding: 4px 8px; border-radius: 6px; transition: .2s; }
+        .topbar-back:hover { background: #334155; color: #e2e8f0; }
+        .topbar-profile { display: flex; align-items: center; gap: 10px; }
+        .topbar-profile-icon { width: 32px; height: 32px; border-radius: 8px; background: #334155; display: flex; align-items: center; justify-content: center; font-size: .9rem; font-weight: 700; color: #6366f1; flex-shrink: 0; overflow: hidden; }
+        .topbar-profile-icon img { width: 100%; height: 100%; object-fit: cover; }
+        .topbar-profile-name { font-size: .95rem; font-weight: 700; color: #f1f5f9; line-height: 1.2; }
+        .topbar-profile-meta { font-size: .72rem; color: #64748b; }
+
+        .sb-section-title { font-size: .85rem; font-weight: 700; color: #f1f5f9; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #334155; }
+
+        .cdp-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #1e293b; flex-shrink: 0; }
+        .cdp-toolbar-title { font-size: .72rem; text-transform: uppercase; letter-spacing: .4px; color: #475569; font-weight: 600; }
     </style>
 </head>
 <body>
 <div class="topbar">
-    <div style="display:flex;align-items:center;gap:12px">
-        <a href="/seo_profile_page.php" style="color:#64748b;text-decoration:none;font-size:1.1rem;padding:4px 8px;border-radius:6px;transition:.2s" onmouseover="this.style.background='#334155';this.style.color='#e2e8f0'" onmouseout="this.style.background='';this.style.color='#64748b'" title="К профилям">&larr;</a>
-        <div id="topbarProfileInfo" style="display:flex;align-items:center;gap:10px">
-            <div id="topbarProfileIcon" style="width:32px;height:32px;border-radius:8px;background:#334155;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;color:#6366f1;flex-shrink:0;overflow:hidden"></div>
+    <div class="topbar-left">
+        <a href="/seo_profile_page.php" class="topbar-back" title="К профилям">&larr;</a>
+        <div class="topbar-profile" id="topbarProfileInfo">
+            <div class="topbar-profile-icon" id="topbarProfileIcon"></div>
             <div>
-                <div id="topbarProfileName" style="font-size:.95rem;font-weight:700;color:#f1f5f9;line-height:1.2">Семантика</div>
-                <div id="topbarProfileMeta" style="font-size:.7rem;color:#64748b"></div>
+                <div class="topbar-profile-name" id="topbarProfileName">Семантика</div>
+                <div class="topbar-profile-meta" id="topbarProfileMeta"></div>
             </div>
         </div>
     </div>
@@ -566,7 +581,7 @@ requireAuth();
 <div class="page">
     <div class="sidebar">
         <div class="sb-section">
-            <h3>Новая задача сбора</h3>
+            <div class="sb-section-title">Новая задача сбора</div>
             <div class="form-row">
                 <label>Базовый запрос (seed)</label>
                 <input type="text" id="seedInput" placeholder="ключевое слово 1, ключевое слово 2, ...">
@@ -714,8 +729,8 @@ requireAuth();
                 <div style="display:flex;min-height:0">
                     <div id="clusterArea" style="flex:1;min-width:0"></div>
                     <div class="cluster-detail-panel" id="clusterDetailPanel" style="display:none;flex-direction:column">
-                        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #1e293b;flex-shrink:0">
-                            <span style="font-size:.7rem;text-transform:uppercase;letter-spacing:.4px;color:#334155">Кластер</span>
+                        <div class="cdp-toolbar">
+                            <span class="cdp-toolbar-title">Кластер</span>
                             <button class="btn-icon" onclick="document.getElementById('clusterDetailPanel').style.display='none';document.querySelectorAll('.cluster-row,.cluster-card').forEach(r=>r.classList.remove('active'))">✕</button>
                         </div>
                         <div id="cdpContent"><div class="cdp-empty">Выберите кластер</div></div>

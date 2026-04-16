@@ -33,9 +33,9 @@ requireAuth();
         .card-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
         .card-info { flex: 1; min-width: 0; }
         .card-title { font-size: 1rem; font-weight: 700; color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .card-subtitle { font-size: .78rem; color: #64748b; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .card-subtitle { font-size: .82rem; color: #64748b; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .card-stats { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
-        .card-stat { font-size: .72rem; color: #94a3b8; }
+        .card-stat { font-size: .75rem; color: #94a3b8; }
         .card-stat b { color: #e2e8f0; }
         .card-desc { font-size: .78rem; color: #94a3b8; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
@@ -54,17 +54,17 @@ requireAuth();
         input[type="text"], input[type="url"], input[type="color"], textarea, select { width: 100%; min-width: 0; padding: 8px 10px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-size: .85rem; outline: none; transition: border .2s; }
         input:focus, textarea:focus, select:focus { border-color: #6366f1; }
         textarea { resize: vertical; min-height: 60px; font-family: inherit; }
-        .form-row { margin-bottom: 14px; }
-        .form-row label { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .4px; color: #64748b; margin-bottom: 4px; }
-        .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+        .form-row { margin-bottom: 16px; }
+        .form-row label { display: block; font-size: .75rem; text-transform: uppercase; letter-spacing: .4px; color: #64748b; margin-bottom: 4px; }
+        .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
         .form-grid .full { grid-column: 1 / -1; }
-        .form-hint { font-size: .7rem; color: #475569; margin-top: 3px; }
+        .form-hint { font-size: .75rem; color: #475569; margin-top: 3px; }
 
         /* ── Section title ── */
         .section-title { font-size: .9rem; font-weight: 700; color: #f1f5f9; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
         /* ── Badges ── */
-        .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 100px; font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; white-space: nowrap; flex-shrink: 0; }
+        .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 100px; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; white-space: nowrap; flex-shrink: 0; }
         .badge-active { background: #052e16; color: #4ade80; }
         .badge-inactive { background: #450a0a; color: #fca5a5; }
 
@@ -81,7 +81,7 @@ requireAuth();
 
         /* ── Workspace tabs ── */
         .ws-tabs { display: flex; gap: 0; border-bottom: 1px solid #334155; margin-bottom: 24px; overflow-x: auto; }
-        .ws-tab { padding: 10px 18px; font-size: .82rem; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; transition: .2s; white-space: nowrap; flex-shrink: 0; }
+        .ws-tab { padding: 10px 18px; font-size: .85rem; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; transition: .2s; white-space: nowrap; flex-shrink: 0; }
         .ws-tab:hover { color: #e2e8f0; }
         .ws-tab.active { color: #6366f1; border-bottom-color: #6366f1; }
 
@@ -89,7 +89,7 @@ requireAuth();
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
         .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; text-align: center; }
         .stat-value { font-size: 1.6rem; font-weight: 700; color: #f1f5f9; }
-        .stat-label { font-size: .72rem; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: .3px; }
+        .stat-label { font-size: .75rem; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: .3px; }
 
         /* ── Wizard ── */
         .wizard-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
@@ -198,6 +198,35 @@ requireAuth();
         .intent-code { font-size: .72rem; color: #475569; font-family: monospace; }
         .intent-desc { font-size: .78rem; color: #94a3b8; margin-top: 4px; }
         .intent-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+        /* ── Quick action cards ── */
+        .quick-action { display: flex; align-items: center; gap: 14px; text-decoration: none; cursor: pointer; transition: border-color .2s; padding: 20px; }
+        .quick-action:hover { border-color: #6366f1; }
+        .quick-action-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
+        .quick-action-icon.seo { background: #312e81; }
+        .quick-action-icon.sem { background: #1e3a5f; }
+        .quick-action-title { font-size: .95rem; font-weight: 700; color: #f1f5f9; }
+        .quick-action-desc { font-size: .78rem; color: #94a3b8; margin-top: 2px; }
+        .quick-action-arrow { margin-left: auto; color: #475569; font-size: 1.1rem; transition: transform .2s; }
+        .quick-action:hover .quick-action-arrow { transform: translateX(3px); color: #6366f1; }
+        .quick-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+
+        /* ── Topbar workspace profile ── */
+        .topbar-profile { display: flex; align-items: center; gap: 10px; }
+        .topbar-profile-icon { width: 32px; height: 32px; border-radius: 8px; background: #334155; display: flex; align-items: center; justify-content: center; font-size: .9rem; font-weight: 700; color: #6366f1; flex-shrink: 0; overflow: hidden; }
+        .topbar-profile-icon img { width: 100%; height: 100%; object-fit: cover; }
+        .topbar-profile-name { font-size: .95rem; font-weight: 700; color: #f1f5f9; line-height: 1.2; }
+        .topbar-profile-meta { font-size: .72rem; color: #64748b; }
+        .topbar-left { display: flex; align-items: center; gap: 12px; }
+
+        /* ── Brand icon section ── */
+        .brand-icon-section { display: flex; gap: 24px; align-items: flex-start; }
+        .brand-icon-info { flex: 1; }
+        .brand-icon-info-text { font-size: .85rem; color: #94a3b8; margin-bottom: 8px; }
+        .brand-icon-info-hint { font-size: .75rem; color: #64748b; }
+
+        /* ── Overview description ── */
+        .overview-desc { font-size: .85rem; color: #94a3b8; line-height: 1.6; }
     </style>
 </head>
 <body>
@@ -209,12 +238,14 @@ requireAuth();
     </nav>
 </div>
 <div class="topbar" id="topbarWs" style="display:none">
-    <div style="display:flex;align-items:center;gap:12px">
+    <div class="topbar-left">
         <button class="ws-back" onclick="goToList()" title="К списку профилей">&larr;</button>
-        <div id="topbarWsIcon" style="width:32px;height:32px;border-radius:8px;background:#334155;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;color:#6366f1;flex-shrink:0;overflow:hidden"></div>
-        <div>
-            <div id="topbarWsName" style="font-size:.95rem;font-weight:700;color:#f1f5f9;line-height:1.2"></div>
-            <div id="topbarWsMeta" style="font-size:.7rem;color:#64748b"></div>
+        <div class="topbar-profile">
+            <div class="topbar-profile-icon" id="topbarWsIcon"></div>
+            <div>
+                <div class="topbar-profile-name" id="topbarWsName"></div>
+                <div class="topbar-profile-meta" id="topbarWsMeta"></div>
+            </div>
         </div>
     </div>
     <nav>
@@ -260,28 +291,28 @@ requireAuth();
     <!-- Tab: Overview -->
     <div class="ws-content" id="tabOverview">
         <!-- Quick actions: go to SEO / Semantics -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px">
-            <a href="/seo_page.php" class="settings-section" style="text-decoration:none;display:flex;align-items:center;gap:14px;cursor:pointer;transition:border-color .2s;margin-bottom:0" onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='#334155'">
-                <div style="width:44px;height:44px;border-radius:10px;background:#312e81;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0">&#9998;</div>
+        <div class="quick-actions-grid">
+            <a href="/seo_page.php" class="settings-section quick-action" style="margin-bottom:0">
+                <div class="quick-action-icon seo">&#9998;</div>
                 <div>
-                    <div style="font-size:.95rem;font-weight:700;color:#f1f5f9">SEO &amp; Контент</div>
-                    <div style="font-size:.75rem;color:#64748b">Статьи, каталоги, шаблоны, публикация</div>
+                    <div class="quick-action-title">SEO &amp; Контент</div>
+                    <div class="quick-action-desc">Статьи, каталоги, шаблоны, публикация</div>
                 </div>
-                <div style="margin-left:auto;color:#475569;font-size:1.1rem">&rarr;</div>
+                <div class="quick-action-arrow">&rarr;</div>
             </a>
-            <a href="/seo_clustering_page.php" class="settings-section" style="text-decoration:none;display:flex;align-items:center;gap:14px;cursor:pointer;transition:border-color .2s;margin-bottom:0" onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='#334155'">
-                <div style="width:44px;height:44px;border-radius:10px;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0">&#128270;</div>
+            <a href="/seo_clustering_page.php" class="settings-section quick-action" style="margin-bottom:0">
+                <div class="quick-action-icon sem">&#128270;</div>
                 <div>
-                    <div style="font-size:.95rem;font-weight:700;color:#f1f5f9">Семантика</div>
-                    <div style="font-size:.75rem;color:#64748b">Ключевые слова, кластеризация, интенты</div>
+                    <div class="quick-action-title">Семантика</div>
+                    <div class="quick-action-desc">Ключевые слова, кластеризация, интенты</div>
                 </div>
-                <div style="margin-left:auto;color:#475569;font-size:1.1rem">&rarr;</div>
+                <div class="quick-action-arrow">&rarr;</div>
             </a>
         </div>
         <div class="stats-grid" id="statsGrid"></div>
         <div class="settings-section">
             <h3>Описание проекта</h3>
-            <div id="overviewDesc" style="font-size:.85rem;color:#94a3b8"></div>
+            <div id="overviewDesc" class="overview-desc"></div>
         </div>
     </div>
 
@@ -325,15 +356,15 @@ requireAuth();
     <div class="ws-content" id="tabBranding" style="display:none">
         <div class="settings-section">
             <h3>Иконка профиля</h3>
-            <div style="display:flex;gap:20px;align-items:flex-start">
+            <div class="brand-icon-section">
                 <div class="icon-upload" id="brandIconUpload" onclick="document.getElementById('brandIconFile').click()">
                     <input type="file" id="brandIconFile" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" onchange="uploadBrandIcon(this)">
                     <span class="icon-upload-text">Перетащите или нажмите</span>
                     <button class="remove-icon" onclick="event.stopPropagation();removeBrandIcon()">&times;</button>
                 </div>
-                <div style="flex:1">
-                    <div style="font-size:.82rem;color:#94a3b8;margin-bottom:8px">Загрузите иконку для профиля. Рекомендуемый размер: 256x256 px.</div>
-                    <div style="font-size:.72rem;color:#475569">Форматы: PNG, JPEG, WebP, SVG, GIF. Макс. 2 МБ.</div>
+                <div class="brand-icon-info">
+                    <div class="brand-icon-info-text">Загрузите иконку для профиля. Рекомендуемый размер: 256x256 px.</div>
+                    <div class="brand-icon-info-hint">Форматы: PNG, JPEG, WebP, SVG, GIF. Макс. 2 МБ.</div>
                 </div>
             </div>
         </div>
@@ -728,7 +759,7 @@ function renderWsHeader() {
     $('topbarWsMeta').textContent = (p.slug || '') + (p.domain ? ' \u00b7 ' + p.domain : '');
     const iconEl = $('topbarWsIcon');
     if (p.icon_path) {
-        iconEl.innerHTML = '<img src="' + API + '?r=profiles/' + p.id + '/icon" style="width:100%;height:100%;object-fit:cover;border-radius:8px">';
+        iconEl.innerHTML = '<img src="' + API + '?r=profiles/' + p.id + '/icon" alt="">';
     } else {
         iconEl.textContent = (p.name || '?')[0].toUpperCase();
         iconEl.style.color = p.color_scheme || '#6366f1';

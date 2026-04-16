@@ -92,7 +92,7 @@ requireAuth();
             flex: 1;
             padding: 9px 6px;
             text-align: center;
-            font-size: .72rem;
+            font-size: .75rem;
             font-weight: 600;
             color: #64748b;
             cursor: pointer;
@@ -187,7 +187,7 @@ requireAuth();
         }
         .list-item-meta { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
         .tag {
-            font-size: .65rem; padding: 2px 7px; border-radius: 4px;
+            font-size: .72rem; padding: 2px 7px; border-radius: 4px;
             background: #1e293b; border: 1px solid #334155; color: #94a3b8;
         }
         .tag.type { border-color: #6366f1; color: #a5b4fc; }
@@ -218,7 +218,7 @@ requireAuth();
         .form-group { display: flex; flex-direction: column; gap: 4px; }
         .form-group.full { grid-column: 1 / -1; }
         .form-group label {
-            font-size: .72rem; text-transform: uppercase; letter-spacing: .5px; color: #64748b;
+            font-size: .75rem; text-transform: uppercase; letter-spacing: .5px; color: #64748b;
         }
         .form-group input, .form-group select, .form-group textarea {
             padding: 10px 14px; background: #0f172a; border: 1px solid #334155;
@@ -228,7 +228,7 @@ requireAuth();
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #6366f1; }
         .form-group input:disabled, .form-group textarea:disabled { opacity: .5; cursor: not-allowed; }
         .form-group select:disabled { opacity: .5; cursor: not-allowed; }
-        .label-hint { font-size: .68rem; color: #475569; text-transform: none; letter-spacing: 0; margin-left: 4px; font-weight: 400; }
+        .label-hint { font-size: .72rem; color: #475569; text-transform: none; letter-spacing: 0; margin-left: 4px; font-weight: 400; }
 
         .version-badge {
             display: inline-flex; align-items: center;
@@ -464,7 +464,7 @@ requireAuth();
 
         .gen-panel { background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border: 1px solid #4338ca; border-radius: 8px; padding: 16px; }
         .gen-panel h3 { color: #c7d2fe; margin-bottom: 12px; font-size: .95rem; }
-        .gen-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .gen-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; row-gap: 10px; }
         .gen-controls select { background: #1e1b4b; border: 1px solid #4338ca; color: #e0e7ff; padding: 6px 10px; border-radius: 6px; font-size: .8rem; }
         .gen-controls .btn-gen { background: linear-gradient(135deg, #7c3aed, #6366f1); color: #fff; padding: 8px 16px; font-size: .8rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; transition: all .2s; }
         .gen-controls .btn-gen:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(99,102,241,.4); }
@@ -648,6 +648,37 @@ requireAuth();
         .form-group.plan-field textarea:focus { border-color: #6366f1; }
         .form-group.plan-field textarea::placeholder { color: #2a3258; font-style: italic; }
 
+        /* ── Image generation settings ── */
+        .img-gen-settings { background: #1e1b4b; border: 1px solid #312e81; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+        .img-gen-title { font-size: .75rem; color: #a5b4fc; font-weight: 600; margin-bottom: 12px; text-transform: uppercase; letter-spacing: .5px; }
+        .img-gen-grid { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+        .img-gen-field { display: flex; flex-direction: column; gap: 4px; }
+        .img-gen-field label { font-size: .72rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .4px; }
+        .img-gen-field select,
+        .img-gen-field textarea { background: #0f172a; border: 1px solid #4338ca; color: #e0e7ff; padding: 7px 10px; border-radius: 6px; font-size: .82rem; outline: none; font-family: inherit; resize: vertical; }
+        .img-gen-field select:focus,
+        .img-gen-field textarea:focus { border-color: #6366f1; }
+        .img-gen-manual { margin-top: 12px; }
+        .img-gen-manual-row { display: flex; gap: 8px; margin-top: 6px; }
+        .img-gen-manual-row textarea { flex: 1; }
+        .img-gen-hint { font-size: .72rem; color: #64748b; margin-top: 4px; }
+
+        /* ── Section headers with actions ── */
+        .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+        .section-header h3 { font-size: .88rem; color: #f1f5f9; margin: 0; display: flex; align-items: center; gap: 8px; }
+        .section-header-actions { display: flex; gap: 6px; margin-left: auto; align-items: center; flex-shrink: 0; }
+        .section-subtitle { font-size: .75rem; font-weight: 400; color: #64748b; }
+
+        /* ── Topbar profile ── */
+        .topbar-profile { display: flex; align-items: center; gap: 10px; }
+        .topbar-profile-icon { width: 32px; height: 32px; border-radius: 8px; background: #334155; display: flex; align-items: center; justify-content: center; font-size: .9rem; font-weight: 700; color: #6366f1; flex-shrink: 0; overflow: hidden; }
+        .topbar-profile-icon img { width: 100%; height: 100%; object-fit: cover; }
+        .topbar-profile-name { font-size: .95rem; font-weight: 700; color: #f1f5f9; line-height: 1.2; }
+        .topbar-profile-meta { font-size: .72rem; color: #64748b; }
+        .topbar-left { display: flex; align-items: center; gap: 12px; }
+        .topbar-back { color: #64748b; text-decoration: none; font-size: 1.1rem; padding: 4px 8px; border-radius: 6px; transition: .2s; }
+        .topbar-back:hover { background: #334155; color: #e2e8f0; }
+
         @media (max-width: 800px) {
             .page { flex-direction: column; height: auto; }
             .list-panel { width: 100% !important; min-width: 0 !important; max-height: 40vh; }
@@ -671,13 +702,13 @@ requireAuth();
 </head>
 <body>
 <div class="topbar">
-    <div style="display:flex;align-items:center;gap:12px">
-        <a href="/seo_profile_page.php" style="color:#64748b;text-decoration:none;font-size:1.1rem;padding:4px 8px;border-radius:6px;transition:.2s" onmouseover="this.style.background='#334155';this.style.color='#e2e8f0'" onmouseout="this.style.background='';this.style.color='#64748b'" title="К профилям">&larr;</a>
-        <div id="topbarProfileInfo" style="display:flex;align-items:center;gap:10px">
-            <div id="topbarProfileIcon" style="width:32px;height:32px;border-radius:8px;background:#334155;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;color:#6366f1;flex-shrink:0;overflow:hidden"></div>
+    <div class="topbar-left">
+        <a href="/seo_profile_page.php" class="topbar-back" title="К профилям">&larr;</a>
+        <div class="topbar-profile" id="topbarProfileInfo">
+            <div class="topbar-profile-icon" id="topbarProfileIcon"></div>
             <div>
-                <div id="topbarProfileName" style="font-size:.95rem;font-weight:700;color:#f1f5f9;line-height:1.2">SEO Статьи</div>
-                <div id="topbarProfileMeta" style="font-size:.7rem;color:#64748b"></div>
+                <div class="topbar-profile-name" id="topbarProfileName">SEO Статьи</div>
+                <div class="topbar-profile-meta" id="topbarProfileMeta"></div>
             </div>
         </div>
     </div>
@@ -873,9 +904,12 @@ requireAuth();
                     </div>
                 </div>
                 <div class="section-block">
-                    <h3>SEO Meta
-                        <button class="btn btn-sm btn-ghost" style="margin-left:auto;color:#22d3ee;border-color:#0891b2" onclick="generateMeta()" id="btnGenMeta" title="Сгенерировать мета-теги через GPT">Meta</button>
-                    </h3>
+                    <div class="section-header">
+                        <h3>SEO Meta</h3>
+                        <div class="section-header-actions">
+                            <button class="btn btn-sm btn-ghost" style="color:#22d3ee;border-color:#0891b2" onclick="generateMeta()" id="btnGenMeta" title="Сгенерировать мета-теги через GPT">Meta</button>
+                        </div>
+                    </div>
                     <div class="form-grid">
                         <div class="form-group full">
                             <label>Meta Title</label>
@@ -929,10 +963,13 @@ requireAuth();
                 </div>
 
                 <div class="section-block">
-                    <h3>Блоки контента
-                        <button class="btn btn-sm btn-red" style="margin-left:auto;margin-right:6px" onclick="deleteAllBlocks()" title="Удалить все блоки">Удалить все</button>
-                        <button class="btn btn-sm btn-ghost" onclick="addArticleBlock()">+ Блок</button>
-                    </h3>
+                    <div class="section-header">
+                        <h3>Блоки контента</h3>
+                        <div class="section-header-actions">
+                            <button class="btn btn-sm btn-red" onclick="deleteAllBlocks()" title="Удалить все блоки">Удалить все</button>
+                            <button class="btn btn-sm btn-ghost" onclick="addArticleBlock()">+ Блок</button>
+                        </div>
+                    </div>
                     <div class="blocks-list" id="artBlocksList"></div>
                     <div id="artBlocksEmpty" style="font-size:.82rem;color:#475569;padding:10px 0;text-align:center;">
                         Нет блоков. Добавьте первый блок или используйте генерацию.
@@ -940,39 +977,43 @@ requireAuth();
                 </div>
 
                 <div class="section-block">
-                    <h3><span class="section-icon">&#128247;</span> Изображения
-                        <span id="artImgCount" style="font-size:.75rem;color:#64748b;font-weight:400;margin-left:6px"></span>
-                        <button class="btn btn-sm btn-ghost" style="margin-left:auto" onclick="showUploadZone()">+ Загрузить</button>
-                        <button class="btn btn-sm" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;font-size:.72rem;padding:3px 10px" onclick="generateAllImages()" id="btnGenAllImg" title="Сгенерировать изображения для всех image-блоков">&#127912; AI-Генерация</button>
-                    </h3>
-                    <div style="background:#1e1b4b;border:1px solid #312e81;border-radius:8px;padding:14px;margin-bottom:12px">
-                        <div style="font-size:.75rem;color:#a5b4fc;font-weight:600;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">&#127912; Настройки генерации изображений</div>
-                        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
-                            <div style="display:flex;flex-direction:column;gap:4px">
-                                <label style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.4px">Модель</label>
-                                <select id="imgGenModel" style="background:#0f172a;border:1px solid #4338ca;color:#e0e7ff;padding:6px 10px;border-radius:6px;font-size:.8rem;outline:none">
+                    <div class="section-header">
+                        <h3><span class="section-icon">&#128247;</span> Изображения <span id="artImgCount" style="font-size:.75rem;color:#64748b;font-weight:400"></span></h3>
+                        <div class="section-header-actions">
+                            <button class="btn btn-sm btn-ghost" onclick="showUploadZone()">+ Загрузить</button>
+                            <button class="btn btn-sm" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;font-size:.72rem;padding:3px 10px" onclick="generateAllImages()" id="btnGenAllImg" title="Сгенерировать изображения для всех image-блоков">&#127912; AI-Генерация</button>
+                        </div>
+                    </div>
+                    <div class="img-gen-settings">
+                        <div class="img-gen-title">&#127912; Настройки генерации изображений</div>
+                        <div class="img-gen-grid">
+                            <div class="img-gen-field">
+                                <label>Модель</label>
+                                <select id="imgGenModel">
                                     <option value="dall-e-3">DALL-E 3 (лучшее качество)</option>
                                     <option value="dall-e-2">DALL-E 2 (быстрее)</option>
                                     <option value="gpt-image-1">GPT-Image-1 (новинка)</option>
                                     <option value="gemini-2.5-flash-image">Google Imagen 3 (Nano Banano)</option>
                                 </select>
                             </div>
-                            <div style="display:flex;flex-direction:column;gap:4px">
-                                <label style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.4px">Размер</label>
-                                <select id="imgGenSize" style="background:#0f172a;border:1px solid #4338ca;color:#e0e7ff;padding:6px 10px;border-radius:6px;font-size:.8rem;outline:none">
-                                    <option value="1024x1024">1024×1024</option>
-                                    <option value="1792x1024">1792×1024 (широкий)</option>
-                                    <option value="1024x1792">1024×1792 (высокий)</option>
+                            <div class="img-gen-field">
+                                <label>Размер</label>
+                                <select id="imgGenSize">
+                                    <option value="1024x1024">1024&times;1024</option>
+                                    <option value="1792x1024">1792&times;1024 (широкий)</option>
+                                    <option value="1024x1792">1024&times;1792 (высокий)</option>
                                 </select>
                             </div>
                         </div>
-                        <div style="margin-top:10px;display:flex;flex-direction:column;gap:4px">
-                            <label style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.4px">Ручной промпт (для создания изображения без привязки к блоку)</label>
-                            <div style="display:flex;gap:6px">
-                                <textarea id="imgManualPrompt" rows="2" placeholder="Опишите изображение подробно... Оставьте пустым — промпт возьмётся из блока автоматически" style="flex:1;background:#0f172a;border:1px solid #4338ca;color:#e0e7ff;padding:6px 10px;border-radius:6px;font-size:.8rem;outline:none;resize:vertical;font-family:inherit"></textarea>
+                        <div class="img-gen-manual">
+                            <div class="img-gen-field">
+                                <label>Ручной промпт (для создания изображения без привязки к блоку)</label>
+                            </div>
+                            <div class="img-gen-manual-row">
+                                <textarea id="imgManualPrompt" rows="2" placeholder="Опишите изображение подробно... Оставьте пустым — промпт возьмётся из блока автоматически" class="img-gen-field"></textarea>
                                 <button class="btn btn-sm" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;align-self:flex-end;white-space:nowrap;padding:8px 14px" onclick="generateManualImage()" id="btnGenManual" title="Сгенерировать по введённому промпту">&#127912; Создать</button>
                             </div>
-                            <span style="font-size:.7rem;color:#475569">Изображение будет добавлено в галерею статьи. Затем вы можете привязать его к любому блоку.</span>
+                            <div class="img-gen-hint">Изображение будет добавлено в галерею статьи. Затем вы можете привязать его к любому блоку.</div>
                         </div>
                     </div>
                     <div id="imgGenStatus" style="display:none;padding:8px 12px;margin-bottom:8px;background:#1e1b4b;border:1px solid #4c1d95;border-radius:6px;font-size:.78rem;color:#c4b5fd"></div>
@@ -989,9 +1030,10 @@ requireAuth();
                 </div>
 
                 <div class="section-block">
-                    <h3>Настройки статьи
-                        <span style="font-size:.72rem;font-weight:400;color:#475569;margin-left:6px">AI-модель и системные данные</span>
-                    </h3>
+                    <div class="section-header">
+                        <h3>Настройки статьи</h3>
+                        <span class="section-subtitle">AI-модель и системные данные</span>
+                    </div>
                     <div class="art-settings-row">
                         <div class="art-settings-field">
                             <label>AI Модель <span class="label-hint">при генерации</span></label>
@@ -1121,9 +1163,12 @@ requireAuth();
                 </div>
 
                 <div class="section-block">
-                    <h3>Блоки шаблона
-                        <button class="btn btn-sm btn-ghost" style="margin-left:auto" onclick="addTemplateBlock()">+ Блок</button>
-                    </h3>
+                    <div class="section-header">
+                        <h3>Блоки шаблона</h3>
+                        <div class="section-header-actions">
+                            <button class="btn btn-sm btn-ghost" onclick="addTemplateBlock()">+ Блок</button>
+                        </div>
+                    </div>
                     <div class="blocks-list" id="tplBlocksList"></div>
                     <div id="tplBlocksEmpty" style="font-size:.82rem;color:#475569;padding:10px 0;text-align:center;">
                         Нет блоков в шаблоне
