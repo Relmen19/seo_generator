@@ -357,7 +357,7 @@ class ImageGeneratorService {
 
         $payload = [
             'contents' => [
-                ['parts' => [ 'text' => $prompt ] ],
+                ['parts' => [ ['text' => $prompt] ] ],
             ],
             'generationConfig' => [
                 'responseModalities' => ["TEXT", "IMAGE"],
@@ -395,13 +395,21 @@ class ImageGeneratorService {
             throw new RuntimeException("Google Imagen API error: {$errMsg}");
         }
 
-        $prediction = $data['predictions'][0] ?? null;
-        if (!$prediction || empty($prediction['bytesBase64Encoded'])) {
+        $parts = $data['candidates'][0]['content']['parts'] ?? [];
+        $imageData = null;
+        foreach ($parts as $part) {
+            if (!empty($part['inlineData']['data'])) {
+                $imageData = $part['inlineData']['data'];
+                break;
+            }
+        }
+
+        if (!$imageData) {
             throw new RuntimeException('Google Imagen вернул пустой ответ');
         }
 
         return [
-            'b64_json'       => $prediction['bytesBase64Encoded'],
+            'b64_json'       => $imageData,
             'revised_prompt' => null,
         ];
     }
