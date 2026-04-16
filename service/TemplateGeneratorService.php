@@ -10,6 +10,7 @@ use Seo\Entity\SeoBlockType;
 use Seo\Entity\SeoSiteProfile;
 use Seo\Entity\SeoTemplate;
 use Seo\Entity\SeoTemplateBlock;
+use Seo\Enum\TemplatePrompt;
 use Throwable;
 
 class TemplateGeneratorService {
@@ -172,7 +173,7 @@ class TemplateGeneratorService {
 
             $reviewResult = $this->gpt->chatJson([
                 ['role' => 'system', 'content' => $reviewPrompt],
-                ['role' => 'user', 'content' => 'Проведи ревью шаблона и предложи улучшения.'],
+                ['role' => 'user', 'content' => TemplatePrompt::USER_DO_REVIEW],
             ], [
                 'model' => $model,
                 'temperature' => SEO_TEMPERATURE_PRECISE,
@@ -250,7 +251,7 @@ class TemplateGeneratorService {
 
         $reviewResult = $this->gpt->chatJson([
             ['role' => 'system', 'content' => $reviewPrompt],
-            ['role' => 'user', 'content' => 'Проведи ревью шаблона и предложи улучшения.'],
+            ['role' => 'user', 'content' => TemplatePrompt::USER_DO_REVIEW],
         ], [
             'model' => $model,
             'temperature' => SEO_TEMPERATURE_PRECISE,
@@ -399,7 +400,7 @@ class TemplateGeneratorService {
             $reviewPrompt = $this->buildReviewPrompt($template, $profile, $blockTypes);
             $reviewResult = $this->gpt->chatJson([
                 ['role' => 'system', 'content' => $reviewPrompt],
-                ['role' => 'user', 'content' => 'Проведи ревью шаблона и предложи улучшения.'],
+                ['role' => 'user', 'content' => TemplatePrompt::USER_DO_REVIEW],
             ], [
                 'model' => $model,
                 'temperature' => SEO_TEMPERATURE_PRECISE,
@@ -516,58 +517,22 @@ class TemplateGeneratorService {
             $profileContext .= "Описание проекта: {$profile['description']}\n";
         }
 
-        return <<<PROMPT
-Ты — архитектор SEO-шаблонов. Твоя задача — спроектировать ОДИН шаблон статьи для конкретного типа контента.
-
-КОНТЕКСТ ПРОФИЛЯ:
-{$profileContext}
-
-НАЗНАЧЕНИЕ ШАБЛОНА:
-{$purpose}
-
-ДОСТУПНЫЕ ТИПЫ БЛОКОВ:
-{$typeList}
-
-ПРАВИЛА:
-1. Шаблон ДОЛЖЕН начинаться с `hero` и заканчиваться `cta`.
-2. Используй 5-10 блоков в зависимости от сложности типа статьи.
-3. gpt_system_prompt — подробная инструкция для GPT при генерации контента по этому шаблону (3-5 предложений).
-4. hint для каждого блока — детальная подсказка GPT что именно генерировать в этом блоке с учётом назначения шаблона.
-5. Подбирай блоки, которые максимально подходят для данного типа статьи.
-6. Имена, описания и промпты — на русском языке.
-7. slug — латиницей, через дефис.
-
-ФОРМАТ ОТВЕТА (строго JSON):
-{
-  "template": {
-    "name": "Название шаблона",
-    "slug": "template-slug",
-    "description": "Описание назначения шаблона — для какого типа статей",
-    "css_class": "tpl-slug",
-    "gpt_system_prompt": "Подробный системный промпт для GPT при генерации статьи по этому шаблону...",
-    "blocks": [
-      {
-        "type": "hero",
-        "name": "Название блока",
-        "hint": "Детальная подсказка GPT для генерации этого блока",
-        "fields": ["title", "subtitle"],
-        "sort_order": 1,
-        "is_required": true
-      }
-    ]
-  }
-}
-PROMPT;
+        return TemplatePrompt::ARCHITECT_ROLE . "\n\n"
+            . "КОНТЕКСТ ПРОФИЛЯ:\n{$profileContext}\n\n"
+            . "НАЗНАЧЕНИЕ ШАБЛОНА:\n{$purpose}\n\n"
+            . "ДОСТУПНЫЕ ТИПЫ БЛОКОВ:\n{$typeList}\n\n"
+            . TemplatePrompt::SINGLE_RULES . "\n\n"
+            . TemplatePrompt::SINGLE_RESPONSE_FORMAT;
     }
 
     private function buildSingleTemplateUserPrompt(array $profile, string $purpose, ?string $hints = null): string {
-        $parts = ["Создай шаблон для следующего типа статьи: {$purpose}"];
+        $parts = [sprintf(TemplatePrompt::USER_CREATE_TEMPLATE, $purpose)];
 
         if ($hints !== null && trim($hints) !== '') {
             $parts[] = "Дополнительные подсказки от менеджера: {$hints}";
         }
 
-        $parts[] = 'Подбери блоки, которые лучше всего подходят для этого типа контента. Для каждого блока напиши подробный hint.';
+        $parts[] = TemplatePrompt::USER_PICK_BLOCKS;
 
         return implode("\n\n", $parts);
     }
@@ -584,42 +549,13 @@ PROMPT;
             $profileContext .= "Тон: {$profile['tone']}\n";
         }
 
-        return <<<PROMPT
-Ты — ревьюер SEO-шаблонов. Проверь качество шаблона и предложи улучшения.
-
-ПРОФИЛЬ:
-{$profileContext}
-
-ДОСТУПНЫЕ ТИПЫ БЛОКОВ:
-{$typeList}
-
-ШАБЛОН НА РЕВЬЮ:
-{$tplJson}
-
-КРИТЕРИИ ОЦЕНКИ:
-1. Логичность структуры блоков (порядок, необходимость каждого блока)
-2. Качество gpt_system_prompt (достаточно ли подробный, учитывает ли нишу)
-3. Качество hint для каждого блока (конкретность, полезность для GPT)
-4. Покрытие нужных аспектов типа статьи
-5. Нет ли лишних или недостающих блоков
-
-ФОРМАТ ОТВЕТА (строго JSON):
-{
-  "score": 8,
-  "suggestions": ["Замечание 1", "Замечание 2"],
-  "improved_template": {
-    "name": "...",
-    "slug": "...",
-    "description": "...",
-    "css_class": "...",
-    "gpt_system_prompt": "Улучшенный промпт...",
-    "blocks": [...]
-  }
-}
-
-Если шаблон хорош — поставь высокую оценку и верни его без изменений в improved_template.
-Если есть что улучшить — улучши и верни исправленную версию.
-PROMPT;
+        return TemplatePrompt::REVIEWER_ROLE . "\n\n"
+            . "ПРОФИЛЬ:\n{$profileContext}\n\n"
+            . "ДОСТУПНЫЕ ТИПЫ БЛОКОВ:\n{$typeList}\n\n"
+            . "ШАБЛОН НА РЕВЬЮ:\n{$tplJson}\n\n"
+            . TemplatePrompt::REVIEW_CRITERIA . "\n\n"
+            . TemplatePrompt::REVIEW_RESPONSE_FORMAT . "\n\n"
+            . TemplatePrompt::REVIEW_INSTRUCTION;
     }
 
     private function formatBlockTypeList(array $blockTypes): string {
@@ -653,58 +589,13 @@ PROMPT;
     }
 
     private function buildSystemPrompt(array $profile, array $blockTypes, int $count): string {
-        $typeList = '';
-        foreach ($blockTypes as $bt) {
-            $typeList .= "- `{$bt['code']}` ({$bt['category']}): {$bt['display_name']}";
-            if (!empty($bt['description'])) {
-                $typeList .= " — {$bt['description']}";
-            }
-            $typeList .= "\n";
-            if (!empty($bt['gpt_hint'])) {
-                $typeList .= "  Структура: {$bt['gpt_hint']}\n";
-            }
-        }
+        $typeList = $this->formatBlockTypeList($blockTypes);
 
-        return <<<PROMPT
-Ты — архитектор SEO-шаблонов. Твоя задача — спроектировать {$count} шаблонов статей для конкретной ниши.
-
-Каждый шаблон — это набор блоков, которые будут заполнены контентом через GPT.
-
-ДОСТУПНЫЕ ТИПЫ БЛОКОВ:
-{$typeList}
-
-ПРАВИЛА:
-1. Каждый шаблон ДОЛЖЕН начинаться с `hero` и заканчиваться `cta`.
-2. Используй 5-8 блоков на шаблон.
-3. Каждый шаблон должен быть уникальным по структуре и назначению.
-4. gpt_system_prompt — инструкция для GPT при генерации контента по этому шаблону.
-5. hint для каждого блока — подсказка GPT что генерировать в этом блоке.
-6. Имена, описания и промпты — на русском языке.
-7. slug — латиницей, через дефис.
-
-ФОРМАТ ОТВЕТА (строго JSON):
-{
-  "templates": [
-    {
-      "name": "Название шаблона",
-      "slug": "template-slug",
-      "description": "Описание назначения шаблона",
-      "css_class": "tpl-slug",
-      "gpt_system_prompt": "Системный промпт для GPT...",
-      "blocks": [
-        {
-          "type": "hero",
-          "name": "Название блока",
-          "hint": "Подсказка GPT для генерации этого блока",
-          "fields": ["title", "subtitle"],
-          "sort_order": 1,
-          "is_required": true
-        }
-      ]
-    }
-  ]
-}
-PROMPT;
+        return "Ты — архитектор SEO-шаблонов. Твоя задача — спроектировать {$count} шаблонов статей для конкретной ниши.\n\n"
+            . "Каждый шаблон — это набор блоков, которые будут заполнены контентом через GPT.\n\n"
+            . "ДОСТУПНЫЕ ТИПЫ БЛОКОВ:\n{$typeList}\n\n"
+            . TemplatePrompt::PROPOSAL_RULES . "\n\n"
+            . TemplatePrompt::PROPOSAL_RESPONSE_FORMAT;
     }
 
     private function buildUserPrompt(array $profile, string $nicheDescription, int $count): string {
@@ -723,8 +614,8 @@ PROMPT;
             $parts[] = "Персона: {$profile['gpt_persona']}";
         }
 
-        $parts[] = "Создай {$count} шаблонов статей, подходящих для этой ниши.";
-        $parts[] = "Шаблоны должны покрывать разные типы контента: информационный, сравнительный, обзорный, руководство и т.д.";
+        $parts[] = sprintf(TemplatePrompt::USER_PROPOSAL_CREATE, $count);
+        $parts[] = TemplatePrompt::USER_PROPOSAL_COVERAGE;
 
         return implode("\n", $parts);
     }

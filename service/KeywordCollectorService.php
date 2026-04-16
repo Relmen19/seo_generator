@@ -9,7 +9,9 @@ use Seo\Database;
 use Seo\Entity\SeoKeywordJob;
 use Seo\Entity\SeoRawKeyword;
 use Seo\Entity\SeoKeywordCluster;
+use Seo\Entity\SeoSiteProfile;
 use Seo\Entity\SeoTemplate;
+use Seo\Enum\KeywordPrompt;
 use Throwable;
 
 class KeywordCollectorService {
@@ -235,11 +237,20 @@ class KeywordCollectorService {
         $seed = $job['seed_keyword'];
         $maxKeywords = (int)($config['max_keywords'] ?? 200);
 
+        $profile = null;
+        if (!empty($job['profile_id'])) {
+            $profile = $this->db->fetchOne(
+                "SELECT niche FROM " . SeoSiteProfile::TABLE . " WHERE id = ?",
+                [(int)$job['profile_id']]
+            );
+        }
+        $niche = !empty($profile['niche']) ? $profile['niche'] : 'тематического сайта';
+
         $intentCodes = implode('|', $this->getValidIntentCodes());
 
         $messages = [
-            ['role' => 'system', 'content' => "Ты -- SEO-специалист. Генерируй поисковые запросы для медицинского сайта лаборатории.\n\nОтвет -- строго JSON массив:\n[{\"keyword\":\"...\",\"volume_estimate\":число,\"intent\":\"{$intentCodes}\"}]\n\nБез пояснений, только JSON."],
-            ['role' => 'user', 'content' => "Сгенерируй {$maxKeywords} поисковых запросов на русском по теме: \"{$seed}\".\n\nТребования:\n1. Разнообразие интентов: справочные, проверка симптомов, расшифровка анализов, план действий, оценка рисков, жизненные ситуации, подготовка к врачу, сравнение, транзакционные\n2. Long-tail запросы (3-6 слов)\n3. Вопросительные формы (как, почему, зачем, можно ли)\n4. С модификаторами возраста/пола (у женщин, у детей, при беременности)\n5. Запросы-симптомы (выпадение волос, усталость, головокружение + показатель)\n6. volume_estimate -- примерная месячная частотность\n\nОтвет -- JSON массив."],
+            ['role' => 'system', 'content' => sprintf(KeywordPrompt::COLLECT_SYSTEM, $niche, $intentCodes)],
+            ['role' => 'user', 'content' => sprintf(KeywordPrompt::COLLECT_USER, $maxKeywords, $seed)],
         ];
 
         try {
@@ -386,7 +397,7 @@ class KeywordCollectorService {
         }
 
         $messages = [
-            ['role' => 'system', 'content' => "Объедини похожие кластеры из нескольких батчей.\n\nДопустимые intent: {$intentCodes}\n\nОтвет -- JSON:\n{\"merged\":[{\"keep_names\":[\"Название1\",\"Название2\"],\"final_name\":\"Итоговое название\",\"intent\":\"...\",\"article_angle\":\"...\"}]}"],
+            ['role' => 'system', 'content' => sprintf(KeywordPrompt::MERGE_SYSTEM, $intentCodes)],
             ['role' => 'user', 'content' => "Тема: \"{$seedTopic}\"\n\nКластеры:\n" . implode("\n", $allNames)],
         ];
 
@@ -482,28 +493,12 @@ class KeywordCollectorService {
 
         $intentCodes = implode('|', array_keys($intents));
 
-        return "Ты — профессиональный SEO-специалист с глубоким пониманием поискового намерения пользователей."
-            . "\n\nЗадача: кластеризовать список поисковых запросов."
-            . "\nЦель кластеризации: 1 кластер = 1 SEO статья, решающая конкретную «боль» пользователя."
-            . "\n\n══ Правила кластеризации ══"
-            . "\n1. Объединяй запросы с ОДИНАКОВЫМ поисковым интентом (одинаковое намерение пользователя)"
-            . "\n2. НЕ объединяй запросы, если интент разный, даже если слова похожи"
-            . "\n3. Разные формулировки одного смысла = 1 кластер. Пример: 'товар отзывы', 'отзывы о товаре' = 1 кластер"
-            . "\n4. Отдельные кластеры для разных интентов: 'что это', 'как выбрать', 'сравнение', 'цена', 'отзывы', 'инструкция'"
-            . "\n5. Название кластера = главный SEO запрос (самый популярный и общий)"
-            . "\n\n══ Типы интентов (ОБЯЗАТЕЛЬНО назначай один из них каждому кластеру) ══"
+        return KeywordPrompt::CLUSTER_SYSTEM_INTRO
+            . KeywordPrompt::CLUSTER_SYSTEM_RULES
+            . KeywordPrompt::CLUSTER_SYSTEM_INTENT_HEADER
             . $intentBlock
-            . "\n\n══ Важно ══"
-            . "\n- Не ставь intent='info' по умолчанию! Внимательно анализируй БОЛЬ пользователя за запросом."
-            . "\n- Если человек описывает проблему и ищет причину — это problem_check, не info."
-            . "\n- Если ищет 'как сделать/настроить' — это action_plan, не info."
-            . "\n- Если ищет 'опасно ли / риски / последствия' — это risk_assessment, не info."
-            . "\n- Если запрос привязан к конкретной ситуации (сезон, возраст, условие) — это context."
-            . "\n- Если ищет 'как подготовиться / что нужно перед' — это preparation."
-            . "\n- info — только для чисто познавательных запросов без конкретной проблемы."
-            . "\n\nОтвет — строго JSON:"
-            . "\n{\"clusters\":[{\"name\":\"...\",\"slug\":\"...\",\"intent\":\"{$intentCodes}\",\"summary\":\"...\",\"article_angle\":\"...\",\"template_id\":1,\"keywords\":[\"запрос1\",\"запрос2\"]}]}"
-            . "\n\nНе пропускай запросы. Используй все запросы. Не придумывай новые. Только кластеризация.";
+            . KeywordPrompt::CLUSTER_SYSTEM_IMPORTANT
+            . sprintf(KeywordPrompt::CLUSTER_RESPONSE_FORMAT, $intentCodes);
     }
 
 

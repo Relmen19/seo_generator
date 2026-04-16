@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Seo\Controller;
 
 use Seo\Entity\SeoImage;
+use Seo\Enum\ImagePrompt;
 use Seo\Service\ImageGeneratorService;
 use Throwable;
 
@@ -326,7 +327,7 @@ class ImageController extends AbstractController {
             if ($blockId > 0) {
                 $result = $service->generateForBlock($articleId, $blockId, $options);
             } else {
-                $prompt = $options['custom_prompt'] ?? $existing['gpt_prompt'] ?? 'Medical illustration';
+                $prompt = $options['custom_prompt'] ?? $existing['gpt_prompt'] ?? ImagePrompt::FALLBACK_PROMPT;
                 $result = $service->generateCustom($articleId, $prompt, $options);
             }
 

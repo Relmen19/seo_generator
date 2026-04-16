@@ -9,7 +9,9 @@ use Seo\Database;
 use Seo\Entity\SeoArticle;
 use Seo\Entity\SeoArticleBlock;
 use Seo\Entity\SeoAuditLog;
+use Seo\Entity\SeoSiteProfile;
 use Seo\Entity\SeoTemplateBlock;
+use Seo\Enum\ImagePrompt;
 use Throwable;
 
 /**
@@ -64,15 +66,25 @@ class ImageGeneratorService {
             ? json_decode($block['content'], true) ?? []
             : ($block['content'] ?? []);
 
+        $profile = null;
+        if (!empty($article['profile_id'])) {
+            $profile = $this->db->fetchOne(
+                "SELECT niche, description FROM " . SeoSiteProfile::TABLE . " WHERE id = ?",
+                [(int)$article['profile_id']]
+            );
+        }
+
         $context = [
-            'article_title'    => $article['title'] ?? '',
-            'article_keywords' => $article['keywords'] ?? '',
-            'block_type'       => $block['type'],
-            'block_name'       => $block['name'] ?? $block['type'],
-            'block_title'      => $blockContent['title'] ?? '',
-            'block_text'       => $blockContent['text'] ?? '',
-            'block_gpt_prompt' => $block['gpt_prompt'] ?? '',
-            'image_alt'        => $blockContent['image_alt'] ?? '',
+            'article_title'       => $article['title'] ?? '',
+            'article_keywords'    => $article['keywords'] ?? '',
+            'block_type'          => $block['type'],
+            'block_name'          => $block['name'] ?? $block['type'],
+            'block_title'         => $blockContent['title'] ?? '',
+            'block_text'          => $blockContent['text'] ?? '',
+            'block_gpt_prompt'    => $block['gpt_prompt'] ?? '',
+            'image_alt'           => $blockContent['image_alt'] ?? '',
+            'profile_niche'       => $profile['niche'] ?? '',
+            'profile_description' => $profile['description'] ?? '',
         ];
 
         if ($article['template_id']) {
@@ -206,17 +218,10 @@ class ImageGeneratorService {
     }
 
     private function craftDallePrompt(array $context, array $options = []): string {
-        $system = "Ты — эксперт по созданию промптов для DALL-E 3."
-            . "Твоя задача — создать ОДИН промпт на АНГЛИЙСКОМ языке для генерации иллюстрации к медицинской/научной статье."
-            . "Правила:"
-            . "- Промпт на английском (DALL-E лучше работает с английским)"
-            . "- Стиль: профессиональная медицинская иллюстрация, чистый современный дизайн"
-            . "- БЕЗ текста на изображении (no text, no labels, no watermarks)"
-            . "- БЕЗ лиц реальных людей"
-            . "- Подходит для медицинского/научного контекста"
-            . "- Длина: 1-3 предложения, максимально конкретный и визуальный"
-            . "- НЕ упоминай бренды, логотипы, конкретных людей"
-            . "Ответь ТОЛЬКО промптом, без пояснений и кавычек.";
+        $nicheCtx = !empty($context['profile_niche'])
+            ? "в нише «{$context['profile_niche']}»"
+            : "на профессиональную тему";
+        $system = sprintf(ImagePrompt::CRAFT_SYSTEM, $nicheCtx);
 
         $userMsg = "Контекст статьи:\n";
         $userMsg .= "Заголовок: {$context['article_title']}\n";
@@ -238,7 +243,7 @@ class ImageGeneratorService {
             $userMsg .= "Alt-текст (желаемое описание): {$context['image_alt']}\n";
         }
 
-        $userMsg .= "\nСоздай промпт для DALL-E 3 для иллюстрации этого раздела.";
+        $userMsg .= "\n" . ImagePrompt::CRAFT_USER_FOOTER;
 
         $messages = [
             ['role' => 'system', 'content' => $system],

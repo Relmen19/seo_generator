@@ -89,6 +89,7 @@ spl_autoload_register(static function (string $class): void {
         'Entity'     => SEO_ROOT . '/entity',
         'Controller' => SEO_ROOT . '/controllers',
         'Service'    => SEO_ROOT . '/service',
+        'Enum'       => SEO_ROOT . '/enum',
     ];
 
     $firstPart = $parts[0] ?? '';
