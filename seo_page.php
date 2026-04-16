@@ -1410,6 +1410,7 @@ requireAuth();
             this.highlighted = -1;
             this._onChange = options.onChange || null;
             this._bind();
+            this.input.value = '';
         }
         _bind() {
             this.input.addEventListener('focus', () => this._open());
@@ -1539,7 +1540,6 @@ requireAuth();
     $('searchTarget').addEventListener('input', debounce(loadTargetsList));
     $('filterAuditEntity').addEventListener('change', loadAuditList);
     $('filterAuditAction').addEventListener('change', loadAuditList);
-    $('tgtConfig').addEventListener('input', () => { dirty=true; validateJsonField('tgtConfig','tgtConfigStatus'); });
 
     document.addEventListener('input', e => {
         if (e.target.closest('#articleEditor,#catalogEditor,#templateEditor,#linkEditor,#targetEditor')) dirty = true;
