@@ -23,6 +23,12 @@ class SeoSiteProfile extends AbstractEntity {
     protected string $tone = 'professional';
     protected string $colorScheme = '#6366f1';
     protected string $theme = 'default';
+    protected ?string $tgBotToken = null;
+    protected ?string $tgChannelId = null;
+    protected string $tgPostFormat = 'auto';
+    protected ?array $tgRenderBlocks = null;
+    protected ?string $tgChannelName = null;
+    protected ?string $tgChannelAvatar = null;
     protected bool $isActive = true;
 
     protected function hydrate(array $data): void {
@@ -71,6 +77,24 @@ class SeoSiteProfile extends AbstractEntity {
         if (array_key_exists('theme', $data)) {
             $this->theme = (string)$data['theme'];
         }
+        if (array_key_exists('tg_bot_token', $data)) {
+            $this->tgBotToken = $this->toNullableString($data['tg_bot_token']);
+        }
+        if (array_key_exists('tg_channel_id', $data)) {
+            $this->tgChannelId = $this->toNullableString($data['tg_channel_id']);
+        }
+        if (array_key_exists('tg_post_format', $data)) {
+            $this->tgPostFormat = (string)($data['tg_post_format'] ?: 'auto');
+        }
+        if (array_key_exists('tg_render_blocks', $data)) {
+            $this->tgRenderBlocks = $this->decodeJson($data['tg_render_blocks']);
+        }
+        if (array_key_exists('tg_channel_name', $data)) {
+            $this->tgChannelName = $this->toNullableString($data['tg_channel_name']);
+        }
+        if (array_key_exists('tg_channel_avatar', $data)) {
+            $this->tgChannelAvatar = $this->toNullableString($data['tg_channel_avatar']);
+        }
         if (array_key_exists('is_active', $data)) {
             $this->isActive = $this->toBool($data['is_active']);
         }
@@ -92,8 +116,14 @@ class SeoSiteProfile extends AbstractEntity {
             'gpt_rules'     => $this->gptRules,
             'tone'          => $this->tone,
             'color_scheme'  => $this->colorScheme,
-            'theme'         => $this->theme,
-            'is_active'     => (int)$this->isActive,
+            'theme'             => $this->theme,
+            'tg_bot_token'      => $this->tgBotToken,
+            'tg_channel_id'     => $this->tgChannelId,
+            'tg_post_format'    => $this->tgPostFormat,
+            'tg_render_blocks'  => $this->encodeJson($this->tgRenderBlocks),
+            'tg_channel_name'   => $this->tgChannelName,
+            'tg_channel_avatar' => $this->tgChannelAvatar,
+            'is_active'         => (int)$this->isActive,
         ];
     }
 
@@ -141,6 +171,41 @@ class SeoSiteProfile extends AbstractEntity {
 
     public function getTheme(): string { return $this->theme; }
     public function setTheme(string $theme): self { $this->theme = $theme; return $this; }
+
+    public function getTgBotToken(): ?string { return $this->tgBotToken; }
+    public function setTgBotToken(?string $v): self { $this->tgBotToken = $v; return $this; }
+
+    public function getTgChannelId(): ?string { return $this->tgChannelId; }
+    public function setTgChannelId(?string $v): self { $this->tgChannelId = $v; return $this; }
+
+    public function getTgPostFormat(): string { return $this->tgPostFormat; }
+    public function setTgPostFormat(string $v): self { $this->tgPostFormat = $v; return $this; }
+
+    public function getTgRenderBlocks(): ?array { return $this->tgRenderBlocks; }
+    public function setTgRenderBlocks(?array $v): self { $this->tgRenderBlocks = $v; return $this; }
+
+    public function getTgChannelName(): ?string { return $this->tgChannelName; }
+    public function setTgChannelName(?string $v): self { $this->tgChannelName = $v; return $this; }
+
+    public function getTgChannelAvatar(): ?string { return $this->tgChannelAvatar; }
+    public function setTgChannelAvatar(?string $v): self { $this->tgChannelAvatar = $v; return $this; }
+
+    public function hasTelegramConfig(): bool {
+        return $this->tgBotToken !== null && $this->tgChannelId !== null;
+    }
+
+    public function getDefaultTgRenderBlocks(): array {
+        return [
+            'chart', 'gauges', 'before-after', 'comparison-table', 'timeline',
+            'expert_panel', 'feature_grid', 'info_cards', 'radar_chart',
+            'range_comparison', 'score_rings', 'spark_metrics', 'stacked_area',
+            'stats_counter', 'verdict_card', 'warning_block',
+        ];
+    }
+
+    public function getEffectiveTgRenderBlocks(): array {
+        return $this->tgRenderBlocks ?? $this->getDefaultTgRenderBlocks();
+    }
 
     public function isActive(): bool { return $this->isActive; }
     public function setIsActive(bool $isActive): self { $this->isActive = $isActive; return $this; }

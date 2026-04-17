@@ -537,6 +537,28 @@ requireAuth();
         .pub-result { margin-top: 10px; padding: 10px; background: #022c22; border: 1px solid #065f46; border-radius: 6px; font-size: .78rem; color: #6ee7b7; display: none; }
         .preview-frame { width: 100%; min-height: 800px; max-height: 1500px; border: 1px solid #334155; border-radius: 6px; background: #fff; margin-top: 10px; display: none; }
 
+        /* Telegram Preview */
+        .tg-preview-wrap { background: #0e1621; border-radius: 12px; overflow: hidden; max-width: 420px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+        .tg-msg { background: #182533; margin: 0; padding: 0; }
+        .tg-msg + .tg-msg { margin-top: 2px; }
+        .tg-msg-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px 4px; }
+        .tg-msg-avatar { width: 32px; height: 32px; border-radius: 50%; background: #2b5278; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: .9rem; font-weight: 700; color: #fff; }
+        .tg-msg-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .tg-msg-channel-name { font-size: .82rem; font-weight: 600; color: #6ab2f2; }
+        .tg-msg-media { position: relative; }
+        .tg-msg-media img { width: 100%; display: block; }
+        .tg-msg-media-grid { display: grid; gap: 2px; }
+        .tg-msg-media-grid.count-2 { grid-template-columns: 1fr 1fr; }
+        .tg-msg-media-grid.count-3 { grid-template-columns: 1fr 1fr; }
+        .tg-msg-media-grid.count-3 img:first-child { grid-row: 1/3; }
+        .tg-msg-caption { padding: 6px 12px 4px; font-size: .82rem; color: #e1e3e6; line-height: 1.4; word-wrap: break-word; }
+        .tg-msg-caption b { font-weight: 600; }
+        .tg-msg-caption a { color: #6ab2f2; text-decoration: none; }
+        .tg-msg-footer { display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding: 2px 12px 6px; font-size: .68rem; color: #6d7f8e; }
+        .tg-msg-footer-views::before { content: ''; display: inline-block; width: 12px; height: 10px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 11' fill='%236d7f8e'%3E%3Cpath d='M8 1C4.5 1 1.5 3.5 0 5.5c1.5 2 4.5 4.5 8 4.5s6.5-2.5 8-4.5C14.5 3.5 11.5 1 8 1zm0 7.5A3 3 0 118 2.5a3 3 0 010 6z'/%3E%3C/svg%3E") no-repeat center; margin-right: 3px; }
+        .tg-msg-reactions { display: flex; gap: 4px; padding: 4px 12px 8px; flex-wrap: wrap; }
+        .tg-msg-reaction { background: #1e3246; border-radius: 12px; padding: 3px 8px; font-size: .72rem; color: #6ab2f2; border: 1px solid #2b5278; }
+
         .img-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 10px; }
         .img-card { background: #1e293b; border: 2px solid #334155; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all .15s; position: relative; }
         .img-card:hover { border-color: #6366f1; transform: translateY(-2px); }
@@ -1075,6 +1097,12 @@ requireAuth();
                         <textarea id="artGenLog" class="json-editor" rows="6" disabled style="display:none;margin-top:6px"></textarea>
                     </div>
                 </div>
+                <div class="section-block" style="padding:10px 14px">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;color:#cbd5e1;margin:0">
+                        <input type="checkbox" id="artTgExport">
+                        Экспорт в Telegram
+                    </label>
+                </div>
                 <div class="section-block">
                     <div class="pub-panel" id="pubPanel">
                         <h3>Публикация</h3>
@@ -1091,6 +1119,45 @@ requireAuth();
                         </div>
                         <div class="pub-result" id="pubResult"></div>
                         <iframe class="preview-frame" id="previewFrame" sandbox="allow-same-origin allow-scripts"></iframe>
+                    </div>
+                </div>
+                <!-- Telegram Post Panel -->
+                <div class="section-block" id="tgPostPanel" style="display:none">
+                    <h3>Telegram пост</h3>
+                    <div id="tgPostControls">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+                            <button class="btn-pub" onclick="buildTgPreview()" id="btnTgBuild">Подготовить пост</button>
+                            <button class="btn-pub" onclick="sendTgNow()" id="btnTgSend" style="display:none">Отправить сейчас</button>
+                            <button class="btn-pub btn-pub-preview" onclick="showTgSchedule()" id="btnTgScheduleShow" style="display:none">Запланировать</button>
+                        </div>
+                        <div id="tgScheduleRow" style="display:none;margin-bottom:12px;gap:8px;align-items:center">
+                            <input type="datetime-local" id="tgScheduleAt" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 10px;border-radius:6px;font-size:.82rem">
+                            <button class="btn-pub" onclick="scheduleTgPost()">Запланировать отгрузку</button>
+                        </div>
+                        <div id="tgBuildStatus" style="display:none;font-size:.82rem;color:#a78bfa;margin-bottom:12px">
+                            <span class="spinner"></span> Подготовка поста...
+                        </div>
+                    </div>
+
+                    <!-- Telegram Preview -->
+                    <div id="tgPreviewContainer" style="display:none">
+                        <h4 style="font-size:.82rem;color:#64748b;margin:0 0 8px">Предпросмотр</h4>
+                        <div id="tgPreview" class="tg-preview-wrap"></div>
+                    </div>
+
+                    <!-- Image presets -->
+                    <div id="tgImagePresets" style="display:none;margin-top:12px">
+                        <h4 style="font-size:.82rem;color:#64748b;margin:0 0 8px">Изображения</h4>
+                        <div id="tgImageGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px"></div>
+                    </div>
+
+                    <!-- Post result/status -->
+                    <div id="tgPostResult" style="display:none;margin-top:12px"></div>
+
+                    <!-- Post history -->
+                    <div id="tgPostHistory" style="margin-top:16px">
+                        <h4 style="font-size:.82rem;color:#64748b;margin:0 0 8px">История постов</h4>
+                        <div id="tgHistoryList"></div>
                     </div>
                 </div>
             </div>
@@ -1407,6 +1474,7 @@ requireAuth();
 
     let artTemplateTplBlocks = [];
     let currentProfileId = localStorage.getItem('seo_profile_id') || '';
+    let currentProfile = null;
 
     const STATUS_LABELS = {draft:'Черновик',review:'На ревью',published:'Опубликована',unpublished:'Снята'};
     const BLOCK_TYPES = [
@@ -1549,6 +1617,7 @@ requireAuth();
             const json = await res.json();
             if (!json.success) { window.location.href = '/seo_profile_page.php'; return; }
             const p = json.data;
+            currentProfile = p;
             $('topbarProfileName').textContent = p.name;
             $('topbarProfileMeta').textContent = (p.slug || '') + (p.domain ? ' \u00b7 ' + p.domain : '');
             const iconEl = $('topbarProfileIcon');
@@ -1750,6 +1819,10 @@ requireAuth();
             $('btnUnpublish').style.display = art.status==='published' ? 'inline-flex' : 'none';
             $('pubResult').style.display = 'none';
             $('previewFrame').style.display = 'none';
+
+            // Telegram
+            $('artTgExport').checked = !!art.tg_export;
+            updateTgPanelVisibility(art);
             loading = false;
 
             await loadArticleBlocks(art.id);
@@ -1777,6 +1850,8 @@ requireAuth();
         $('pubResult').style.display='none'; $('previewFrame').style.display='none';
         $('btnUnpublish').style.display='none';
         $('imgGenStatus').style.display='none';
+        $('artTgExport').checked = false;
+        $('tgPostPanel').style.display = 'none';
         loading = false;
         renderArticleBlocks([]);
         renderImageGallery([]);
@@ -1793,6 +1868,7 @@ requireAuth();
             article_plan: getArticlePlan(),
             gpt_model: $('artGptModel').value, created_by: $('artCreatedBy').value,
             profile_id: currentProfileId || null,
+            tg_export: $('artTgExport').checked ? 1 : 0,
         };
         try {
             if (artId) { await api('articles/'+artId, {method:'PUT', body}); toast('Статья сохранена'); }
@@ -3665,6 +3741,215 @@ requireAuth();
         } catch(e) {
             toast('Ошибка: '+e.message, true);
         }
+    }
+
+    // ═══════════════════ TELEGRAM ═══════════════════
+
+    let currentTgPostId = null;
+    let currentTgPostData = null;
+
+    function updateTgPanelVisibility(art) {
+        const hasTgExport = !!art.tg_export;
+        const isPublished = art.status === 'published';
+        $('tgPostPanel').style.display = hasTgExport ? '' : 'none';
+        $('btnTgBuild').disabled = !isPublished;
+        if (hasTgExport) {
+            loadTgPostHistory(art.id || artId);
+        }
+    }
+
+    async function buildTgPreview() {
+        if (!artId) return;
+        $('tgBuildStatus').style.display = 'block';
+        $('btnTgBuild').disabled = true;
+        $('tgPreviewContainer').style.display = 'none';
+        $('tgImagePresets').style.display = 'none';
+
+        try {
+            const res = await api('telegram/' + artId + '/build-preview', { method: 'POST', body: {} });
+            if (!res.success) { toast(res.error || 'Ошибка', true); return; }
+
+            currentTgPostId = res.data.id;
+            currentTgPostData = res.data;
+
+            renderTgPreview(res.data);
+            renderTgImagePresets(res.data);
+            $('btnTgSend').style.display = 'inline-flex';
+            $('btnTgScheduleShow').style.display = 'inline-flex';
+
+            loadTgPostHistory(artId);
+            toast('Пост подготовлен');
+        } catch(e) {
+            toast('Ошибка: ' + e.message, true);
+        } finally {
+            $('tgBuildStatus').style.display = 'none';
+            $('btnTgBuild').disabled = false;
+        }
+    }
+
+    function renderTgPreview(postData) {
+        const container = $('tgPreview');
+        const pd = postData.post_data || {};
+        const messages = pd.messages || [];
+        const profile = currentProfile || {};
+
+        let html = '';
+        messages.forEach(function(msg, idx) {
+            html += '<div class="tg-msg">';
+
+            // Header with avatar (only on first message)
+            if (idx === 0) {
+                const channelName = profile.tg_channel_name || profile.name || 'Канал';
+                const avatar = profile.tg_channel_avatar;
+                html += '<div class="tg-msg-header">';
+                if (avatar) {
+                    html += '<div class="tg-msg-avatar"><img src="data:image/jpeg;base64,' + avatar + '"></div>';
+                } else {
+                    html += '<div class="tg-msg-avatar">' + esc(channelName[0]) + '</div>';
+                }
+                html += '<div class="tg-msg-channel-name">' + esc(channelName) + '</div>';
+                html += '</div>';
+            }
+
+            // Media
+            if (msg.type === 'media_group' || msg.type === 'photo') {
+                var imgIds = msg.rendered_image_ids || (msg.rendered_image_id ? [msg.rendered_image_id] : []);
+                if (imgIds.length > 0) {
+                    var gridClass = 'tg-msg-media-grid count-' + Math.min(imgIds.length, 3);
+                    html += '<div class="tg-msg-media"><div class="' + gridClass + '">';
+                    imgIds.forEach(function(imgId) {
+                        html += '<img src="' + API + '?r=telegram/rendered-image/' + imgId + '" loading="lazy">';
+                    });
+                    html += '</div></div>';
+                }
+            }
+
+            // Caption/text
+            var text = msg.caption || msg.text || '';
+            if (text) {
+                html += '<div class="tg-msg-caption">' + text + '</div>';
+            }
+
+            // Footer
+            html += '<div class="tg-msg-footer">';
+            html += '<span class="tg-msg-footer-views">1</span>';
+            var now = new Date();
+            html += '<span>' + now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes() + '</span>';
+            html += '</div>';
+
+            html += '</div>';
+        });
+
+        container.innerHTML = html;
+        $('tgPreviewContainer').style.display = '';
+    }
+
+    function renderTgImagePresets(postData) {
+        const images = postData.rendered_images || [];
+        if (images.length === 0) { $('tgImagePresets').style.display = 'none'; return; }
+
+        $('tgImageGrid').innerHTML = images.map(function(img) {
+            return '<div style="background:#1e293b;border-radius:8px;overflow:hidden;border:1px solid #334155">'
+                + '<img src="' + API + '?r=telegram/rendered-image/' + img.id + '" style="width:100%;display:block" loading="lazy">'
+                + '<div style="padding:4px 8px;font-size:.7rem;color:#64748b">' + esc(img.block_type) + '</div>'
+                + '</div>';
+        }).join('');
+        $('tgImagePresets').style.display = '';
+    }
+
+    async function sendTgNow() {
+        if (!currentTgPostId) { toast('Сначала подготовьте пост', true); return; }
+        if (!confirm('Отправить пост в Telegram сейчас?')) return;
+
+        try {
+            const res = await api('telegram/' + artId + '/send', {
+                method: 'POST',
+                body: { post_id: currentTgPostId }
+            });
+            if (res.success) {
+                const url = res.data.tg_post_url;
+                $('tgPostResult').style.display = 'block';
+                $('tgPostResult').innerHTML = '<div style="padding:10px;background:#022c22;border:1px solid #065f46;border-radius:6px;color:#6ee7b7;font-size:.82rem">'
+                    + 'Пост отправлен!' + (url ? ' <a href="' + esc(url) + '" target="_blank" style="color:#34d399">Открыть в Telegram</a>' : '')
+                    + '</div>';
+                $('btnTgSend').style.display = 'none';
+                $('btnTgScheduleShow').style.display = 'none';
+                loadTgPostHistory(artId);
+                toast('Пост отправлен в Telegram');
+            } else {
+                toast(res.error || 'Ошибка отправки', true);
+            }
+        } catch(e) { toast('Ошибка: ' + e.message, true); }
+    }
+
+    function showTgSchedule() {
+        var row = $('tgScheduleRow');
+        row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+    }
+
+    async function scheduleTgPost() {
+        if (!currentTgPostId) { toast('Сначала подготовьте пост', true); return; }
+        var dt = $('tgScheduleAt').value;
+        if (!dt) { toast('Выберите дату и время', true); return; }
+
+        try {
+            const res = await api('telegram/' + artId + '/schedule', {
+                method: 'POST',
+                body: { post_id: currentTgPostId, scheduled_at: dt.replace('T', ' ') + ':00' }
+            });
+            if (res.success) {
+                $('tgPostResult').style.display = 'block';
+                $('tgPostResult').innerHTML = '<div style="padding:10px;background:#1e1b4b;border:1px solid #4338ca;border-radius:6px;color:#a5b4fc;font-size:.82rem">'
+                    + 'Пост запланирован на ' + esc(dt.replace('T', ' '))
+                    + '</div>';
+                $('tgScheduleRow').style.display = 'none';
+                $('btnTgSend').style.display = 'none';
+                $('btnTgScheduleShow').style.display = 'none';
+                loadTgPostHistory(artId);
+                toast('Пост запланирован');
+            } else {
+                toast(res.error || 'Ошибка', true);
+            }
+        } catch(e) { toast('Ошибка: ' + e.message, true); }
+    }
+
+    async function loadTgPostHistory(articleId) {
+        try {
+            const res = await api('telegram/' + articleId + '/posts');
+            if (!res.success) return;
+            var posts = res.data || [];
+            if (!posts.length) {
+                $('tgHistoryList').innerHTML = '<div style="color:#475569;font-size:.78rem;padding:8px 0">Нет постов</div>';
+                return;
+            }
+            var statusLabel = { draft: 'Черновик', scheduled: 'Запланирован', sending: 'Отправляется...', sent: 'Отправлен', failed: 'Ошибка' };
+            var statusColor = { draft: '#94a3b8', scheduled: '#a5b4fc', sending: '#fbbf24', sent: '#6ee7b7', failed: '#fca5a5' };
+            $('tgHistoryList').innerHTML = posts.map(function(p) {
+                var st = statusLabel[p.status] || p.status;
+                var cl = statusColor[p.status] || '#94a3b8';
+                var url = p.tg_post_url ? ' <a href="' + esc(p.tg_post_url) + '" target="_blank" style="color:#6ab2f2;font-size:.72rem">открыть</a>' : '';
+                var sched = p.scheduled_at ? ' &middot; ' + esc(p.scheduled_at) : '';
+                var err = p.error_message ? '<div style="color:#fca5a5;font-size:.7rem;margin-top:2px">' + esc(p.error_message) + '</div>' : '';
+                var del = (p.status === 'draft' || p.status === 'scheduled' || p.status === 'failed')
+                    ? ' <button onclick="deleteTgPost(' + p.id + ')" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.72rem;padding:0 4px">удалить</button>'
+                    : '';
+                return '<div style="padding:6px 0;border-bottom:1px solid #1e293b;font-size:.78rem">'
+                    + '<span style="color:' + cl + ';font-weight:600">' + st + '</span>'
+                    + ' &middot; ' + esc(p.post_format) + sched + url + del
+                    + '<div style="color:#475569;font-size:.7rem;margin-top:2px">' + esc(p.created_at || '') + '</div>'
+                    + err
+                    + '</div>';
+            }).join('');
+        } catch(e) {}
+    }
+
+    async function deleteTgPost(postId) {
+        if (!confirm('Удалить пост?')) return;
+        try {
+            await api('telegram/post/' + postId, { method: 'DELETE' });
+            loadTgPostHistory(artId);
+            toast('Пост удален');
+        } catch(e) { toast(e.message, true); }
     }
 
     async function loadAuditList() {

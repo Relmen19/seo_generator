@@ -42,6 +42,9 @@ const SEO_PUBLISH_TIMEOUT = 30;
 const SEO_PUBLISH_CONNECT_TIMEOUT = 10;
 define('SEO_IMAGE_PROMPT_MODEL', getenv('SEO_IMAGE_PROMPT_MODEL') ?: 'gpt-4o-mini');
 
+// ── Puppeteer (block screenshot service) ──────────────────────────────────────
+define('PUPPETEER_SERVICE_URL', getenv('PUPPETEER_SERVICE_URL') ?: 'http://puppeteer:3000');
+
 // ── Publishing ────────────────────────────────────────────────────────────────
 define('PUBLISH_SECRET', getenv('PUBLISH_SECRET') ?: '');
 

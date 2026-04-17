@@ -300,6 +300,7 @@ requireAuth();
         <div class="ws-tab" data-tab="branding" onclick="switchWsTab('branding')">Брендинг</div>
         <div class="ws-tab" data-tab="templates" onclick="switchWsTab('templates')">Шаблоны</div>
         <div class="ws-tab" data-tab="intents" onclick="switchWsTab('intents')">Интенты</div>
+        <div class="ws-tab" data-tab="telegram" onclick="switchWsTab('telegram')">Telegram</div>
     </div>
 
     <!-- Tab: Overview -->
@@ -424,6 +425,58 @@ requireAuth();
             </div>
         </div>
         <div id="intentsList"></div>
+    </div>
+
+    <!-- Tab: Telegram -->
+    <div class="ws-content" id="tabTelegram" style="display:none">
+        <div class="settings-section">
+            <h3>Подключение Telegram-канала</h3>
+            <div class="form-grid">
+                <div class="form-row">
+                    <label>Bot Token <span style="color:#64748b;font-weight:400">(от @BotFather)</span></label>
+                    <input type="password" id="tgBotToken" placeholder="123456:ABC-DEF...">
+                </div>
+                <div class="form-row">
+                    <label>Channel ID <span style="color:#64748b;font-weight:400">(@username или chat_id)</span></label>
+                    <input type="text" id="tgChannelId" placeholder="@mychannel">
+                </div>
+            </div>
+            <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+                <button class="btn btn-primary btn-sm" onclick="testTgConnection()">Проверить подключение</button>
+                <span id="tgTestStatus" style="font-size:.8rem;color:#64748b"></span>
+            </div>
+            <div id="tgChannelInfo" style="display:none;margin-top:16px;padding:14px;background:#1e293b;border-radius:10px;display:flex;gap:12px;align-items:center">
+                <div id="tgChannelAvatar" style="width:48px;height:48px;border-radius:50%;background:#334155;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:#6366f1"></div>
+                <div>
+                    <div id="tgChannelNameDisplay" style="font-weight:600;color:#e2e8f0"></div>
+                    <div id="tgChannelMeta" style="font-size:.78rem;color:#64748b;margin-top:2px"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3>Формат постов</h3>
+            <div class="form-grid">
+                <div class="form-row">
+                    <label>Режим</label>
+                    <select id="tgPostFormat">
+                        <option value="auto">Авто (по количеству блоков)</option>
+                        <option value="single">Один пост (медиа-группа)</option>
+                        <option value="series">Серия постов</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3>Блоки для рендера в изображения</h3>
+            <p style="font-size:.78rem;color:#64748b;margin-bottom:12px">Отмеченные типы блоков будут конвертироваться в PNG-картинки для Telegram-постов</p>
+            <div id="tgRenderBlocksList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px"></div>
+        </div>
+
+        <div style="margin-top:16px;display:flex;gap:8px">
+            <button class="btn btn-primary" onclick="saveTelegram()">Сохранить</button>
+        </div>
     </div>
 </div>
 
@@ -872,7 +925,7 @@ function renderWsHeader() {
 
 function switchWsTab(tab) {
     document.querySelectorAll('.ws-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-    ['Overview','Settings','Branding','Templates','Intents'].forEach(t => {
+    ['Overview','Settings','Branding','Templates','Intents','Telegram'].forEach(t => {
         $('tab' + t).style.display = t.toLowerCase() === tab ? '' : 'none';
     });
 
@@ -881,6 +934,7 @@ function switchWsTab(tab) {
     else if (tab === 'branding') fillBranding();
     else if (tab === 'templates') loadTemplates();
     else if (tab === 'intents') loadIntents();
+    else if (tab === 'telegram') fillTelegram();
 }
 
 // ── Overview ──
@@ -2122,6 +2176,126 @@ async function aiGenerateIntents() {
         $('btnAiGenIntents').disabled = false;
         $('btnAiGenIntents').innerHTML = '+ AI Интенты';
     }
+}
+
+// ═══════════════════ TELEGRAM ═══════════════════
+
+const TG_DEFAULT_RENDER_BLOCKS = [
+    'chart','gauges','before-after','comparison-table','timeline',
+    'expert_panel','feature_grid','info_cards','radar_chart',
+    'range_comparison','score_rings','spark_metrics','stacked_area',
+    'stats_counter','verdict_card','warning_block'
+];
+
+async function fillTelegram() {
+    const p = currentProfile;
+    $('tgBotToken').value = p.tg_bot_token || '';
+    $('tgChannelId').value = p.tg_channel_id || '';
+    $('tgPostFormat').value = p.tg_post_format || 'auto';
+
+    // Load block types for render blocks checklist
+    try {
+        const res = await api('block-types');
+        const types = res.success ? (res.data || []) : [];
+        const checked = p.tg_render_blocks || TG_DEFAULT_RENDER_BLOCKS;
+        $('tgRenderBlocksList').innerHTML = types.map(t => `
+            <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;color:#cbd5e1;cursor:pointer;padding:4px 0">
+                <input type="checkbox" class="tg-rb-check" value="${esc(t.slug)}"
+                    ${checked.includes(t.slug) ? 'checked' : ''}>
+                ${esc(t.name || t.slug)}
+            </label>
+        `).join('');
+    } catch(e) {
+        $('tgRenderBlocksList').innerHTML = '<span style="color:#f87171">Ошибка загрузки типов блоков</span>';
+    }
+
+    // Show channel info if configured
+    if (p.tg_channel_name) {
+        showTgChannelInfo(p.tg_channel_name, p.tg_channel_avatar, null, null);
+    } else {
+        $('tgChannelInfo').style.display = 'none';
+    }
+}
+
+async function testTgConnection() {
+    const token = $('tgBotToken').value.trim();
+    const channelId = $('tgChannelId').value.trim();
+    if (!token || !channelId) {
+        toast('Заполните Bot Token и Channel ID', true);
+        return;
+    }
+    $('tgTestStatus').textContent = 'Проверка...';
+    $('tgTestStatus').style.color = '#a78bfa';
+
+    try {
+        const res = await api('telegram/test-connection', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ bot_token: token, channel_id: channelId })
+        });
+        if (res.success) {
+            const d = res.data;
+            showTgChannelInfo(d.channel_name, d.channel_avatar, d.member_count, d.channel_type);
+            $('tgTestStatus').textContent = 'Подключено!';
+            $('tgTestStatus').style.color = '#34d399';
+        } else {
+            $('tgTestStatus').textContent = res.error || 'Ошибка';
+            $('tgTestStatus').style.color = '#f87171';
+            $('tgChannelInfo').style.display = 'none';
+        }
+    } catch(e) {
+        $('tgTestStatus').textContent = 'Ошибка сети';
+        $('tgTestStatus').style.color = '#f87171';
+    }
+}
+
+function showTgChannelInfo(name, avatar, memberCount, channelType) {
+    const info = $('tgChannelInfo');
+    info.style.display = 'flex';
+
+    const avatarEl = $('tgChannelAvatar');
+    if (avatar) {
+        avatarEl.innerHTML = '<img src="data:image/jpeg;base64,' + avatar + '" style="width:100%;height:100%;object-fit:cover">';
+    } else {
+        avatarEl.innerHTML = '';
+        avatarEl.textContent = (name || '?')[0].toUpperCase();
+    }
+
+    $('tgChannelNameDisplay').textContent = name || 'Канал';
+    let meta = [];
+    if (channelType) meta.push(channelType === 'channel' ? 'Канал' : channelType);
+    if (memberCount !== null && memberCount !== undefined) meta.push(memberCount + ' подписчиков');
+    $('tgChannelMeta').textContent = meta.join(' \u00b7 ');
+}
+
+async function saveTelegram() {
+    const checks = document.querySelectorAll('.tg-rb-check:checked');
+    const renderBlocks = Array.from(checks).map(c => c.value);
+
+    const body = {
+        tg_bot_token: $('tgBotToken').value.trim() || null,
+        tg_channel_id: $('tgChannelId').value.trim() || null,
+        tg_post_format: $('tgPostFormat').value,
+        tg_render_blocks: renderBlocks.length > 0 ? renderBlocks : null,
+    };
+
+    try {
+        const res = await api(`profiles/${currentProfile.id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+        if (!res.success) { toast(res.error || 'Ошибка', true); return; }
+        Object.assign(currentProfile, res.data);
+        toast('Telegram настройки сохранены');
+
+        // Refresh channel info if token & channel set
+        if (body.tg_bot_token && body.tg_channel_id) {
+            try {
+                await api(`telegram/refresh-channel/${currentProfile.id}`, { method: 'POST' });
+            } catch(e) {}
+        }
+    } catch(e) { toast('Ошибка сети', true); }
 }
 
 // ═══════════════════ UTILS ═══════════════════

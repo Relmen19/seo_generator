@@ -40,6 +40,8 @@ services:
       - ./init-sql/018_universal_templates.sql:/docker-entrypoint-initdb.d/08_universal_templates.sql
       - ./init-sql/019_profile_enhancements.sql:/docker-entrypoint-initdb.d/09_profile_enhancements.sql
       - ./init-sql/020_block_type_schemas.sql:/docker-entrypoint-initdb.d/10_block_type_schemas.sql
+      - ./init-sql/021_theme_column.sql:/docker-entrypoint-initdb.d/11_theme_column.sql
+      - ./init-sql/022_telegram_channel.sql:/docker-entrypoint-initdb.d/12_telegram_channel.sql
     networks:
       - seo_net
     command:
@@ -51,6 +53,15 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+
+  puppeteer:
+    build: ./docker/puppeteer
+    container_name: seo_puppeteer
+    restart: unless-stopped
+    environment:
+      - MAX_CONCURRENT_PAGES=3
+    networks:
+      - seo_net
 
 volumes:
   seo_db_data:

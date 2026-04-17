@@ -35,6 +35,7 @@ class SeoArticle extends AbstractEntity {
     protected ?string $publishedAt = null;
     protected ?string $publishedPath = null;
     protected ?string $publishedUrl = null;
+    protected bool $tgExport = false;
     protected ?string $gptModel = 'gpt-4o';
     protected ?array $generationLog = null;
     protected int $version = 1;
@@ -93,6 +94,9 @@ class SeoArticle extends AbstractEntity {
         if (array_key_exists('published_url', $data)) {
             $this->publishedUrl = $this->toNullableString($data['published_url']);
         }
+        if (array_key_exists('tg_export', $data)) {
+            $this->tgExport = $this->toBool($data['tg_export']);
+        }
         if (array_key_exists('gpt_model', $data)) {
             $this->gptModel = $this->toNullableString($data['gpt_model']);
         }
@@ -125,6 +129,7 @@ class SeoArticle extends AbstractEntity {
             'published_at'     => $this->publishedAt,
             'published_path'   => $this->publishedPath,
             'published_url'    => $this->publishedUrl,
+            'tg_export'        => (int)$this->tgExport,
             'gpt_model'        => $this->gptModel,
             'generation_log'   => $this->encodeJson($this->generationLog),
             'version'          => $this->version,
@@ -332,6 +337,9 @@ class SeoArticle extends AbstractEntity {
         $this->version = $version;
         return $this;
     }
+
+    public function isTgExport(): bool { return $this->tgExport; }
+    public function setTgExport(bool $v): self { $this->tgExport = $v; return $this; }
 
     public function getCreatedBy(): ?string {
         return $this->createdBy;

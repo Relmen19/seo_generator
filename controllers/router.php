@@ -21,6 +21,7 @@ use Seo\Controller\PublishTargetController;
 use Seo\Controller\GenerationController;
 use Seo\Controller\BlockTypeController;
 use Seo\Controller\SiteProfileController;
+use Seo\Controller\TelegramController;
 
 $routes = [
     'catalogs'        => CatalogController::class,
@@ -37,6 +38,7 @@ $routes = [
     'intents'         => IntentController::class,
     'block-types'     => BlockTypeController::class,
     'profiles'        => SiteProfileController::class,
+    'telegram'        => TelegramController::class,
 ];
 
 
