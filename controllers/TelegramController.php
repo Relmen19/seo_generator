@@ -85,6 +85,12 @@ class TelegramController extends AbstractController {
             return;
         }
 
+        // DELETE /telegram/{articleId}/posts — delete all posts for article
+        if ($method === 'DELETE' && $id !== null && $action === 'posts') {
+            $this->doDeleteAllPosts($service, $id);
+            return;
+        }
+
         $this->error('Неизвестный маршрут Telegram', 404);
     }
 
@@ -197,6 +203,15 @@ class TelegramController extends AbstractController {
         try {
             $service->deletePost($postId);
             $this->success(['deleted' => true]);
+        } catch (Throwable $e) {
+            $this->error($e->getMessage(), 400);
+        }
+    }
+
+    private function doDeleteAllPosts(TelegramPostService $service, int $articleId): void {
+        try {
+            $count = $service->deleteAllForArticle($articleId);
+            $this->success(['deleted' => $count]);
         } catch (Throwable $e) {
             $this->error($e->getMessage(), 400);
         }

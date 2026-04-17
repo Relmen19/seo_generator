@@ -206,6 +206,11 @@ class PageAssembler
      */
     public function renderSingleBlockPreview(string $type, array $content): string
     {
+        // Auto-select theme from profile for preview rendering
+        if (!$this->themeOverridden && $this->siteProfile !== null && !empty($this->siteProfile['theme'])) {
+            $this->theme = ThemeFactory::create($this->siteProfile['theme']);
+        }
+
         $renderer = $this->registry->get($type);
         if (!$renderer) {
             return '<!-- unknown block: ' . htmlspecialchars($type) . ' -->';
@@ -229,6 +234,7 @@ class PageAssembler
             . $fonts
             . $chartJs
             . $assets->buildStyleTag()
+            . '<style>.reveal{opacity:1!important;transform:none!important}section{padding:24px 0!important}body{margin:0;padding:0}</style>'
             . '</head><body' . ($themeClass !== '' ? ' class="' . $themeClass . '"' : '') . '>'
             . $blockHtml
             . $assets->buildScriptTag()

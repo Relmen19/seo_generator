@@ -248,14 +248,17 @@ class TelegramPostService {
             [
                 'role' => 'system',
                 'content' => $persona . "\n\nТон: {$tone}.\n"
-                    . "Сделай краткое описание статьи для поста в Telegram-канале.\n"
+                    . "Напиши пост для Telegram-канала по материалам статьи.\n"
                     . "Требования:\n"
                     . "- Максимум 500 символов\n"
-                    . "- Используй HTML-теги Telegram: <b>, <i>, <a href=\"\">\n"
-                    . "- НЕ используй эмодзи и разделители\n"
-                    . "- Текст должен быть информативным и побуждать прочитать статью\n"
-                    . "- Выдели ключевые факты жирным\n"
-                    . "- Отвечай ТОЛЬКО текстом поста, без пояснений",
+                    . "- Используй HTML-теги Telegram: <b>, <i>, <a href=\"url\">\n"
+                    . "- Разделяй абзацы двойным переводом строки\n"
+                    . "- НЕ копируй текст из статьи дословно — суммаризируй и перефразируй\n"
+                    . "- Выдели 2-3 ключевых факта или вывода жирным\n"
+                    . "- Текст должен быть самостоятельным и информативным\n"
+                    . "- НЕ используй эмодзи, хештеги, разделители типа ——\n"
+                    . "- НЕ начинай с приветствий или вступлений\n"
+                    . "- Отвечай ТОЛЬКО текстом поста, без пояснений и кавычек",
             ],
             [
                 'role' => 'user',
@@ -388,16 +391,23 @@ class TelegramPostService {
      * Convert HTML to Telegram-safe HTML subset.
      */
     private function htmlToTelegramText(string $html): string {
+        // Convert block-level elements to newlines before stripping
+        $text = preg_replace('/<br\s*\/?>/i', "\n", $html);
+        $text = preg_replace('/<\/p>\s*<p[^>]*>/i', "\n\n", $text);
+        $text = preg_replace('/<\/?(?:p|div|h[1-6]|li|tr)[^>]*>/i', "\n", $text);
+
         // Strip all tags except Telegram-supported ones
-        $text = strip_tags($html, '<b><i><u><s><a><code><pre>');
+        $text = strip_tags($text, '<b><i><u><s><a><code><pre>');
         // Remove attributes from non-link tags (keep href on <a>)
         $text = preg_replace('/<(b|i|u|s|code|pre)\s[^>]*>/ui', '<$1>', $text);
         // Clean <a> tags: keep only href attribute
         $text = preg_replace_callback('/<a\s[^>]*href=["\']([^"\']*)["\'][^>]*>/ui', function ($m) {
             return '<a href="' . htmlspecialchars($m[1]) . '">';
         }, $text);
-        // Collapse whitespace
-        $text = preg_replace('/\s+/u', ' ', $text);
+        // Collapse horizontal whitespace, preserve newlines
+        $text = preg_replace('/[^\S\n]+/u', ' ', $text);
+        // Collapse excessive newlines
+        $text = preg_replace('/\n{3,}/', "\n\n", $text);
         return trim($text);
     }
 
@@ -725,8 +735,8 @@ class TelegramPostService {
     public function updatePost(int $postId, array $data): array {
         $post = $this->loadPost($postId);
 
-        if ($post['status'] === SeoTelegramPost::STATUS_SENT) {
-            throw new RuntimeException('Нельзя редактировать отправленный пост');
+        if ($post['status'] === SeoTelegramPost::STATUS_SENDING) {
+            throw new RuntimeException('Нельзя редактировать пост во время отправки');
         }
 
         $updateFields = [];
@@ -760,6 +770,28 @@ class TelegramPostService {
         }
 
         $this->db->delete(SeoTelegramPost::TABLE, 'id = :id', [':id' => $postId]);
+    }
+
+    /**
+     * Delete all posts for an article (except sending).
+     */
+    public function deleteAllForArticle(int $articleId): int
+    {
+        $posts = $this->db->fetchAll(
+            'SELECT id, status FROM ' . SeoTelegramPost::TABLE . ' WHERE article_id = :aid',
+            [':aid' => $articleId]
+        );
+
+        $deleted = 0;
+        foreach ($posts as $p) {
+            if ($p['status'] === SeoTelegramPost::STATUS_SENDING) {
+                continue;
+            }
+            $this->db->delete(SeoTelegramPost::TABLE, 'id = :id', [':id' => (int)$p['id']]);
+            $deleted++;
+        }
+
+        return $deleted;
     }
 
     /**

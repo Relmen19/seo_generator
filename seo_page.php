@@ -537,31 +537,105 @@ requireAuth();
         .pub-result { margin-top: 10px; padding: 10px; background: #022c22; border: 1px solid #065f46; border-radius: 6px; font-size: .78rem; color: #6ee7b7; display: none; }
         .preview-frame { width: 100%; min-height: 800px; max-height: 1500px; border: 1px solid #334155; border-radius: 6px; background: #fff; margin-top: 10px; display: none; }
 
-        /* Telegram Preview */
-        .tg-two-panel { display: grid; grid-template-columns: 1fr 420px; gap: 20px; }
-        @media (max-width: 960px) { .tg-two-panel { grid-template-columns: 1fr; } }
-        .tg-panel-left { min-width: 0; }
+        /* ── Telegram Panel ── */
+        .tg-two-panel { display: grid; grid-template-columns: 1fr 380px; gap: 24px; }
+        @media (max-width: 960px) { .tg-two-panel { grid-template-columns: 1fr; } .tg-phone-frame { margin: 0 auto; } }
+        .tg-panel-left { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
         .tg-panel-right { min-width: 0; position: sticky; top: 20px; align-self: start; }
-        .tg-preview-wrap { background: #0e1621; border-radius: 12px; overflow: hidden; max-width: 420px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
-        .tg-msg { background: #182533; margin: 0; padding: 0; }
-        .tg-msg + .tg-msg { margin-top: 2px; }
-        .tg-msg-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px 4px; }
+
+        /* Action bar */
+        .tg-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .tg-actions .btn-pub { font-size: .78rem; padding: 7px 14px; }
+        .tg-btn-danger { background: linear-gradient(135deg, #991b1b, #dc2626) !important; }
+        .tg-btn-danger:hover { box-shadow: 0 4px 15px rgba(220,38,38,.4) !important; }
+        .tg-btn-rebuild { background: linear-gradient(135deg, #7c3aed, #8b5cf6) !important; }
+        .tg-btn-rebuild:hover { box-shadow: 0 4px 15px rgba(139,92,246,.4) !important; }
+        .tg-status-pill { display: inline-flex; align-items: center; gap: 5px; font-size: .72rem; padding: 4px 10px; border-radius: 20px; font-weight: 600; }
+        .tg-status-draft { background: rgba(148,163,184,.15); color: #94a3b8; }
+        .tg-status-scheduled { background: rgba(165,180,252,.15); color: #a5b4fc; }
+        .tg-status-sending { background: rgba(251,191,36,.15); color: #fbbf24; }
+        .tg-status-sent { background: rgba(110,231,183,.15); color: #6ee7b7; }
+        .tg-status-failed { background: rgba(252,165,165,.15); color: #fca5a5; }
+
+        /* Edit cards */
+        .tg-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; overflow: hidden; }
+        .tg-card-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #0c1322; border-bottom: 1px solid #1e293b; cursor: pointer; user-select: none; }
+        .tg-card-head:hover { background: #111827; }
+        .tg-card-title { font-size: .8rem; font-weight: 600; color: #cbd5e1; display: flex; align-items: center; gap: 6px; }
+        .tg-card-title .tg-badge { font-size: .65rem; padding: 2px 7px; border-radius: 4px; background: #1e293b; color: #64748b; font-weight: 500; }
+        .tg-card-chevron { color: #475569; font-size: .7rem; transition: transform .2s; }
+        .tg-card-chevron.open { transform: rotate(90deg); }
+        .tg-card-body { padding: 12px 14px; }
+        .tg-card-body.collapsed { display: none; }
+        .tg-textarea { width: 100%; background: #1e293b; border: 1px solid #334155; color: #e2e8f0; padding: 10px 12px; border-radius: 8px; font-size: .8rem; font-family: 'SF Mono', 'Fira Code', monospace; resize: vertical; line-height: 1.5; transition: border-color .2s; }
+        .tg-textarea:focus { outline: none; border-color: #6366f1; }
+        .tg-char-count { text-align: right; font-size: .68rem; color: #475569; margin-top: 4px; }
+        .tg-char-count.over { color: #f87171; }
+        .tg-msg-images { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+        .tg-msg-images img { width: 56px; height: 42px; object-fit: cover; border-radius: 6px; border: 1px solid #334155; }
+
+        /* Image grid in edit panel */
+        .tg-img-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+        .tg-img-card { background: #1e293b; border-radius: 8px; overflow: hidden; border: 1px solid #334155; }
+        .tg-img-card img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
+        .tg-img-card-label { padding: 5px 8px; font-size: .7rem; color: #64748b; }
+
+        /* History */
+        .tg-history-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid #1e293b; }
+        .tg-history-item:last-child { border-bottom: none; }
+        .tg-history-info { flex: 1; min-width: 0; }
+        .tg-history-meta { font-size: .72rem; color: #475569; margin-top: 3px; }
+        .tg-history-meta a { color: #6ab2f2; }
+        .tg-history-error { font-size: .7rem; color: #fca5a5; margin-top: 3px; }
+        .tg-history-actions { display: flex; gap: 4px; flex-shrink: 0; }
+        .tg-history-btn { background: #1e293b; border: 1px solid #334155; color: #cbd5e1; padding: 4px 10px; border-radius: 6px; font-size: .7rem; cursor: pointer; transition: all .15s; white-space: nowrap; }
+        .tg-history-btn:hover { border-color: #6366f1; color: #a5b4fc; }
+        .tg-history-btn.danger { color: #fca5a5; }
+        .tg-history-btn.danger:hover { border-color: #ef4444; }
+
+        /* Phone frame */
+        .tg-phone-frame { width: 380px; background: #000; border-radius: 40px; padding: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.5), inset 0 0 0 2px #222; }
+        .tg-phone-screen { border-radius: 28px; overflow: hidden; background: #0e1621; height: 680px; display: flex; flex-direction: column; }
+        .tg-phone-statusbar { height: 28px; background: #17212b; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .tg-phone-notch { width: 100px; height: 5px; background: #000; border-radius: 3px; }
+        .tg-phone-header { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: #17212b; border-bottom: 1px solid #232e3c; flex-shrink: 0; }
+        .tg-phone-back { color: #6ab2f2; font-size: .85rem; cursor: default; }
+        .tg-phone-messages { flex: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: #2b3a4c #0e1621; }
+        .tg-phone-messages::-webkit-scrollbar { width: 4px; }
+        .tg-phone-messages::-webkit-scrollbar-track { background: #0e1621; }
+        .tg-phone-messages::-webkit-scrollbar-thumb { background: #2b3a4c; border-radius: 2px; }
+        .tg-phone-inputbar { height: 44px; background: #17212b; border-top: 1px solid #232e3c; display: flex; align-items: center; padding: 0 12px; gap: 8px; flex-shrink: 0; }
+        .tg-phone-inputbar-field { flex: 1; background: #242f3d; border-radius: 18px; height: 32px; padding: 0 14px; font-size: .75rem; color: #6d7f8e; display: flex; align-items: center; }
+
+        /* Telegram message styles (inside phone) */
+        .tg-preview-wrap { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; }
+        .tg-msg { background: #182533; margin: 6px 0; border-radius: 0; }
+        .tg-msg:first-child { margin-top: 0; }
         .tg-msg-avatar { width: 32px; height: 32px; border-radius: 50%; background: #2b5278; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: .9rem; font-weight: 700; color: #fff; }
         .tg-msg-avatar img { width: 100%; height: 100%; object-fit: cover; }
         .tg-msg-channel-name { font-size: .82rem; font-weight: 600; color: #6ab2f2; }
-        .tg-msg-media { position: relative; }
-        .tg-msg-media img { width: 100%; display: block; }
+        .tg-msg-media { position: relative; overflow: hidden; }
+        .tg-msg-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
         .tg-msg-media-grid { display: grid; gap: 2px; }
-        .tg-msg-media-grid.count-2 { grid-template-columns: 1fr 1fr; }
-        .tg-msg-media-grid.count-3 { grid-template-columns: 1fr 1fr; }
-        .tg-msg-media-grid.count-3 img:first-child { grid-row: 1/3; }
-        .tg-msg-caption { padding: 6px 12px 4px; font-size: .82rem; color: #e1e3e6; line-height: 1.4; word-wrap: break-word; }
-        .tg-msg-caption b { font-weight: 600; }
+        .tg-msg-media-grid.g-1 img { max-height: 300px; object-fit: cover; }
+        .tg-msg-media-grid.g-2 { grid-template-columns: 1fr 1fr; height: 200px; }
+        .tg-msg-media-grid.g-3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; height: 280px; }
+        .tg-msg-media-grid.g-3 img:first-child { grid-row: 1/3; }
+        .tg-msg-media-grid.g-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; height: 280px; }
+        .tg-msg-media-grid.g-5 { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; height: 280px; }
+        .tg-msg-media-grid.g-5 img:nth-child(1) { grid-column: 1/2; }
+        .tg-msg-media-grid.g-5 img:nth-child(2) { grid-column: 2/4; }
+        .tg-msg-caption { padding: 8px 14px 4px; font-size: .84rem; color: #e1e3e6; line-height: 1.45; word-wrap: break-word; white-space: pre-wrap; }
+        .tg-msg-caption b { font-weight: 600; color: #fff; }
+        .tg-msg-caption i { font-style: italic; }
         .tg-msg-caption a { color: #6ab2f2; text-decoration: none; }
-        .tg-msg-footer { display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding: 2px 12px 6px; font-size: .68rem; color: #6d7f8e; }
+        .tg-msg-caption a:hover { text-decoration: underline; }
+        .tg-msg-caption code { background: rgba(255,255,255,.08); padding: 1px 5px; border-radius: 4px; font-family: monospace; font-size: .82em; }
+        .tg-msg-footer { display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding: 2px 14px 8px; font-size: .68rem; color: #6d7f8e; }
         .tg-msg-footer-views::before { content: ''; display: inline-block; width: 12px; height: 10px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 11' fill='%236d7f8e'%3E%3Cpath d='M8 1C4.5 1 1.5 3.5 0 5.5c1.5 2 4.5 4.5 8 4.5s6.5-2.5 8-4.5C14.5 3.5 11.5 1 8 1zm0 7.5A3 3 0 118 2.5a3 3 0 010 6z'/%3E%3C/svg%3E") no-repeat center; margin-right: 3px; }
-        .tg-msg-reactions { display: flex; gap: 4px; padding: 4px 12px 8px; flex-wrap: wrap; }
-        .tg-msg-reaction { background: #1e3246; border-radius: 12px; padding: 3px 8px; font-size: .72rem; color: #6ab2f2; border: 1px solid #2b5278; }
+        .tg-msg-reactions { display: flex; gap: 4px; padding: 2px 14px 10px; flex-wrap: wrap; }
+        .tg-msg-reaction { background: rgba(30,50,70,.8); border-radius: 12px; padding: 3px 8px; font-size: .72rem; color: #6ab2f2; border: 1px solid rgba(43,82,120,.6); }
+        .tg-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #475569; font-size: .82rem; gap: 8px; padding: 40px 20px; text-align: center; }
 
         .img-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 10px; }
         .img-card { background: #1e293b; border: 2px solid #334155; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all .15s; position: relative; }
@@ -1127,56 +1201,89 @@ requireAuth();
                 </div>
                 <!-- Telegram Post Panel -->
                 <div class="section-block" id="tgPostPanel" style="display:none">
-                    <h3>Telegram пост</h3>
+                    <h3 style="display:flex;align-items:center;gap:10px">Telegram пост
+                        <span id="tgCurrentStatus"></span>
+                    </h3>
                     <div class="tg-two-panel">
                         <!-- LEFT: editing panel -->
                         <div class="tg-panel-left">
-                            <div id="tgPostControls">
-                                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-                                    <button class="btn-pub" onclick="buildTgPreview()" id="btnTgBuild">Подготовить пост</button>
-                                    <button class="btn-pub" onclick="sendTgNow()" id="btnTgSend" style="display:none">Отправить сейчас</button>
-                                    <button class="btn-pub btn-pub-preview" onclick="showTgSchedule()" id="btnTgScheduleShow" style="display:none">Запланировать</button>
-                                </div>
-                                <div id="tgScheduleRow" style="display:none;margin-bottom:12px;gap:8px;align-items:center">
+                            <!-- Action buttons -->
+                            <div class="tg-actions" id="tgPostControls">
+                                <button class="btn-pub" onclick="buildTgPreview()" id="btnTgBuild">Подготовить пост</button>
+                                <button class="btn-pub tg-btn-rebuild" onclick="buildTgPreview()" id="btnTgRebuild" style="display:none">Пересобрать</button>
+                                <button class="btn-pub" onclick="sendTgNow()" id="btnTgSend" style="display:none">Отправить</button>
+                                <button class="btn-pub btn-pub-preview" onclick="showTgSchedule()" id="btnTgScheduleShow" style="display:none">Запланировать</button>
+                                <button class="btn-pub tg-btn-danger" onclick="deleteAllTgPosts()" id="btnTgDeleteAll" style="display:none">Удалить все</button>
+                            </div>
+                            <div id="tgScheduleRow" style="display:none">
+                                <div style="display:flex;gap:8px;align-items:center">
                                     <input type="datetime-local" id="tgScheduleAt" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 10px;border-radius:6px;font-size:.82rem">
-                                    <button class="btn-pub" onclick="scheduleTgPost()">Запланировать отгрузку</button>
-                                </div>
-                                <div id="tgBuildStatus" style="display:none;font-size:.82rem;color:#a78bfa;margin-bottom:12px">
-                                    <span class="spinner"></span> Подготовка поста...
+                                    <button class="btn-pub" onclick="scheduleTgPost()">Запланировать</button>
+                                    <button class="btn-pub btn-pub-preview" onclick="$('tgScheduleRow').style.display='none'" style="padding:6px 10px;font-size:.75rem">Отмена</button>
                                 </div>
                             </div>
+                            <div id="tgBuildStatus" style="display:none;font-size:.82rem;color:#a78bfa">
+                                <span class="spinner"></span> Подготовка поста...
+                            </div>
 
-                            <!-- Caption Editor -->
-                            <div id="tgCaptionEditor" style="display:none;margin-bottom:12px">
-                                <h4 style="font-size:.82rem;color:#64748b;margin:0 0 8px">Текст поста <span style="color:#475569;font-weight:400">(HTML-разметка Telegram)</span></h4>
+                            <!-- Message editors (per-message cards) -->
+                            <div id="tgCaptionEditor" style="display:none">
                                 <div id="tgCaptionEditors"></div>
-                                <div style="margin-top:6px;display:flex;gap:8px">
-                                    <button class="btn-pub btn-pub-preview" onclick="saveTgCaptions()" style="font-size:.75rem;padding:5px 12px">Сохранить текст</button>
-                                    <button class="btn-pub btn-pub-preview" onclick="refreshTgPreview()" style="font-size:.75rem;padding:5px 12px;background:linear-gradient(135deg,#4338ca,#6366f1)">Обновить превью</button>
+                                <div style="display:flex;gap:8px;margin-top:8px">
+                                    <button class="btn-pub" onclick="saveTgCaptions()" style="font-size:.75rem;padding:6px 14px">Сохранить</button>
+                                    <button class="btn-pub btn-pub-preview" onclick="refreshTgPreview()" style="font-size:.75rem;padding:6px 14px">Обновить превью</button>
                                 </div>
                             </div>
 
-                            <!-- Image presets -->
-                            <div id="tgImagePresets" style="display:none;margin-top:12px">
-                                <h4 style="font-size:.82rem;color:#64748b;margin:0 0 8px">Изображения</h4>
-                                <div id="tgImageGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px"></div>
+                            <!-- Rendered images -->
+                            <div id="tgImagePresets" style="display:none" class="tg-card">
+                                <div class="tg-card-head" onclick="toggleTgCard(this)">
+                                    <span class="tg-card-title">Изображения блоков <span class="tg-badge" id="tgImgCount"></span></span>
+                                    <span class="tg-card-chevron open">&#9654;</span>
+                                </div>
+                                <div class="tg-card-body">
+                                    <div id="tgImageGrid" class="tg-img-grid"></div>
+                                </div>
                             </div>
 
                             <!-- Post result/status -->
-                            <div id="tgPostResult" style="display:none;margin-top:12px"></div>
+                            <div id="tgPostResult" style="display:none"></div>
 
                             <!-- Post history -->
-                            <div id="tgPostHistory" style="margin-top:16px">
-                                <h4 style="font-size:.82rem;color:#64748b;margin:0 0 8px">История постов</h4>
-                                <div id="tgHistoryList"></div>
+                            <div id="tgPostHistory" class="tg-card">
+                                <div class="tg-card-head" onclick="toggleTgCard(this)">
+                                    <span class="tg-card-title">История постов <span class="tg-badge" id="tgHistoryCount">0</span></span>
+                                    <span class="tg-card-chevron open">&#9654;</span>
+                                </div>
+                                <div class="tg-card-body">
+                                    <div id="tgHistoryList"></div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- RIGHT: preview panel -->
+                        <!-- RIGHT: phone preview -->
                         <div class="tg-panel-right">
-                            <div id="tgPreviewContainer" style="display:none">
-                                <h4 style="font-size:.82rem;color:#64748b;margin:0 0 8px">Предпросмотр</h4>
-                                <div id="tgPreview" class="tg-preview-wrap"></div>
+                            <div class="tg-phone-frame" id="tgPreviewContainer">
+                                <div class="tg-phone-screen">
+                                    <div class="tg-phone-statusbar"><div class="tg-phone-notch"></div></div>
+                                    <div class="tg-phone-header" id="tgPhoneHeader">
+                                        <span class="tg-phone-back">&#8249;</span>
+                                        <div class="tg-msg-avatar" id="tgPhoneAvatar"></div>
+                                        <div>
+                                            <div class="tg-msg-channel-name" id="tgPhoneChannelName">Канал</div>
+                                            <div style="font-size:.65rem;color:#6d7f8e" id="tgPhoneChannelSub">channel</div>
+                                        </div>
+                                    </div>
+                                    <div class="tg-phone-messages tg-preview-wrap" id="tgPreview">
+                                        <div class="tg-empty-state">
+                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                                            Нажмите «Подготовить пост» для генерации
+                                        </div>
+                                    </div>
+                                    <div class="tg-phone-inputbar">
+                                        <div class="tg-phone-inputbar-field">Написать сообщение...</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -3769,6 +3876,52 @@ requireAuth();
     let currentTgPostId = null;
     let currentTgPostData = null;
 
+    function toggleTgCard(head) {
+        var body = head.nextElementSibling;
+        var chevron = head.querySelector('.tg-card-chevron');
+        if (body.classList.contains('collapsed')) {
+            body.classList.remove('collapsed');
+            if (chevron) chevron.classList.add('open');
+        } else {
+            body.classList.add('collapsed');
+            if (chevron) chevron.classList.remove('open');
+        }
+    }
+
+    function tgStatusLabel(s) {
+        var m = { draft: 'Черновик', scheduled: 'Запланирован', sending: 'Отправляется', sent: 'Отправлен', failed: 'Ошибка' };
+        return m[s] || s;
+    }
+
+    function updateTgPhoneHeader() {
+        var profile = currentProfile || {};
+        var channelName = profile.tg_channel_name || profile.name || 'Канал';
+        var avatar = profile.tg_channel_avatar;
+        $('tgPhoneChannelName').textContent = channelName;
+        if (avatar) {
+            $('tgPhoneAvatar').innerHTML = '<img src="data:image/jpeg;base64,' + avatar + '">';
+        } else {
+            $('tgPhoneAvatar').textContent = channelName[0] || 'T';
+        }
+    }
+
+    function updateTgButtons(status) {
+        var isDraft = !status || status === 'draft';
+        var isSent = status === 'sent';
+        var isFailed = status === 'failed';
+        $('btnTgBuild').style.display = !currentTgPostId ? '' : 'none';
+        $('btnTgRebuild').style.display = currentTgPostId ? '' : 'none';
+        $('btnTgSend').style.display = (isDraft || isFailed) && currentTgPostId ? 'inline-flex' : 'none';
+        $('btnTgScheduleShow').style.display = (isDraft || isFailed) && currentTgPostId ? 'inline-flex' : 'none';
+        if (isSent) {
+            $('btnTgSend').style.display = 'none';
+            $('btnTgScheduleShow').style.display = 'none';
+        }
+        $('tgCurrentStatus').innerHTML = status
+            ? '<span class="tg-status-pill tg-status-' + status + '">' + tgStatusLabel(status) + '</span>'
+            : '';
+    }
+
     function updateTgPanelVisibility(art) {
         var hasTgExport = !!(art ? art.tg_export : $('artTgExport').checked);
         var isPublished = (art ? art.status : $('artStatus').value) === 'published';
@@ -3776,6 +3929,7 @@ requireAuth();
         $('tgPostPanel').style.display = (hasTgExport && hasTgConfig) ? '' : 'none';
         $('btnTgBuild').disabled = !isPublished;
         if (hasTgExport && hasTgConfig && artId) {
+            updateTgPhoneHeader();
             loadTgPostHistory(artId);
         }
     }
@@ -3788,11 +3942,10 @@ requireAuth();
         if (!artId) return;
         $('tgBuildStatus').style.display = 'block';
         $('btnTgBuild').disabled = true;
-        $('tgPreviewContainer').style.display = 'none';
-        $('tgImagePresets').style.display = 'none';
+        $('btnTgRebuild').disabled = true;
 
         try {
-            const res = await api('telegram/' + artId + '/build-preview', { method: 'POST', body: {} });
+            var res = await api('telegram/' + artId + '/build-preview', { method: 'POST', body: {} });
             if (!res.success) { toast(res.error || 'Ошибка', true); return; }
 
             currentTgPostId = res.data.id;
@@ -3801,8 +3954,7 @@ requireAuth();
             renderTgCaptionEditors(res.data);
             renderTgPreview(res.data);
             renderTgImagePresets(res.data);
-            $('btnTgSend').style.display = 'inline-flex';
-            $('btnTgScheduleShow').style.display = 'inline-flex';
+            updateTgButtons(res.data.status);
 
             loadTgPostHistory(artId);
             toast('Пост подготовлен');
@@ -3811,7 +3963,24 @@ requireAuth();
         } finally {
             $('tgBuildStatus').style.display = 'none';
             $('btnTgBuild').disabled = false;
+            $('btnTgRebuild').disabled = false;
         }
+    }
+
+    async function loadTgPost(postId) {
+        try {
+            var res = await api('telegram/post/' + postId);
+            if (!res.success) { toast(res.error || 'Ошибка загрузки', true); return; }
+
+            currentTgPostId = res.data.id;
+            currentTgPostData = res.data;
+
+            renderTgCaptionEditors(res.data);
+            renderTgPreview(res.data);
+            renderTgImagePresets(res.data);
+            updateTgButtons(res.data.status);
+            toast('Пост загружен в редактор');
+        } catch(e) { toast(e.message, true); }
     }
 
     function renderTgCaptionEditors(postData) {
@@ -3829,17 +3998,39 @@ requireAuth();
             var text = msg.caption || msg.text || '';
             var isCaption = msg.type !== 'text';
             var maxLen = isCaption ? 1024 : 4096;
-            var label = messages.length > 1 ? 'Сообщение ' + (idx + 1) + (isCaption ? ' (подпись, макс ' + maxLen + ')' : ' (текст, макс ' + maxLen + ')') : (isCaption ? 'Подпись (макс ' + maxLen + ')' : 'Текст (макс ' + maxLen + ')');
+            var typeLabel = isCaption ? 'подпись' : 'текст';
+            var imgIds = msg.rendered_image_ids || (msg.rendered_image_id ? [msg.rendered_image_id] : []);
 
-            html += '<div style="margin-bottom:8px">';
-            html += '<label style="font-size:.72rem;color:#475569;display:block;margin-bottom:3px">' + label + '</label>';
-            html += '<textarea id="tgCaption_' + idx + '" rows="4" maxlength="' + maxLen + '" '
-                + 'style="width:100%;background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:8px;border-radius:6px;font-size:.8rem;font-family:monospace;resize:vertical"'
+            html += '<div class="tg-card" style="margin-bottom:10px">';
+            html += '<div class="tg-card-head" onclick="toggleTgCard(this)">';
+            html += '<span class="tg-card-title">';
+            if (messages.length > 1) {
+                html += 'Сообщение ' + (idx + 1);
+            } else {
+                html += 'Текст поста';
+            }
+            html += ' <span class="tg-badge">' + typeLabel + ' &middot; ' + maxLen + '</span>';
+            html += '</span>';
+            html += '<span class="tg-card-chevron open">&#9654;</span>';
+            html += '</div>';
+            html += '<div class="tg-card-body">';
+
+            if (imgIds.length > 0) {
+                html += '<div class="tg-msg-images">';
+                imgIds.forEach(function(imgId) {
+                    html += '<img src="' + API + '?r=telegram/rendered-image/' + imgId + '" loading="lazy">';
+                });
+                html += '</div>';
+                html += '<div style="height:8px"></div>';
+            }
+
+            html += '<textarea id="tgCaption_' + idx + '" rows="5" maxlength="' + maxLen + '" class="tg-textarea"'
                 + ' oninput="updateTgCaptionCounter(' + idx + ',' + maxLen + ')"'
                 + '>' + esc(text) + '</textarea>';
-            html += '<div id="tgCaptionCount_' + idx + '" style="text-align:right;font-size:.68rem;color:#475569;margin-top:2px">'
-                + text.length + '/' + maxLen + '</div>';
-            html += '</div>';
+            html += '<div id="tgCaptionCount_' + idx + '" class="tg-char-count' + (text.length > maxLen ? ' over' : '') + '">'
+                + text.length + ' / ' + maxLen + '</div>';
+
+            html += '</div></div>';
         });
 
         container.innerHTML = html;
@@ -3850,8 +4041,8 @@ requireAuth();
         var ta = $('tgCaption_' + idx);
         var cnt = $('tgCaptionCount_' + idx);
         var len = ta.value.length;
-        cnt.textContent = len + '/' + maxLen;
-        cnt.style.color = len > maxLen ? '#f87171' : '#475569';
+        cnt.textContent = len + ' / ' + maxLen;
+        cnt.className = 'tg-char-count' + (len > maxLen ? ' over' : '');
     }
 
     async function saveTgCaptions() {
@@ -3904,30 +4095,41 @@ requireAuth();
         renderTgPreview(previewData);
     }
 
+    function formatTgCaption(text) {
+        var tmp = document.createElement('div');
+        tmp.innerHTML = text;
+        var allowed = ['B','I','U','S','A','CODE','PRE','BR'];
+        function clean(node) {
+            var children = Array.prototype.slice.call(node.childNodes);
+            children.forEach(function(child) {
+                if (child.nodeType === 1) {
+                    if (allowed.indexOf(child.tagName) === -1) {
+                        while (child.firstChild) node.insertBefore(child.firstChild, child);
+                        node.removeChild(child);
+                    } else {
+                        clean(child);
+                    }
+                }
+            });
+        }
+        clean(tmp);
+        return tmp.innerHTML;
+    }
+
     function renderTgPreview(postData) {
         var container = $('tgPreview');
         var pd = postData.post_data || {};
         var messages = pd.messages || [];
-        var profile = currentProfile || {};
-        var channelName = profile.tg_channel_name || profile.name || 'Канал';
-        var avatar = profile.tg_channel_avatar;
+
+        if (messages.length === 0) {
+            container.innerHTML = '<div class="tg-empty-state">Нет сообщений для предпросмотра</div>';
+            return;
+        }
 
         var html = '';
+        var now = new Date();
+        var timeStr = (now.getHours() < 10 ? '0' : '') + now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
 
-        // Channel header bar
-        html += '<div style="background:#17212b;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #232e3c">';
-        if (avatar) {
-            html += '<div class="tg-msg-avatar"><img src="data:image/jpeg;base64,' + avatar + '"></div>';
-        } else {
-            html += '<div class="tg-msg-avatar">' + esc(channelName[0]) + '</div>';
-        }
-        html += '<div>';
-        html += '<div class="tg-msg-channel-name">' + esc(channelName) + '</div>';
-        html += '<div style="font-size:.68rem;color:#6d7f8e">channel</div>';
-        html += '</div>';
-        html += '</div>';
-
-        // Messages
         messages.forEach(function(msg, idx) {
             html += '<div class="tg-msg">';
 
@@ -3935,7 +4137,8 @@ requireAuth();
             if (msg.type === 'media_group' || msg.type === 'photo') {
                 var imgIds = msg.rendered_image_ids || (msg.rendered_image_id ? [msg.rendered_image_id] : []);
                 if (imgIds.length > 0) {
-                    var gridClass = 'tg-msg-media-grid count-' + Math.min(imgIds.length, 3);
+                    var cnt = Math.min(imgIds.length, 10);
+                    var gridClass = 'tg-msg-media-grid g-' + (cnt > 5 ? 5 : cnt);
                     html += '<div class="tg-msg-media"><div class="' + gridClass + '">';
                     imgIds.forEach(function(imgId) {
                         html += '<img src="' + API + '?r=telegram/rendered-image/' + imgId + '" loading="lazy">';
@@ -3944,46 +4147,42 @@ requireAuth();
                 }
             }
 
-            // Caption/text
+            // Caption/text with proper formatting
             var text = msg.caption || msg.text || '';
             if (text) {
-                html += '<div class="tg-msg-caption">' + text + '</div>';
+                html += '<div class="tg-msg-caption">' + formatTgCaption(text) + '</div>';
             }
 
-            // Footer with views, time, forward icon
-            var now = new Date();
-            var timeStr = now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
+            // Footer
             html += '<div class="tg-msg-footer">';
             html += '<span class="tg-msg-footer-views">1</span>';
             html += '<span>' + timeStr + '</span>';
             html += '</div>';
 
-            // Reactions mock
-            html += '<div class="tg-msg-reactions">';
-            html += '<span class="tg-msg-reaction">&#128077; 0</span>';
-            html += '<span class="tg-msg-reaction">&#10084;&#65039; 0</span>';
-            html += '</div>';
+            // Reactions only on last message
+            if (idx === messages.length - 1) {
+                html += '<div class="tg-msg-reactions">';
+                html += '<span class="tg-msg-reaction">&#128077; 0</span>';
+                html += '<span class="tg-msg-reaction">&#10084;&#65039; 0</span>';
+                html += '</div>';
+            }
 
             html += '</div>';
         });
 
-        // Comments mock footer
-        html += '<div style="background:#17212b;padding:8px 12px;text-align:center;border-top:1px solid #232e3c">';
-        html += '<span style="font-size:.75rem;color:#6ab2f2;cursor:pointer">Leave a comment</span>';
-        html += '</div>';
-
         container.innerHTML = html;
-        $('tgPreviewContainer').style.display = '';
+        container.scrollTop = 0;
     }
 
     function renderTgImagePresets(postData) {
-        const images = postData.rendered_images || [];
+        var images = postData.rendered_images || [];
         if (images.length === 0) { $('tgImagePresets').style.display = 'none'; return; }
 
+        $('tgImgCount').textContent = images.length;
         $('tgImageGrid').innerHTML = images.map(function(img) {
-            return '<div style="background:#1e293b;border-radius:8px;overflow:hidden;border:1px solid #334155">'
-                + '<img src="' + API + '?r=telegram/rendered-image/' + img.id + '" style="width:100%;display:block" loading="lazy">'
-                + '<div style="padding:4px 8px;font-size:.7rem;color:#64748b">' + esc(img.block_type) + '</div>'
+            return '<div class="tg-img-card">'
+                + '<img src="' + API + '?r=telegram/rendered-image/' + img.id + '" loading="lazy">'
+                + '<div class="tg-img-card-label">' + esc(img.block_type) + '</div>'
                 + '</div>';
         }).join('');
         $('tgImagePresets').style.display = '';
@@ -3994,18 +4193,18 @@ requireAuth();
         if (!confirm('Отправить пост в Telegram сейчас?')) return;
 
         try {
-            const res = await api('telegram/' + artId + '/send', {
+            var res = await api('telegram/' + artId + '/send', {
                 method: 'POST',
                 body: { post_id: currentTgPostId }
             });
             if (res.success) {
-                const url = res.data.tg_post_url;
+                currentTgPostData = res.data;
+                var url = res.data.tg_post_url;
                 $('tgPostResult').style.display = 'block';
-                $('tgPostResult').innerHTML = '<div style="padding:10px;background:#022c22;border:1px solid #065f46;border-radius:6px;color:#6ee7b7;font-size:.82rem">'
+                $('tgPostResult').innerHTML = '<div style="padding:10px;background:#022c22;border:1px solid #065f46;border-radius:8px;color:#6ee7b7;font-size:.82rem">'
                     + 'Пост отправлен!' + (url ? ' <a href="' + esc(url) + '" target="_blank" style="color:#34d399">Открыть в Telegram</a>' : '')
                     + '</div>';
-                $('btnTgSend').style.display = 'none';
-                $('btnTgScheduleShow').style.display = 'none';
+                updateTgButtons('sent');
                 loadTgPostHistory(artId);
                 toast('Пост отправлен в Telegram');
             } else {
@@ -4016,7 +4215,7 @@ requireAuth();
 
     function showTgSchedule() {
         var row = $('tgScheduleRow');
-        row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+        row.style.display = row.style.display === 'none' ? '' : 'none';
     }
 
     async function scheduleTgPost() {
@@ -4025,18 +4224,18 @@ requireAuth();
         if (!dt) { toast('Выберите дату и время', true); return; }
 
         try {
-            const res = await api('telegram/' + artId + '/schedule', {
+            var res = await api('telegram/' + artId + '/schedule', {
                 method: 'POST',
                 body: { post_id: currentTgPostId, scheduled_at: dt.replace('T', ' ') + ':00' }
             });
             if (res.success) {
+                currentTgPostData = res.data;
                 $('tgPostResult').style.display = 'block';
-                $('tgPostResult').innerHTML = '<div style="padding:10px;background:#1e1b4b;border:1px solid #4338ca;border-radius:6px;color:#a5b4fc;font-size:.82rem">'
+                $('tgPostResult').innerHTML = '<div style="padding:10px;background:#1e1b4b;border:1px solid #4338ca;border-radius:8px;color:#a5b4fc;font-size:.82rem">'
                     + 'Пост запланирован на ' + esc(dt.replace('T', ' '))
                     + '</div>';
                 $('tgScheduleRow').style.display = 'none';
-                $('btnTgSend').style.display = 'none';
-                $('btnTgScheduleShow').style.display = 'none';
+                updateTgButtons('scheduled');
                 loadTgPostHistory(artId);
                 toast('Пост запланирован');
             } else {
@@ -4047,40 +4246,75 @@ requireAuth();
 
     async function loadTgPostHistory(articleId) {
         try {
-            const res = await api('telegram/' + articleId + '/posts');
+            var res = await api('telegram/' + articleId + '/posts');
             if (!res.success) return;
             var posts = res.data || [];
+            $('tgHistoryCount').textContent = posts.length;
+            $('btnTgDeleteAll').style.display = posts.length > 0 ? 'inline-flex' : 'none';
+
             if (!posts.length) {
                 $('tgHistoryList').innerHTML = '<div style="color:#475569;font-size:.78rem;padding:8px 0">Нет постов</div>';
                 return;
             }
-            var statusLabel = { draft: 'Черновик', scheduled: 'Запланирован', sending: 'Отправляется...', sent: 'Отправлен', failed: 'Ошибка' };
-            var statusColor = { draft: '#94a3b8', scheduled: '#a5b4fc', sending: '#fbbf24', sent: '#6ee7b7', failed: '#fca5a5' };
+
             $('tgHistoryList').innerHTML = posts.map(function(p) {
-                var st = statusLabel[p.status] || p.status;
-                var cl = statusColor[p.status] || '#94a3b8';
-                var url = p.tg_post_url ? ' <a href="' + esc(p.tg_post_url) + '" target="_blank" style="color:#6ab2f2;font-size:.72rem">открыть</a>' : '';
+                var st = tgStatusLabel(p.status);
+                var isSending = p.status === 'sending';
+                var url = p.tg_post_url ? '<a href="' + esc(p.tg_post_url) + '" target="_blank">открыть</a>' : '';
                 var sched = p.scheduled_at ? ' &middot; ' + esc(p.scheduled_at) : '';
-                var err = p.error_message ? '<div style="color:#fca5a5;font-size:.7rem;margin-top:2px">' + esc(p.error_message) + '</div>' : '';
-                var del = (p.status === 'draft' || p.status === 'scheduled' || p.status === 'failed')
-                    ? ' <button onclick="deleteTgPost(' + p.id + ')" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.72rem;padding:0 4px">удалить</button>'
-                    : '';
-                return '<div style="padding:6px 0;border-bottom:1px solid #1e293b;font-size:.78rem">'
-                    + '<span style="color:' + cl + ';font-weight:600">' + st + '</span>'
-                    + ' &middot; ' + esc(p.post_format) + sched + url + del
-                    + '<div style="color:#475569;font-size:.7rem;margin-top:2px">' + esc(p.created_at || '') + '</div>'
+                var err = p.error_message ? '<div class="tg-history-error">' + esc(p.error_message) + '</div>' : '';
+
+                var actions = '';
+                actions += '<button class="tg-history-btn" onclick="loadTgPost(' + p.id + ')">Загрузить</button>';
+                if (!isSending) {
+                    actions += '<button class="tg-history-btn danger" onclick="deleteTgPost(' + p.id + ')">Удалить</button>';
+                }
+
+                return '<div class="tg-history-item">'
+                    + '<div class="tg-history-info">'
+                    + '<span class="tg-status-pill tg-status-' + p.status + '">' + st + '</span>'
+                    + ' <span style="font-size:.72rem;color:#64748b">' + esc(p.post_format) + sched + '</span>'
+                    + '<div class="tg-history-meta">' + esc(p.created_at || '') + (url ? ' &middot; ' + url : '') + '</div>'
                     + err
+                    + '</div>'
+                    + '<div class="tg-history-actions">' + actions + '</div>'
                     + '</div>';
             }).join('');
         } catch(e) {}
     }
 
     async function deleteTgPost(postId) {
-        if (!confirm('Удалить пост?')) return;
+        if (!confirm('Удалить этот пост?')) return;
         try {
             await api('telegram/post/' + postId, { method: 'DELETE' });
+            if (currentTgPostId === postId) {
+                currentTgPostId = null;
+                currentTgPostData = null;
+                $('tgCaptionEditor').style.display = 'none';
+                $('tgImagePresets').style.display = 'none';
+                $('tgPostResult').style.display = 'none';
+                updateTgButtons(null);
+                $('tgPreview').innerHTML = '<div class="tg-empty-state">Пост удален</div>';
+            }
             loadTgPostHistory(artId);
             toast('Пост удален');
+        } catch(e) { toast(e.message, true); }
+    }
+
+    async function deleteAllTgPosts() {
+        if (!artId) return;
+        if (!confirm('Удалить ВСЕ посты для этой статьи?')) return;
+        try {
+            await api('telegram/' + artId + '/posts', { method: 'DELETE' });
+            currentTgPostId = null;
+            currentTgPostData = null;
+            $('tgCaptionEditor').style.display = 'none';
+            $('tgImagePresets').style.display = 'none';
+            $('tgPostResult').style.display = 'none';
+            updateTgButtons(null);
+            $('tgPreview').innerHTML = '<div class="tg-empty-state">Все посты удалены</div>';
+            loadTgPostHistory(artId);
+            toast('Все посты удалены');
         } catch(e) { toast(e.message, true); }
     }
 
