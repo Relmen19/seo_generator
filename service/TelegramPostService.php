@@ -13,6 +13,11 @@ use Seo\Entity\SeoTelegramRenderedImage;
 
 class TelegramPostService {
 
+    private const MAX_CAPTION_LENGTH = 1024;
+    private const MAX_TEXT_LENGTH = 4096;
+    private const MAX_MEDIA_GROUP_SIZE = 10;
+    private const MAX_RETRY_ATTEMPTS = 3;
+
     private Database $db;
 
     public function __construct() {
@@ -107,9 +112,11 @@ class TelegramPostService {
         $articleTitle = $article['title'] ?? '';
 
         if ($format === 'single') {
-            // Single post: pick top 2-3 images + summarized caption
-            $imageBlocks = array_slice($renderableBlocks, 0, 3);
-            $captionText = $this->buildCaptionFromBlocks($textBlocks, $articleTitle, $articleLink, 900);
+            // Single post: pick top images (max 10) + summarized caption
+            $imageBlocks = array_slice($renderableBlocks, 0, min(3, self::MAX_MEDIA_GROUP_SIZE));
+
+            // Try GPT summarization, fall back to block text extraction
+            $captionText = $this->generateCaption($article, $textBlocks, $articleLink, $profile);
 
             $messages = [];
             if (count($imageBlocks) > 1) {
@@ -117,7 +124,7 @@ class TelegramPostService {
                     'type'        => 'media_group',
                     'block_ids'   => array_map(fn($b) => (int)$b['id'], $imageBlocks),
                     'block_types' => array_map(fn($b) => $b['type'], $imageBlocks),
-                    'caption'     => $captionText,
+                    'caption'     => mb_substr($captionText, 0, self::MAX_CAPTION_LENGTH),
                     'parse_mode'  => 'HTML',
                 ];
             } elseif (count($imageBlocks) === 1) {
@@ -125,14 +132,14 @@ class TelegramPostService {
                     'type'       => 'photo',
                     'block_id'   => (int)$imageBlocks[0]['id'],
                     'block_type' => $imageBlocks[0]['type'],
-                    'caption'    => $captionText,
+                    'caption'    => mb_substr($captionText, 0, self::MAX_CAPTION_LENGTH),
                     'parse_mode' => 'HTML',
                 ];
             }
 
             // If caption was truncated, add a follow-up text message
-            $fullText = $this->buildFullText($textBlocks, $articleTitle, $articleLink);
-            if (mb_strlen($fullText) > 900 && mb_strlen($fullText) <= 4096) {
+            if (mb_strlen($captionText) > self::MAX_CAPTION_LENGTH) {
+                $fullText = mb_substr($captionText, 0, self::MAX_TEXT_LENGTH);
                 $messages[] = [
                     'type'       => 'text',
                     'text'       => $fullText,
@@ -163,7 +170,7 @@ class TelegramPostService {
                     'type'        => 'media_group',
                     'block_ids'   => array_map(fn($b) => (int)$b['id'], $chunk),
                     'block_types' => array_map(fn($b) => $b['type'], $chunk),
-                    'caption'     => mb_substr($chunkText, 0, 1024),
+                    'caption'     => mb_substr($chunkText, 0, self::MAX_CAPTION_LENGTH),
                     'parse_mode'  => 'HTML',
                 ];
             } else {
@@ -171,7 +178,7 @@ class TelegramPostService {
                     'type'       => 'photo',
                     'block_id'   => (int)$chunk[0]['id'],
                     'block_type' => $chunk[0]['type'],
-                    'caption'    => mb_substr($chunkText, 0, 1024),
+                    'caption'    => mb_substr($chunkText, 0, self::MAX_CAPTION_LENGTH),
                     'parse_mode' => 'HTML',
                 ];
             }
@@ -182,6 +189,85 @@ class TelegramPostService {
             'article_link' => $articleLink,
             'format'       => 'series',
         ];
+    }
+
+    /**
+     * Generate caption: try GPT summarization, fall back to block text.
+     */
+    private function generateCaption(array $article, array $textBlocks, string $articleLink, SeoSiteProfile $profile): string {
+        $title = $article['title'] ?? '';
+
+        // Try GPT summarization
+        try {
+            $summary = $this->gptSummarize($article, $textBlocks, $profile);
+            if ($summary !== '') {
+                $parts = ['<b>' . htmlspecialchars($title) . '</b>', $summary];
+                $parts[] = '<a href="' . htmlspecialchars($articleLink) . '">Читать полностью</a>';
+                return implode("\n\n", $parts);
+            }
+        } catch (\Throwable $e) {
+            logMessage('Telegram GPT summarization failed: ' . $e->getMessage());
+        }
+
+        // Fallback to block text extraction
+        return $this->buildCaptionFromBlocks($textBlocks, $title, $articleLink, self::MAX_CAPTION_LENGTH);
+    }
+
+    /**
+     * Summarize article text via GPT for Telegram post caption.
+     */
+    private function gptSummarize(array $article, array $textBlocks, SeoSiteProfile $profile): string {
+        if (empty(GPT_API_KEY)) {
+            return '';
+        }
+
+        // Collect article text
+        $textParts = [];
+        foreach ($textBlocks as $block) {
+            $content = json_decode($block['content'] ?? '{}', true);
+            $text = $this->extractTextFromContent($content);
+            if ($text !== '') {
+                $textParts[] = $text;
+            }
+        }
+
+        $fullText = implode("\n\n", $textParts);
+        if (mb_strlen($fullText) < 100) {
+            return ''; // Too short to summarize
+        }
+
+        $gpt = new GptClient();
+        $persona = $profile->getGptPersona() ?: 'Ты — контент-менеджер';
+        $tone = $profile->getTone() ?: 'professional';
+
+        $result = $gpt->chat([
+            [
+                'role' => 'system',
+                'content' => $persona . "\n\nТон: {$tone}.\n"
+                    . "Сделай краткое описание статьи для поста в Telegram-канале.\n"
+                    . "Требования:\n"
+                    . "- Максимум 500 символов\n"
+                    . "- Используй HTML-теги Telegram: <b>, <i>, <a href=\"\">\n"
+                    . "- НЕ используй эмодзи и разделители\n"
+                    . "- Текст должен быть информативным и побуждать прочитать статью\n"
+                    . "- Выдели ключевые факты жирным\n"
+                    . "- Отвечай ТОЛЬКО текстом поста, без пояснений",
+            ],
+            [
+                'role' => 'user',
+                'content' => "Заголовок: {$article['title']}\n\nТекст статьи:\n" . mb_substr($fullText, 0, 3000),
+            ],
+        ], [
+            'temperature' => SEO_TEMPERATURE_CREATIVE,
+            'max_tokens' => 400,
+        ]);
+
+        $summary = trim($result['content'] ?? '');
+
+        // Strip any unsupported tags that GPT might add
+        $summary = $this->htmlToTelegramText($summary);
+
+        return $summary;
     }
 
     /**
@@ -252,7 +338,7 @@ class TelegramPostService {
         }
 
         $text = implode("\n\n", $parts);
-        return mb_substr($text, 0, 1024);
+        return mb_substr($text, 0, self::MAX_CAPTION_LENGTH);
     }
 
     /**
@@ -300,8 +386,12 @@ class TelegramPostService {
     private function htmlToTelegramText(string $html): string {
         // Strip all tags except Telegram-supported ones
         $text = strip_tags($html, '<b><i><u><s><a><code><pre>');
-        // Remove class/style/id attributes from remaining tags
-        $text = preg_replace('/(<\w+)\s[^>]*>/u', '$1>', $text);
+        // Remove attributes from non-link tags (keep href on <a>)
+        $text = preg_replace('/<(b|i|u|s|code|pre)\s[^>]*>/ui', '<$1>', $text);
+        // Clean <a> tags: keep only href attribute
+        $text = preg_replace_callback('/<a\s[^>]*href=["\']([^"\']*)["\'][^>]*>/ui', function ($m) {
+            return '<a href="' . htmlspecialchars($m[1]) . '">';
+        }, $text);
         // Collapse whitespace
         $text = preg_replace('/\s+/u', ' ', $text);
         return trim($text);
@@ -522,23 +612,45 @@ class TelegramPostService {
 
     /**
      * Process all scheduled posts that are due.
-     * Called by cron.
+     * Called by cron. Also retries failed posts (up to MAX_RETRY_ATTEMPTS).
      */
     public function processScheduledPosts(): int {
+        // Scheduled posts that are due
         $rows = $this->db->fetchAll(
-            'SELECT id FROM ' . SeoTelegramPost::TABLE
+            'SELECT id, attempts FROM ' . SeoTelegramPost::TABLE
             . ' WHERE status = :st AND scheduled_at <= NOW()'
             . ' ORDER BY scheduled_at ASC LIMIT 10',
             [':st' => SeoTelegramPost::STATUS_SCHEDULED]
         );
 
+        // Failed posts eligible for retry (exponential backoff via updated_at)
+        $failedRows = $this->db->fetchAll(
+            'SELECT id, attempts FROM ' . SeoTelegramPost::TABLE
+            . ' WHERE status = :st AND attempts < :max'
+            . ' AND updated_at <= DATE_SUB(NOW(), INTERVAL POW(2, attempts) MINUTE)'
+            . ' ORDER BY updated_at ASC LIMIT 5',
+            [':st' => SeoTelegramPost::STATUS_FAILED, ':max' => self::MAX_RETRY_ATTEMPTS]
+        );
+
+        $allRows = array_merge($rows, $failedRows);
         $processed = 0;
-        foreach ($rows as $row) {
+
+        foreach ($allRows as $row) {
             try {
                 $this->send((int)$row['id']);
                 $processed++;
             } catch (\Throwable $e) {
-                logMessage("Telegram cron: ошибка отправки поста {$row['id']}: " . $e->getMessage());
+                logMessage("Telegram cron: ошибка отправки поста {$row['id']} (attempt {$row['attempts']}): " . $e->getMessage());
+
+                // If max retries exceeded, mark as permanently failed
+                if ((int)$row['attempts'] >= self::MAX_RETRY_ATTEMPTS) {
+                    $this->db->update(
+                        SeoTelegramPost::TABLE,
+                        ['error_message' => 'Превышено макс. кол-во попыток (' . self::MAX_RETRY_ATTEMPTS . '). ' . mb_substr($e->getMessage(), 0, 500)],
+                        'id = :id',
+                        [':id' => (int)$row['id']]
+                    );
+                }
             }
         }
 

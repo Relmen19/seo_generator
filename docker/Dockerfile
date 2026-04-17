@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     poppler-utils \
     antiword \
     imagemagick libmagickwand-dev \
+    cron \
     && docker-php-ext-install curl mysqli pdo pdo_mysql zip \
     && pecl install imagick && docker-php-ext-enable imagick \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -34,6 +35,14 @@ RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 RUN ln -sf /proc/self/fd/1 /var/log/apache2/access.log \
  && ln -sf /proc/self/fd/2 /var/log/apache2/error.log
 
+COPY crontab /etc/cron.d/seo-cron
+RUN chmod 0644 /etc/cron.d/seo-cron && crontab /etc/cron.d/seo-cron
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 EXPOSE 80
 
 WORKDIR /var/www/html
+
+ENTRYPOINT ["entrypoint.sh"]

@@ -1099,7 +1099,7 @@ requireAuth();
                 </div>
                 <div class="section-block" style="padding:10px 14px">
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;color:#cbd5e1;margin:0">
-                        <input type="checkbox" id="artTgExport">
+                        <input type="checkbox" id="artTgExport" onchange="onTgExportToggle()">
                         Экспорт в Telegram
                     </label>
                 </div>
@@ -1136,6 +1136,16 @@ requireAuth();
                         </div>
                         <div id="tgBuildStatus" style="display:none;font-size:.82rem;color:#a78bfa;margin-bottom:12px">
                             <span class="spinner"></span> Подготовка поста...
+                        </div>
+                    </div>
+
+                    <!-- Caption Editor -->
+                    <div id="tgCaptionEditor" style="display:none;margin-bottom:12px">
+                        <h4 style="font-size:.82rem;color:#64748b;margin:0 0 8px">Текст поста <span style="color:#475569;font-weight:400">(HTML-разметка Telegram)</span></h4>
+                        <div id="tgCaptionEditors"></div>
+                        <div style="margin-top:6px;display:flex;gap:8px">
+                            <button class="btn-pub btn-pub-preview" onclick="saveTgCaptions()" style="font-size:.75rem;padding:5px 12px">Сохранить текст</button>
+                            <button class="btn-pub btn-pub-preview" onclick="refreshTgPreview()" style="font-size:.75rem;padding:5px 12px;background:linear-gradient(135deg,#4338ca,#6366f1)">Обновить превью</button>
                         </div>
                     </div>
 
@@ -3749,13 +3759,18 @@ requireAuth();
     let currentTgPostData = null;
 
     function updateTgPanelVisibility(art) {
-        const hasTgExport = !!art.tg_export;
-        const isPublished = art.status === 'published';
-        $('tgPostPanel').style.display = hasTgExport ? '' : 'none';
+        var hasTgExport = !!(art ? art.tg_export : $('artTgExport').checked);
+        var isPublished = (art ? art.status : $('artStatus').value) === 'published';
+        var hasTgConfig = currentProfile && currentProfile.tg_bot_token && currentProfile.tg_channel_id;
+        $('tgPostPanel').style.display = (hasTgExport && hasTgConfig) ? '' : 'none';
         $('btnTgBuild').disabled = !isPublished;
-        if (hasTgExport) {
-            loadTgPostHistory(art.id || artId);
+        if (hasTgExport && hasTgConfig && artId) {
+            loadTgPostHistory(artId);
         }
+    }
+
+    function onTgExportToggle() {
+        updateTgPanelVisibility(null);
     }
 
     async function buildTgPreview() {
@@ -3772,6 +3787,7 @@ requireAuth();
             currentTgPostId = res.data.id;
             currentTgPostData = res.data;
 
+            renderTgCaptionEditors(res.data);
             renderTgPreview(res.data);
             renderTgImagePresets(res.data);
             $('btnTgSend').style.display = 'inline-flex';
@@ -3787,29 +3803,122 @@ requireAuth();
         }
     }
 
-    function renderTgPreview(postData) {
-        const container = $('tgPreview');
-        const pd = postData.post_data || {};
-        const messages = pd.messages || [];
-        const profile = currentProfile || {};
+    function renderTgCaptionEditors(postData) {
+        var pd = postData.post_data || {};
+        var messages = pd.messages || [];
+        var container = $('tgCaptionEditors');
 
-        let html = '';
+        if (messages.length === 0) {
+            $('tgCaptionEditor').style.display = 'none';
+            return;
+        }
+
+        var html = '';
+        messages.forEach(function(msg, idx) {
+            var text = msg.caption || msg.text || '';
+            var isCaption = msg.type !== 'text';
+            var maxLen = isCaption ? 1024 : 4096;
+            var label = messages.length > 1 ? 'Сообщение ' + (idx + 1) + (isCaption ? ' (подпись, макс ' + maxLen + ')' : ' (текст, макс ' + maxLen + ')') : (isCaption ? 'Подпись (макс ' + maxLen + ')' : 'Текст (макс ' + maxLen + ')');
+
+            html += '<div style="margin-bottom:8px">';
+            html += '<label style="font-size:.72rem;color:#475569;display:block;margin-bottom:3px">' + label + '</label>';
+            html += '<textarea id="tgCaption_' + idx + '" rows="4" maxlength="' + maxLen + '" '
+                + 'style="width:100%;background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:8px;border-radius:6px;font-size:.8rem;font-family:monospace;resize:vertical"'
+                + ' oninput="updateTgCaptionCounter(' + idx + ',' + maxLen + ')"'
+                + '>' + esc(text) + '</textarea>';
+            html += '<div id="tgCaptionCount_' + idx + '" style="text-align:right;font-size:.68rem;color:#475569;margin-top:2px">'
+                + text.length + '/' + maxLen + '</div>';
+            html += '</div>';
+        });
+
+        container.innerHTML = html;
+        $('tgCaptionEditor').style.display = '';
+    }
+
+    function updateTgCaptionCounter(idx, maxLen) {
+        var ta = $('tgCaption_' + idx);
+        var cnt = $('tgCaptionCount_' + idx);
+        var len = ta.value.length;
+        cnt.textContent = len + '/' + maxLen;
+        cnt.style.color = len > maxLen ? '#f87171' : '#475569';
+    }
+
+    async function saveTgCaptions() {
+        if (!currentTgPostId || !currentTgPostData) return;
+
+        var pd = JSON.parse(JSON.stringify(currentTgPostData.post_data || {}));
+        var messages = pd.messages || [];
+
+        messages.forEach(function(msg, idx) {
+            var ta = $('tgCaption_' + idx);
+            if (!ta) return;
+            if (msg.type === 'text') {
+                msg.text = ta.value;
+            } else {
+                msg.caption = ta.value;
+            }
+        });
+
+        pd.messages = messages;
+
+        try {
+            var res = await api('telegram/post/' + currentTgPostId, {
+                method: 'PUT',
+                body: { post_data: pd }
+            });
+            if (res.success) {
+                currentTgPostData = res.data;
+                toast('Текст сохранен');
+            } else {
+                toast(res.error || 'Ошибка', true);
+            }
+        } catch(e) { toast(e.message, true); }
+    }
+
+    function refreshTgPreview() {
+        if (!currentTgPostData) return;
+
+        // Read current values from textareas into postData
+        var pd = JSON.parse(JSON.stringify(currentTgPostData.post_data || {}));
+        var messages = pd.messages || [];
+        messages.forEach(function(msg, idx) {
+            var ta = $('tgCaption_' + idx);
+            if (!ta) return;
+            if (msg.type === 'text') { msg.text = ta.value; }
+            else { msg.caption = ta.value; }
+        });
+
+        var previewData = JSON.parse(JSON.stringify(currentTgPostData));
+        previewData.post_data = pd;
+        renderTgPreview(previewData);
+    }
+
+    function renderTgPreview(postData) {
+        var container = $('tgPreview');
+        var pd = postData.post_data || {};
+        var messages = pd.messages || [];
+        var profile = currentProfile || {};
+        var channelName = profile.tg_channel_name || profile.name || 'Канал';
+        var avatar = profile.tg_channel_avatar;
+
+        var html = '';
+
+        // Channel header bar
+        html += '<div style="background:#17212b;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #232e3c">';
+        if (avatar) {
+            html += '<div class="tg-msg-avatar"><img src="data:image/jpeg;base64,' + avatar + '"></div>';
+        } else {
+            html += '<div class="tg-msg-avatar">' + esc(channelName[0]) + '</div>';
+        }
+        html += '<div>';
+        html += '<div class="tg-msg-channel-name">' + esc(channelName) + '</div>';
+        html += '<div style="font-size:.68rem;color:#6d7f8e">channel</div>';
+        html += '</div>';
+        html += '</div>';
+
+        // Messages
         messages.forEach(function(msg, idx) {
             html += '<div class="tg-msg">';
-
-            // Header with avatar (only on first message)
-            if (idx === 0) {
-                const channelName = profile.tg_channel_name || profile.name || 'Канал';
-                const avatar = profile.tg_channel_avatar;
-                html += '<div class="tg-msg-header">';
-                if (avatar) {
-                    html += '<div class="tg-msg-avatar"><img src="data:image/jpeg;base64,' + avatar + '"></div>';
-                } else {
-                    html += '<div class="tg-msg-avatar">' + esc(channelName[0]) + '</div>';
-                }
-                html += '<div class="tg-msg-channel-name">' + esc(channelName) + '</div>';
-                html += '</div>';
-            }
 
             // Media
             if (msg.type === 'media_group' || msg.type === 'photo') {
@@ -3830,15 +3939,27 @@ requireAuth();
                 html += '<div class="tg-msg-caption">' + text + '</div>';
             }
 
-            // Footer
+            // Footer with views, time, forward icon
+            var now = new Date();
+            var timeStr = now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
             html += '<div class="tg-msg-footer">';
             html += '<span class="tg-msg-footer-views">1</span>';
-            var now = new Date();
-            html += '<span>' + now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes() + '</span>';
+            html += '<span>' + timeStr + '</span>';
+            html += '</div>';
+
+            // Reactions mock
+            html += '<div class="tg-msg-reactions">';
+            html += '<span class="tg-msg-reaction">&#128077; 0</span>';
+            html += '<span class="tg-msg-reaction">&#10084;&#65039; 0</span>';
             html += '</div>';
 
             html += '</div>';
         });
+
+        // Comments mock footer
+        html += '<div style="background:#17212b;padding:8px 12px;text-align:center;border-top:1px solid #232e3c">';
+        html += '<span style="font-size:.75rem;color:#6ab2f2;cursor:pointer">Leave a comment</span>';
+        html += '</div>';
 
         container.innerHTML = html;
         $('tgPreviewContainer').style.display = '';
