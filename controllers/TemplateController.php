@@ -136,7 +136,7 @@ class TemplateController extends AbstractController {
         $tpl = new SeoTemplate($existing);
         $tpl->fromArray($data);
 
-        $this->db->update(SeoTemplate::TABLE, $tpl->toArray(), 'id = :id', [':id' => $id]);
+        $this->db->update(SeoTemplate::TABLE, 'id = :id', $tpl->toArray(), [':id' => $id]);
         $tpl->setBlocks($this->loadBlocks($id));
 
         $this->success($tpl->toFullArray());
@@ -215,7 +215,7 @@ class TemplateController extends AbstractController {
         $block = new SeoTemplateBlock($existing);
         $block->fromArray($data);
 
-        $this->db->update(SeoTemplateBlock::SEO_TEMPLATE_BLOCK_TABLE, $block->toArray(), 'id = :id', [':id' => $blockId]);
+        $this->db->update(SeoTemplateBlock::SEO_TEMPLATE_BLOCK_TABLE, 'id = :id', $block->toArray(), [':id' => $blockId]);
         $this->success($block->toFullArray());
     }
 

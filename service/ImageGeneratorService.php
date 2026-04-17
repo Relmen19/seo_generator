@@ -122,8 +122,7 @@ class ImageGeneratorService {
         }
 
         $this->db->update(SeoArticleBlock::SEO_ART_BLOCK_TABLE,
-            ['content' => json_encode($blockContent, JSON_UNESCAPED_UNICODE)],
-            'id = :abid', [':abid' => $blockId]);
+            'id = :abid', ['content' => json_encode($blockContent, JSON_UNESCAPED_UNICODE)], [':abid' => $blockId]);
 
         $this->writeAudit($articleId, 'image_generate', [
             'block_id'       => $blockId,

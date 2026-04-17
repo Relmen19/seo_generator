@@ -134,7 +134,7 @@ class BlockTypeController extends AbstractController {
             $fields['json_schema'] = json_encode($fields['json_schema'], JSON_UNESCAPED_UNICODE);
         }
 
-        $this->db->update(SeoBlockType::TABLE, $fields, 'code = :code', [':code' => $code]);
+        $this->db->update(SeoBlockType::TABLE, 'code = :code', $fields, [':code' => $code]);
 
         $updated = $this->db->fetchOne("SELECT * FROM " . SeoBlockType::TABLE . " WHERE code = :code", [':code' => $code]);
         $this->success((new SeoBlockType($updated))->toFullArray());

@@ -961,7 +961,7 @@ requireAuth();
             <div id="articleEditor" style="display:none">
                 <div class="section-block">
                     <h3>Основные данные</h3>
-                    <div class="form-grid" style="grid-template-columns:1fr auto;gap:10px">
+                    <div class="form-grid" style="grid-template-columns:2fr 1fr;gap:10px">
                         <div class="form-group">
                             <label>Заголовок (H1 / title)</label>
                             <input type="text" id="artTitle" placeholder="Название статьи">

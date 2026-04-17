@@ -19,9 +19,11 @@ class TelegramPostService {
     private const MAX_RETRY_ATTEMPTS = 3;
 
     private Database $db;
+    private TelegramBlockFormatterService $blockFormatter;
 
-    public function __construct() {
-        $this->db = Database::getInstance();
+    public function __construct(?TelegramBlockFormatterService $blockFormatter = null) {
+        $this->db            = Database::getInstance();
+        $this->blockFormatter = $blockFormatter ?? new TelegramBlockFormatterService();
     }
 
     // ── Post building ────────────────────────────────────────────────────────
@@ -47,23 +49,31 @@ class TelegramPostService {
         $renderableTypes = $profileEntity->getEffectiveTgRenderBlocks();
 
         // Separate blocks into renderable (image) and text blocks
-        $renderableBlocks = [];
-        $textBlocks = [];
+        $renderableBlocks  = [];
+        $textBlocks        = [];
+        $formattableBlocks = [];
+
         foreach ($blocks as $b) {
-            if (in_array($b['type'], $renderableTypes, true) && (int)$b['is_visible'] === 1) {
+            if ((int)$b['is_visible'] !== 1) {
+                continue;
+            }
+            if (in_array($b['type'], $renderableTypes, true)) {
                 $renderableBlocks[] = $b;
-            } elseif ($b['type'] === 'richtext' && (int)$b['is_visible'] === 1) {
+            } elseif ($b['type'] === 'richtext') {
                 $textBlocks[] = $b;
+            } else {
+                $formattableBlocks[] = $b;
             }
         }
 
-        if (empty($renderableBlocks) && empty($textBlocks)) {
+        if (empty($renderableBlocks) && empty($textBlocks) && empty($formattableBlocks)) {
             throw new RuntimeException('Нет блоков для поста. Проверьте типы render-блоков в настройках Telegram профиля.');
         }
 
         // Determine format
         $format = $profileEntity->getTgPostFormat();
         $renderCount = count($renderableBlocks);
+        $formattedExtraMessages = $this->formatExtraBlocks($formattableBlocks);
 
         if ($format === 'auto') {
             $format = ($renderCount > 7) ? 'series' : 'single';
@@ -75,7 +85,8 @@ class TelegramPostService {
             $article,
             $profileEntity,
             $renderableBlocks,
-            $textBlocks
+            $textBlocks,
+            $formattedExtraMessages
         );
 
         // Create telegram post record
@@ -94,8 +105,8 @@ class TelegramPostService {
         $postData = $this->attachImageIds($postData, $renderedImages);
         $this->db->update(
             SeoTelegramPost::TABLE,
-            ['post_data' => json_encode($postData, JSON_UNESCAPED_UNICODE)],
             'id = :id',
+            ['post_data' => json_encode($postData, JSON_UNESCAPED_UNICODE)],
             [':id' => $postId]
         );
 
@@ -110,7 +121,8 @@ class TelegramPostService {
         array $article,
         SeoSiteProfile $profile,
         array $renderableBlocks,
-        array $textBlocks
+        array $textBlocks,
+        array $formattedExtraMessages
     ): array {
         $articleLink = $this->buildArticleLink($article);
         $articleTitle = $article['title'] ?? '';
@@ -188,11 +200,106 @@ class TelegramPostService {
             }
         }
 
+        $ctaMessages    = [];
+        $regularMessages = [];
+
+        foreach ($formattedExtraMessages as $msg) {
+            if ($msg['keyboard'] !== null) {
+                $ctaMessages[] = $msg;
+            } else {
+                $regularMessages[] = $msg;
+            }
+        }
+        foreach (array_merge($regularMessages, $ctaMessages) as $extraMsg) {
+            $messages[] = [
+                'type'       => 'text',
+                'text'       => $extraMsg['text'],
+                'parse_mode' => 'MarkdownV2',
+                'keyboard'   => $extraMsg['keyboard'],   // null или inline_keyboard
+            ];
+        }
+
         return [
             'messages'     => $messages,
             'article_link' => $articleLink,
-            'format'       => 'series',
+            'format'       => $format,
         ];
+    }
+
+    private function formatExtraBlocks(array $blocks): array
+    {
+        $messages = [];
+
+        foreach ($blocks as $block) {
+            $type    = $block['type'] ?? '';
+            $content = json_decode($block['content'] ?? '{}', true);
+
+            if ($type === '' || !is_array($content)) {
+                continue;
+            }
+
+            try {
+                $formatted = $this->blockFormatter->format($type, $content);
+            } catch (\Throwable $e) {
+                logMessage("Telegram formatter: ошибка блока {$block['id']} ({$type}): " . $e->getMessage());
+                continue;
+            }
+
+            if ($formatted->isEmpty()) {
+                continue;
+            }
+
+            // Разбиваем длинный текст на части, чтобы уложиться в лимит Telegram
+            $chunks = $this->splitTextByLimit($formatted->text, self::MAX_TEXT_LENGTH);
+
+            foreach ($chunks as $i => $chunk) {
+                $messages[] = [
+                    'type'     => $type,
+                    'text'     => $chunk,
+                    // keyboard только на последний чанк, чтобы кнопка была после текста
+                    'keyboard' => ($i === count($chunks) - 1) ? $formatted->keyboard : null,
+                ];
+            }
+        }
+
+        return $messages;
+    }
+
+    /**
+     * Split MarkdownV2 text into chunks of max $limit characters.
+     * Splits on double-newline boundaries to not break Telegram entities.
+     */
+    private function splitTextByLimit(string $text, int $limit): array
+    {
+        if (mb_strlen($text) <= $limit) {
+            return [$text];
+        }
+
+        $chunks     = [];
+        $paragraphs = explode("\n\n", $text);
+        $current    = '';
+
+        foreach ($paragraphs as $para) {
+            $candidate = $current === '' ? $para : $current . "\n\n" . $para;
+
+            if (mb_strlen($candidate) > $limit) {
+                if ($current !== '') {
+                    $chunks[]  = $current;
+                }
+                // If single paragraph itself exceeds limit — hard split
+                $current = mb_strlen($para) > $limit
+                    ? mb_substr($para, 0, $limit - 3) . '\\.\\.\\.'
+                    : $para;
+            } else {
+                $current = $candidate;
+            }
+        }
+
+        if ($current !== '') {
+            $chunks[] = $current;
+        }
+
+        return $chunks ?: [$text];
     }
 
     /**
@@ -495,8 +602,8 @@ class TelegramPostService {
 
         $this->db->update(
             SeoTelegramPost::TABLE,
-            ['status' => SeoTelegramPost::STATUS_SENDING],
             'id = :id',
+            ['status' => SeoTelegramPost::STATUS_SENDING],
             [':id' => $postId],
             ['attempts' => 'attempts + 1']
         );
@@ -509,8 +616,8 @@ class TelegramPostService {
         if (empty($messages)) {
             $this->db->update(
                 SeoTelegramPost::TABLE,
-                ['status' => SeoTelegramPost::STATUS_FAILED, 'error_message' => 'Пост не содержит сообщений'],
                 'id = :id',
+                ['status' => SeoTelegramPost::STATUS_FAILED, 'error_message' => 'Пост не содержит сообщений'],
                 [':id' => $postId]
             );
             throw new RuntimeException('Пост не содержит сообщений. Проверьте настройки render-блоков в профиле.');
@@ -564,10 +671,18 @@ class TelegramPostService {
                         break;
 
                     case 'text':
-                        $result = $client->sendMessage($channelId, $msg['text'], [
-                            'parse_mode'             => $msg['parse_mode'] ?? 'HTML',
+                        $textOpts = [
+                            'parse_mode'               => $msg['parse_mode'] ?? 'HTML',
                             'disable_web_page_preview' => true,
-                        ]);
+                        ];
+
+                        if (!empty($msg['keyboard'])) {
+                            $textOpts['reply_markup'] = json_encode(
+                                $msg['keyboard'],
+                                JSON_UNESCAPED_UNICODE
+                            );
+                        }
+                        $result = $client->sendMessage($channelId, $msg['text'], $textOpts);
                         $msgId = $result['result']['message_id'] ?? null;
                         if ($msgId !== null) {
                             $messageIds[] = $msgId;
@@ -586,6 +701,7 @@ class TelegramPostService {
 
             $this->db->update(
                 SeoTelegramPost::TABLE,
+                'id = :id',
                 [
                     'status'         => SeoTelegramPost::STATUS_SENT,
                     'sent_at'        => date('Y-m-d H:i:s'),
@@ -593,7 +709,6 @@ class TelegramPostService {
                     'tg_post_url'    => $postUrl,
                     'error_message'  => null,
                 ],
-                'id = :id',
                 [':id' => $postId]
             );
 
@@ -602,11 +717,11 @@ class TelegramPostService {
         } catch (\Throwable $e) {
             $this->db->update(
                 SeoTelegramPost::TABLE,
+                'id = :id',
                 [
                     'status'        => SeoTelegramPost::STATUS_FAILED,
                     'error_message' => mb_substr($e->getMessage(), 0, 1000),
                 ],
-                'id = :id',
                 [':id' => $postId]
             );
             throw $e;
@@ -625,11 +740,11 @@ class TelegramPostService {
 
         $this->db->update(
             SeoTelegramPost::TABLE,
+            'id = :id',
             [
                 'status'       => SeoTelegramPost::STATUS_SCHEDULED,
                 'scheduled_at' => $scheduledAt,
             ],
-            'id = :id',
             [':id' => $postId]
         );
 
@@ -672,8 +787,8 @@ class TelegramPostService {
                 if ((int)$row['attempts'] >= self::MAX_RETRY_ATTEMPTS) {
                     $this->db->update(
                         SeoTelegramPost::TABLE,
-                        ['error_message' => 'Превышено макс. кол-во попыток (' . self::MAX_RETRY_ATTEMPTS . '). ' . mb_substr($e->getMessage(), 0, 500)],
                         'id = :id',
+                        ['error_message' => 'Превышено макс. кол-во попыток (' . self::MAX_RETRY_ATTEMPTS . '). ' . mb_substr($e->getMessage(), 0, 500)],
                         [':id' => (int)$row['id']]
                     );
                 }
@@ -750,8 +865,8 @@ class TelegramPostService {
         if (!empty($updateFields)) {
             $this->db->update(
                 SeoTelegramPost::TABLE,
-                $updateFields,
                 'id = :id',
+                $updateFields,
                 [':id' => $postId]
             );
         }
@@ -850,11 +965,11 @@ class TelegramPostService {
 
         $this->db->update(
             SeoSiteProfile::TABLE,
+            'id = :id',
             [
                 'tg_channel_name'   => $info['channel_name'],
                 'tg_channel_avatar' => $info['channel_avatar'],
             ],
-            'id = :id',
             [':id' => $profileId]
         );
 

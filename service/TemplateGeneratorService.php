@@ -17,10 +17,15 @@ class TemplateGeneratorService {
 
     private GptClient $gpt;
     private Database $db;
+    private TelegramBlockFormatterService $telegramFormatter;
 
-    public function __construct(?GptClient $gpt = null) {
-        $this->gpt = $gpt ?? new GptClient();
-        $this->db = Database::getInstance();
+    public function __construct(
+        ?GptClient $gpt = null,
+        ?TelegramBlockFormatterService $telegramFormatter = null,
+    ) {
+        $this->gpt              = $gpt ?? new GptClient();
+        $this->db               = Database::getInstance();
+        $this->telegramFormatter = $telegramFormatter ?? new TelegramBlockFormatterService();
     }
 
     /**
@@ -112,6 +117,34 @@ class TemplateGeneratorService {
         });
 
         return ['saved_template_ids' => $savedIds];
+    }
+
+    public function generateTelegramPost(array $blocks): array
+    {
+        $payloads = [];
+
+        foreach ($blocks as $block) {
+            $type = $block['type'] ?? '';
+            $data = $block['data'] ?? [];
+
+            if ($type === '') {
+                continue;
+            }
+
+            $formatted = $this->telegramFormatter->format($type, $data);
+
+            if ($formatted->isEmpty()) {
+                continue;
+            }
+
+            $payloads[] = [
+                'type'     => $type,
+                'text'     => $formatted->text,
+                'keyboard' => $formatted->keyboard,
+            ];
+        }
+
+        return $payloads;
     }
 
     /**
@@ -305,7 +338,7 @@ class TemplateGeneratorService {
             }
 
             if (!empty($updateFields)) {
-                $this->db->update(SeoTemplate::TABLE, $updateFields, 'id = :id', [':id' => $templateId]);
+                $this->db->update(SeoTemplate::TABLE, 'id = :id', $updateFields, [':id' => $templateId]);
             }
 
             if (isset($templateData['blocks']) && is_array($templateData['blocks'])) {

@@ -79,7 +79,7 @@ class PublishTargetController extends AbstractController{
         $target = new SeoPublishTarget($existing);
         $target->fromArray($data);
 
-        $this->db->update(SeoPublishTarget::SEO_PUBLISH_TARGET_TABLE, $target->toArray(), 'id = :id', [':id' => $id]);
+        $this->db->update(SeoPublishTarget::SEO_PUBLISH_TARGET_TABLE, 'id = :id', $target->toArray(), [':id' => $id]);
         $this->success($target->toFullArray());
     }
 

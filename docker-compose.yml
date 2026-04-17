@@ -1,8 +1,11 @@
 services:
   web:
-    user: "1000:1000"
-    build: ./docker
+    build:
+      context: ./docker
+      args:
+        UID: 1000
     container_name: seo_web
+    user: "1000:1000"
     restart: unless-stopped
     ports:
       - "8080:80"
@@ -10,6 +13,24 @@ services:
       - .:/var/www/html
     env_file:
       - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - seo_net
+
+  cron:
+    build:
+      context: ./docker
+      args:
+        UID: 1000
+    container_name: seo_cron
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+    env_file:
+      - .env
+    command: ["cron", "-f"]
     depends_on:
       db:
         condition: service_healthy
@@ -30,18 +51,7 @@ services:
       - "3306:3306"
     volumes:
       - seo_db_data:/var/lib/mysql
-      - ./init-sql/011_create_seo_tables.sql:/docker-entrypoint-initdb.d/01_create_seo_tables.sql
-      - ./init-sql/012_seo_clustering_migration.sql:/docker-entrypoint-initdb.d/02_seo_clustering_migration.sql
-      - ./init-sql/013_templates.sql:/docker-entrypoint-initdb.d/03_templates.sql
-      - ./init-sql/014_add_gpt_source.sql:/docker-entrypoint-initdb.d/04_add_gpt_source.sql
-      - ./init-sql/015_block_types_registry.sql:/docker-entrypoint-initdb.d/05_block_types_registry.sql
-      - ./init-sql/016_site_profiles.sql:/docker-entrypoint-initdb.d/06_site_profiles.sql
-      - ./init-sql/017_universal_intents.sql:/docker-entrypoint-initdb.d/07_universal_intents.sql
-      - ./init-sql/018_universal_templates.sql:/docker-entrypoint-initdb.d/08_universal_templates.sql
-      - ./init-sql/019_profile_enhancements.sql:/docker-entrypoint-initdb.d/09_profile_enhancements.sql
-      - ./init-sql/020_block_type_schemas.sql:/docker-entrypoint-initdb.d/10_block_type_schemas.sql
-      - ./init-sql/021_theme_column.sql:/docker-entrypoint-initdb.d/11_theme_column.sql
-      - ./init-sql/022_telegram_channel.sql:/docker-entrypoint-initdb.d/12_telegram_channel.sql
+      - ./init-sql:/docker-entrypoint-initdb.d
     networks:
       - seo_net
     command:

@@ -172,8 +172,8 @@ class ArticleGeneratorService {
         $articleId = (int)$this->db->getPdo()->lastInsertId();
 
         $this->db->update('seo_keyword_clusters',
-            ['article_id' => $articleId, 'template_id' => $templateId, 'status' => 'article_created'],
-            'id = :cid', [':cid' => $clusterId]
+            'id = :cid',
+            ['article_id' => $articleId, 'template_id' => $templateId, 'status' => 'article_created'], [':cid' => $clusterId]
         );
 
         $options['_intent_code'] = $intentCode;
@@ -198,7 +198,7 @@ class ArticleGeneratorService {
         if (empty($article['slug'])) {
             $slug = $this->generateSlug($article['title']);
             $this->db->update(SeoArticle::SEO_ARTICLE_TABLE,
-                ['slug' => $slug], 'id = :id', [':id' => $articleId]);
+                'id = :id', ['slug' => $slug], [':id' => $articleId]);
             $article['slug'] = $slug;
         }
         $article = $this->enrichArticleWithIntent($article);
@@ -226,8 +226,7 @@ class ArticleGeneratorService {
         if (empty($article['slug'])) {
             $slug = $this->generateSlug($article['title']);
             $this->db->update(SeoArticle::SEO_ARTICLE_TABLE,
-                ['slug' => $slug], 'id = :id', [':id' => $articleId]);
-            $article['slug'] = $slug;
+                'id = :id', ['slug' => $slug], [':id' => $articleId]);
             $this->sendSSE('slug_generated', ['slug' => $slug]);
         }
 
@@ -282,8 +281,8 @@ class ArticleGeneratorService {
             $updateFields['slug'] = $this->generateSlug($meta['meta_title']);
         }
 
-        $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, $updateFields,
-            'id = :aid', [':aid' => $articleId]);
+        $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, 'id = :aid',
+            $updateFields, [':aid' => $articleId]);
 
         $this->writeAudit($articleId, 'generate', [
             'mode' => 'meta',
@@ -339,8 +338,8 @@ class ArticleGeneratorService {
 
             if ($existing && $overwrite) {
                 $this->db->update(SeoArticleBlock::SEO_ART_BLOCK_TABLE,
-                    ['content' => $contentJson, 'name' => $tb['name']],
-                    'id = :id', [':id' => $existing['id']]);
+                    'id = :id',
+                    ['content' => $contentJson, 'name' => $tb['name']], [':id' => $existing['id']]);
             } elseif (!$existing) {
                 try {
                     $this->db->insert(SeoArticleBlock::SEO_ART_BLOCK_TABLE, [
@@ -405,8 +404,8 @@ class ArticleGeneratorService {
         $contentJson = json_encode($result['data'], JSON_UNESCAPED_UNICODE);
 
         $this->db->update(SeoArticleBlock::SEO_ART_BLOCK_TABLE,
-            ['content' => $contentJson],
             'id = :bid AND article_id = :aid',
+            ['content' => $contentJson],
             [':bid' => $blockId, ':aid' => $articleId]);
 
         $this->updateGenerationLog($articleId, [
@@ -477,8 +476,8 @@ class ArticleGeneratorService {
 
                 if ($existing && $overwrite) {
                     $this->db->update(SeoArticleBlock::SEO_ART_BLOCK_TABLE,
-                        ['content' => $contentJson, 'name' => $tb['name']],
-                        'id = :abid', [':abid' => $existing['id']]);
+                        'id = :abid',
+                        ['content' => $contentJson, 'name' => $tb['name']], [':abid' => $existing['id']]);
                     $savedBlockId = (int)$existing['id'];
                 } elseif (!$existing) {
                     $this->db->insert(SeoArticleBlock::SEO_ART_BLOCK_TABLE, [
@@ -622,7 +621,7 @@ class ArticleGeneratorService {
     private function updateGenerationLog(int $articleId, array $logEntry): void {
         $json = json_encode($logEntry, JSON_UNESCAPED_UNICODE);
         $this->db->update(SeoArticle::SEO_ARTICLE_TABLE,
-            ['generation_log' => $json], 'id = :id', [':id' => $articleId],
+            'id = :id', ['generation_log' => $json], [':id' => $articleId],
             ['version' => 'version + 1']);
     }
 

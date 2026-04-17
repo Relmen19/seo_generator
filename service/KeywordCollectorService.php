@@ -105,14 +105,14 @@ class KeywordCollectorService {
     }
 
     private function updateJobStatus(int $jobId, string $status, array $extra = []): void {
-        $this->db->update(SeoKeywordJob::TABLE, array_merge(['status' => $status], $extra),
-            'id = :id', [':id' => $jobId]);
+        $this->db->update(SeoKeywordJob::TABLE, 'id = :id',
+            array_merge(['status' => $status], $extra), [':id' => $jobId]);
     }
 
     private function appendJobError(int $jobId, string $message): void {
         $job = $this->getJob($jobId);
         $log = ($job['error_log'] ?? '') . "\n[" . date('H:i:s') . "] " . $message;
-        $this->db->update(SeoKeywordJob::TABLE, ['error_log' => trim($log)], 'id = :id', [':id' => $jobId]);
+        $this->db->update(SeoKeywordJob::TABLE, 'id = :id', ['error_log' => trim($log)], [':id' => $jobId]);
     }
 
 
@@ -472,7 +472,7 @@ class KeywordCollectorService {
 
         foreach ($allKeywords as $kw) {
             if (in_array($kw['keyword'], $kwList, true)) {
-                $this->db->update(SeoRawKeyword::TABLE, ['cluster_id' => $clusterId, 'is_processed' => 1], 'id = :id', [':id' => $kw['id']]);
+                $this->db->update(SeoRawKeyword::TABLE, 'id = :id', ['cluster_id' => $clusterId, 'is_processed' => 1], [':id' => $kw['id']]);
             }
         }
         return 1;
@@ -557,14 +557,14 @@ class KeywordCollectorService {
             if (in_array($k, $allowed, true)) $update[$k] = $v;
         }
         if (empty($update)) return;
-        $this->db->update(SeoRawKeyword::TABLE, $update, 'id = :id', [':id' => $id]);
+        $this->db->update(SeoRawKeyword::TABLE, 'id = :id', $update, [':id' => $id]);
     }
 
     public function moveKeywordToCluster(int $keywordId, ?int $clusterId): void {
         $kw = $this->db->fetchOne("SELECT cluster_id FROM " . SeoRawKeyword::TABLE . " WHERE id = ?", [$keywordId]);
         $oldClusterId = $kw ? (int)($kw['cluster_id'] ?? 0) : 0;
 
-        $this->db->update(SeoRawKeyword::TABLE, ['cluster_id' => $clusterId], 'id = :id', [':id' => $keywordId]);
+        $this->db->update(SeoRawKeyword::TABLE, 'id = :id', ['cluster_id' => $clusterId], [':id' => $keywordId]);
 
         if ($clusterId) $this->recalcClusterStats($clusterId);
         if ($oldClusterId && $oldClusterId !== $clusterId) $this->recalcClusterStats($oldClusterId);
@@ -608,24 +608,24 @@ class KeywordCollectorService {
             }
         }
 
-        if (!empty($update)) $this->db->update(SeoKeywordCluster::TABLE, $update, 'id = :id', [':id' => $id]);
+        if (!empty($update)) $this->db->update(SeoKeywordCluster::TABLE, 'id = :id', $update, [':id' => $id]);
     }
 
     public function approveCluster(int $id): void { $this->updateCluster($id, ['status' => 'approved']); }
     public function rejectCluster(int $id): void  { $this->updateCluster($id, ['status' => 'rejected']); }
 
     public function deleteCluster(int $id): void {
-        $this->db->update(SeoRawKeyword::TABLE, ['cluster_id' => null, 'is_processed' => 0], 'cluster_id = :cid', [':cid' => $id]);
+        $this->db->update(SeoRawKeyword::TABLE, 'cluster_id = :cid', ['cluster_id' => null, 'is_processed' => 0], [':cid' => $id]);
         $this->db->getPdo()->exec("DELETE FROM " . SeoKeywordCluster::TABLE . " WHERE id = " . (int)$id);
     }
 
     private function recalcClusterStats(int $clusterId): void {
         $stats = $this->db->fetchOne(
             "SELECT COUNT(*) as cnt, COALESCE(SUM(volume),0) as vol FROM " . SeoRawKeyword::TABLE . " WHERE cluster_id = ?", [$clusterId]);
-        $this->db->update(SeoKeywordCluster::TABLE, [
+        $this->db->update(SeoKeywordCluster::TABLE, 'id = :id', [
             'keyword_count' => (int)$stats['cnt'], 'total_volume' => (int)$stats['vol'],
             'priority' => $this->calculatePriority((int)$stats['vol'], (int)$stats['cnt']),
-        ], 'id = :id', [':id' => $clusterId]);
+        ], [':id' => $clusterId]);
     }
 
 

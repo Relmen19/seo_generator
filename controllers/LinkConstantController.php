@@ -130,7 +130,7 @@ class LinkConstantController extends AbstractController {
         $link = new SeoLinkConstant($existing);
         $link->fromArray($data);
 
-        $this->db->update(SeoLinkConstant::SEO_LINKS_TABLE, $link->toArray(), 'id = :id', [':id' => $id]);
+        $this->db->update(SeoLinkConstant::SEO_LINKS_TABLE, 'id = :id', $link->toArray(), [':id' => $id]);
         $this->success($link->toFullArray());
     }
 

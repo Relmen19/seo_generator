@@ -141,8 +141,8 @@ class IntentController extends AbstractController {
 
         $this->db->update(
             SeoIntentType::TABLE,
-            $fields,
             'code = :code',
+            $fields,
             [':code' => $code]
         );
 

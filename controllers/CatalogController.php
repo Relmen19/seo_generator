@@ -177,7 +177,7 @@ class CatalogController extends AbstractController {
         $catalog = new SeoCatalog($existing);
         $catalog->fromArray($data);
 
-        $this->db->update(SeoCatalog::SEO_CATALOG_TABLE, $catalog->toArray(), 'id = :id', [':id' => $id]);
+        $this->db->update(SeoCatalog::SEO_CATALOG_TABLE, 'id = :id', $catalog->toArray(), [':id' => $id]);
 
         $this->db->insert(SeoAuditLog::SEO_AUDIT_LOG_TABLE, SeoAuditLog::catalogAction(
             $id, SeoAuditLog::ACTION_UPDATE, $data['actor'] ?? 'admin',
@@ -215,10 +215,7 @@ class CatalogController extends AbstractController {
             }
         }
 
-        $this->db->update(SeoCatalog::SEO_CATALOG_TABLE, [
-            'parent_id' => $newParentId,
-            'sort_order' => $newSortOrder,
-        ], 'id = :cid', [':cid' => $id]);
+        $this->db->update(SeoCatalog::SEO_CATALOG_TABLE, 'id = :cid', ['parent_id' => $newParentId, 'sort_order' => $newSortOrder], [':cid' => $id]);
 
         $this->db->insert(SeoAuditLog::SEO_AUDIT_LOG_TABLE, SeoAuditLog::catalogAction(
             $id, SeoAuditLog::ACTION_UPDATE, $data['actor'] ?? 'admin',

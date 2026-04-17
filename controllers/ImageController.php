@@ -171,7 +171,7 @@ class ImageController extends AbstractController {
 
         if (isset($data['data_base64'])) $this->detectDimensions($image);
 
-        $this->db->update(SeoImage::SEO_IMAGE_TABLE, $image->toArray(), 'id = :id', [':id' => $id]);
+        $this->db->update(SeoImage::SEO_IMAGE_TABLE, 'id = :id', $image->toArray(), [':id' => $id]);
         $this->success($image->toArrayLight());
     }
 

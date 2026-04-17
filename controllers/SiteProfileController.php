@@ -165,7 +165,7 @@ class SiteProfileController extends AbstractController {
         $profile = new SeoSiteProfile($existing);
         $profile->fromArray($data);
 
-        $this->db->update(SeoSiteProfile::TABLE, $profile->toArray(), 'id = :id', [':id' => $id]);
+        $this->db->update(SeoSiteProfile::TABLE, 'id = :id', $profile->toArray(), [':id' => $id]);
 
         $this->success($profile->toFullArray());
     }
@@ -340,8 +340,8 @@ class SiteProfileController extends AbstractController {
 
         $this->db->update(
             SeoSiteProfile::TABLE,
-            ['icon_path' => $relPath],
             'id = :id',
+            ['icon_path' => $relPath],
             [':id' => $id]
         );
 
@@ -395,8 +395,8 @@ class SiteProfileController extends AbstractController {
 
         $this->db->update(
             SeoSiteProfile::TABLE,
-            ['icon_path' => null],
             'id = :id',
+            ['icon_path' => null],
             [':id' => $id]
         );
 

@@ -257,7 +257,7 @@ class ArticleController extends AbstractController {
             $updateData['published_at'] = date('Y-m-d H:i:s');
         }
 
-        $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, $updateData, 'id = :aid', [':aid' => $id]);
+        $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, 'id = :aid', $updateData, [':aid' => $id]);
 
         $action = ($newStatus === SeoArticle::STATUS_PUBLISHED)
             ? SeoAuditLog::ACTION_PUBLISH
@@ -275,7 +275,7 @@ class ArticleController extends AbstractController {
         if ($existing === null) $this->notFound('Статья');
 
         $newValue = $existing['is_active'] ? 0 : 1;
-        $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, ['is_active' => $newValue], 'id = :aid', [':aid' => $id]);
+        $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, 'id = :aid', ['is_active' => $newValue], [':aid' => $id]);
 
         $this->success(['is_active' => (bool)$newValue]);
     }
@@ -296,7 +296,7 @@ class ArticleController extends AbstractController {
             }
         }
 
-        $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, ['catalog_id' => $catalogId], 'id = :aid', [':aid' => $id]);
+        $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, 'id = :aid', ['catalog_id' => $catalogId], [':aid' => $id]);
 
         $this->db->insert(SeoAuditLog::SEO_AUDIT_LOG_TABLE, SeoAuditLog::articleAction(
             $id, SeoAuditLog::ACTION_UPDATE, $data['actor'] ?? 'admin',
@@ -349,7 +349,7 @@ class ArticleController extends AbstractController {
         $newId = $this->db->insert(SeoArticleBlock::SEO_ART_BLOCK_TABLE, $block->toArray());
         $block->setId($newId);
 
-        $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, [], 'id = :aid', [':aid' => $articleId], ['version' => 'version + 1']);
+        $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, 'id = :aid', [], [':aid' => $articleId], ['version' => 'version + 1']);
 
         $this->success($block->toFullArray(), 201);
     }
@@ -373,9 +373,9 @@ class ArticleController extends AbstractController {
             $block->setContent($data['content']);
         }
 
-        $this->db->update(SeoArticleBlock::SEO_ART_BLOCK_TABLE, $block->toArray(), 'id = :aid', [':aid' => $blockId]);
+        $this->db->update(SeoArticleBlock::SEO_ART_BLOCK_TABLE, 'id = :aid', $block->toArray(), [':aid' => $blockId]);
 
-        $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, [], 'id = :aid', [':aid' => $articleId], ['version' => 'version + 1']);
+        $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, 'id = :aid', [], [':aid' => $articleId], ['version' => 'version + 1']);
 
         $this->success($block->toFullArray());
     }

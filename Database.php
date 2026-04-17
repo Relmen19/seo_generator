@@ -89,7 +89,7 @@ class Database {
     }
 
 
-    public function update(string $table, array $data = [], string $where, array $whereParams = [], array $expressions = []): int {
+    public function update(string $table, string $where, array $data = [], array $whereParams = [], array $expressions = []): int {
         $setClauses = [];
         foreach (array_keys($data) as $col) {
             $setClauses[] = sprintf('`%s` = :set_%s', $col, $col);
