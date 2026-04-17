@@ -861,24 +861,33 @@ requireAuth();
             <div id="articleEditor" style="display:none">
                 <div class="section-block">
                     <h3>Основные данные</h3>
-                    <div class="form-grid">
-                        <div class="form-group full">
+                    <div class="form-grid" style="grid-template-columns:1fr auto;gap:10px">
+                        <div class="form-group">
                             <label>Заголовок (H1 / title)</label>
                             <input type="text" id="artTitle" placeholder="Название статьи">
                         </div>
                         <div class="form-group">
-                            <label>Slug (URL)</label>
-                            <input type="text" id="artSlug" placeholder="slug-stati">
-                        </div>
-                        <div class="form-group">
                             <label>Статус</label>
-                            <select id="artStatus">
+                            <select id="artStatus" style="min-width:140px">
                                 <option value="draft">Черновик</option>
                                 <option value="review">На ревью</option>
                                 <option value="published">Опубликована</option>
                                 <option value="unpublished">Снята</option>
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label>Slug (URL)</label>
+                            <div style="display:flex;gap:6px">
+                                <input type="text" id="artSlug" placeholder="slug-stati" style="flex:1">
+                                <button class="btn btn-sm btn-ghost" onclick="generateSlugFromTitle()" title="Создать slug из заголовка" style="white-space:nowrap">Создать</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Ключевые слова</label>
+                            <input type="text" id="artKeywords" placeholder="ключевое слово 1, ключевое слово 2, ...">
+                        </div>
+                    </div>
+                    <div class="form-grid" style="gap:10px;margin-top:0">
                         <div class="form-group">
                             <label>Каталог</label>
                             <div class="ss-wrap" id="ss_artCatalog">
@@ -896,10 +905,6 @@ requireAuth();
                                 <button class="ss-clear" type="button">&times;</button>
                                 <div class="ss-dropdown"></div>
                             </div>
-                        </div>
-                        <div class="form-group full">
-                            <label>Ключевые слова (для GPT)</label>
-                            <textarea id="artKeywords" rows="2" placeholder="ключевое слово 1, ключевое слово 2, ..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -1391,6 +1396,7 @@ requireAuth();
     let activeTab = 'articles';
     let activeEditor = null;
     let dirty = false;
+    let loading = false;
 
     let artId = null, catId = null, tplId = null, lnkId = null, tgtId = null, auditId = null;
 
@@ -1587,10 +1593,10 @@ requireAuth();
     $('filterAuditAction').addEventListener('change', loadAuditList);
 
     document.addEventListener('input', e => {
-        if (e.target.closest('#articleEditor,#catalogEditor,#templateEditor,#linkEditor,#targetEditor')) dirty = true;
+        if (!loading && e.target.closest('#articleEditor,#catalogEditor,#templateEditor,#linkEditor,#targetEditor')) dirty = true;
     });
     document.addEventListener('change', e => {
-        if (e.target.closest('#articleEditor,#catalogEditor,#templateEditor,#linkEditor,#targetEditor')) dirty = true;
+        if (!loading && e.target.closest('#articleEditor,#catalogEditor,#templateEditor,#linkEditor,#targetEditor')) dirty = true;
     });
 
     async function api(resource, opts={}) {
@@ -1606,6 +1612,25 @@ requireAuth();
         const data = await resp.json();
         if (!data.success) throw new Error(data.error || 'Ошибка API');
         return data;
+    }
+
+    const SLUG_MAP = {'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z','и':'i','й':'j','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya'};
+    function generateSlugFromTitle() {
+        const title = $('artTitle').value;
+        if (!title) { toast('Заполните заголовок', true); return; }
+        let slug = title.toLowerCase().split('').map(c => SLUG_MAP[c] !== undefined ? SLUG_MAP[c] : c).join('');
+        slug = slug.replace(/[^a-z0-9\-]+/g, '-').replace(/-{2,}/g, '-').replace(/^-|-$/g, '');
+        if (slug.length > 120) slug = slug.substring(0, 120).replace(/-[^-]*$/, '');
+        $('artSlug').value = slug;
+        dirty = true;
+    }
+
+    function setArticlePlan(raw) {
+        const val = (raw || '').replace(/\s*→\s*/g, '\n');
+        $('artArticlePlan').value = val;
+    }
+    function getArticlePlan() {
+        return $('artArticlePlan').value.split('\n').map(s => s.trim()).filter(Boolean).join(' → ');
     }
 
     function switchTab(tab) {
@@ -1702,6 +1727,7 @@ requireAuth();
             showEditor('articleEditor', 'Статья #'+art.id, art.id,
                 '<span class="status-badge status-'+art.status+'">'+esc(STATUS_LABELS[art.status])+'</span>');
 
+            loading = true;
             $('artTitle').value = art.title||'';
             $('artSlug').value = art.slug||'';
             $('artStatus').value = art.status||'draft';
@@ -1711,7 +1737,7 @@ requireAuth();
             $('artMetaTitle').value = art.meta_title||'';
             $('artMetaDesc').value = art.meta_description||'';
             $('artMetaKeywords').value = art.meta_keywords||'';
-            $('artArticlePlan').value = art.article_plan||'';
+            setArticlePlan(art.article_plan||'');
             $('artGptModel').value = art.gpt_model||'gpt-4o';
             $('genModel').value = art.gpt_model||'gpt-4o';
             setVersionBadge(art.version||1);
@@ -1724,6 +1750,7 @@ requireAuth();
             $('btnUnpublish').style.display = art.status==='published' ? 'inline-flex' : 'none';
             $('pubResult').style.display = 'none';
             $('previewFrame').style.display = 'none';
+            loading = false;
 
             await loadArticleBlocks(art.id);
             await loadArticleImages(art.id);
@@ -1739,6 +1766,7 @@ requireAuth();
         artId = null; artBlocks = []; artImages = []; artTemplateTplBlocks = [];
         activeEditor = 'article';
         showEditor('articleEditor', 'Новая статья', null, '<span class="status-badge status-draft">Черновик</span>');
+        loading = true;
         ['artTitle','artSlug','artKeywords','artMetaTitle','artMetaDesc','artMetaKeywords','artArticlePlan','artCreatedBy','artGenLog'].forEach(id => $(id).value='');
         $('artStatus').value = 'draft'; ssArtCatalog.clear(); ssArtTemplate.clear();
         $('artGptModel').value = 'gpt-4o'; setVersionBadge(1); setPublishedUrl('');
@@ -1749,6 +1777,7 @@ requireAuth();
         $('pubResult').style.display='none'; $('previewFrame').style.display='none';
         $('btnUnpublish').style.display='none';
         $('imgGenStatus').style.display='none';
+        loading = false;
         renderArticleBlocks([]);
         renderImageGallery([]);
         switchTab('articles');
@@ -1761,7 +1790,7 @@ requireAuth();
             catalog_id: $('artCatalog').value||null, template_id: $('artTemplate').value||null,
             keywords: $('artKeywords').value, meta_title: $('artMetaTitle').value,
             meta_description: $('artMetaDesc').value, meta_keywords: $('artMetaKeywords').value,
-            article_plan: $('artArticlePlan').value,
+            article_plan: getArticlePlan(),
             gpt_model: $('artGptModel').value, created_by: $('artCreatedBy').value,
             profile_id: currentProfileId || null,
         };
@@ -2403,7 +2432,7 @@ requireAuth();
             if (d.meta_title) $('artMetaTitle').value = d.meta_title;
             if (d.meta_description) $('artMetaDesc').value = d.meta_description;
             if (d.meta_keywords) $('artMetaKeywords').value = d.meta_keywords;
-            if (d.article_plan) $('artArticlePlan').value = d.article_plan;
+            if (d.article_plan) setArticlePlan(d.article_plan);
 
             genLog('✓ Мета-теги сгенерированы, модель: '+d.model
                 +', токены: '+d.usage.total_tokens, 'log-ok');
@@ -2451,7 +2480,7 @@ requireAuth();
             if (md.meta_title) $('artMetaTitle').value = md.meta_title;
             if (md.meta_description) $('artMetaDesc').value = md.meta_description;
             if (md.meta_keywords) $('artMetaKeywords').value = md.meta_keywords;
-            if (md.article_plan) $('artArticlePlan').value = md.article_plan;
+            if (md.article_plan) setArticlePlan(md.article_plan);
             if (md.slug) $('artSlug').value = md.slug;
 
             genLog('✓ Meta готово ('+md.usage.total_tokens+' tok). План: '
@@ -2725,9 +2754,11 @@ requireAuth();
             const c = data.data;
             catId = c.id; activeEditor = 'catalog';
             showEditor('catalogEditor', 'Каталог #'+c.id, c.id);
+            loading = true;
             $('catName').value = c.name||''; $('catSlug').value = c.slug||'';
             ssCatParent.setValue(c.parent_id||'', true); $('catSortOrder').value = c.sort_order||0;
             $('catDescription').value = c.description||''; $('catIsActive').value = c.is_active?'1':'0';
+            loading = false;
             // Highlight selected row in tree
             document.querySelectorAll('.cat-row').forEach(r => r.classList.remove('selected'));
             const el = $('catrow_'+id);
@@ -2739,9 +2770,11 @@ requireAuth();
         if (dirty && !confirm('Несохранённые изменения. Продолжить?')) return;
         catId = null; activeEditor = 'catalog';
         showEditor('catalogEditor', 'Новый каталог', null);
+        loading = true;
         ['catName','catSlug','catDescription'].forEach(id => $(id).value='');
         ssCatParent.setValue(parentId ? String(parentId) : '', true);
         $('catSortOrder').value = 0; $('catIsActive').value = '1';
+        loading = false;
         switchTab('catalogs'); $('catName').focus();
     }
 
@@ -2797,9 +2830,11 @@ requireAuth();
             const t = data.data;
             tplId = t.id; activeEditor = 'template';
             showEditor('templateEditor', 'Шаблон #'+t.id, t.id);
+            loading = true;
             $('tplName').value = t.name||''; $('tplSlug').value = t.slug||'';
             $('tplCssClass').value = t.css_class||''; $('tplIsActive').value = t.is_active?'1':'0';
             $('tplDescription').value = t.description||''; $('tplGptPrompt').value = t.gpt_system_prompt||'';
+            loading = false;
             tplBlocks = t.blocks || [];
             renderTplBlocks(tplBlocks);
             loadTemplatesList();
@@ -2809,8 +2844,10 @@ requireAuth();
         if (dirty && !confirm('Несохранённые изменения. Продолжить?')) return;
         tplId = null; tplBlocks = []; activeEditor = 'template';
         showEditor('templateEditor', 'Новый шаблон', null);
+        loading = true;
         ['tplName','tplSlug','tplCssClass','tplDescription','tplGptPrompt'].forEach(id => $(id).value='');
-        $('tplIsActive').value = '1'; renderTplBlocks([]);
+        $('tplIsActive').value = '1';
+        loading = false; renderTplBlocks([]);
         switchTab('templates'); $('tplName').focus();
     }
     async function saveTemplate() {
@@ -3002,10 +3039,12 @@ requireAuth();
             const data = await api('links/'+id); const l = data.data;
             lnkId = l.id; activeEditor = 'link';
             showEditor('linkEditor', 'Ссылка #'+l.id, l.id);
+            loading = true;
             $('lnkKey').value = l.key||''; ssLnkArticle.setValue(l.article_id||'', true);
             $('lnkUrl').value = l.url||''; $('lnkLabel').value = l.label||'';
             $('lnkTarget').value = l.target||'_blank'; $('lnkNofollow').value = l.nofollow?'1':'0';
             $('lnkDescription').value = l.description||'';
+            loading = false;
             loadLinksList();
         } catch(e) { toast(e.message, true); }
     }
@@ -3013,8 +3052,10 @@ requireAuth();
         if (dirty && !confirm('Несохранённые изменения. Продолжить?')) return;
         lnkId = null; activeEditor = 'link';
         showEditor('linkEditor', 'Новая ссылка', null);
+        loading = true;
         ['lnkKey','lnkUrl','lnkLabel','lnkDescription'].forEach(id => $(id).value='');
         ssLnkArticle.clear(); $('lnkTarget').value = '_blank'; $('lnkNofollow').value = '0';
+        loading = false;
         switchTab('links'); $('lnkKey').focus();
     }
     async function saveLink() {
@@ -3056,12 +3097,14 @@ requireAuth();
             const data = await api('publish-targets/'+id); const t = data.data;
             tgtId = t.id; activeEditor = 'target';
             showEditor('targetEditor', 'Хост #'+t.id, t.id);
+            loading = true;
             $('tgtName').value = t.name||''; $('tgtType').value = t.type||'hostia';
             $('tgtBaseUrl').value = t.base_url||''; $('tgtIsActive').value = t.is_active?'1':'0';
             tgtConfigData = (typeof t.config === 'object' && t.config) ? t.config : {};
             populateTgtConfigForm(tgtConfigData);
             updateTgtConfigFormVisibility();
             if (tgtConfigEditor) { tgtConfigEditor.setValue(jsonPretty(tgtConfigData)); }
+            loading = false;
             switchTgtConfigTab('form', document.querySelector('#targetEditor .bvt[data-tab="form"]'));
             loadTargetsList();
         } catch(e) { toast(e.message, true); }
@@ -3070,12 +3113,14 @@ requireAuth();
         if (dirty && !confirm('Несохранённые изменения. Продолжить?')) return;
         tgtId = null; activeEditor = 'target';
         showEditor('targetEditor', 'Новый хост', null);
+        loading = true;
         ['tgtName','tgtBaseUrl'].forEach(id => $(id).value='');
         $('tgtType').value = 'hostia'; $('tgtIsActive').value = '1';
         tgtConfigData = {};
         populateTgtConfigForm({});
         updateTgtConfigFormVisibility();
         if (tgtConfigEditor) { tgtConfigEditor.setValue('{\n  \n}'); }
+        loading = false;
         switchTgtConfigTab('form', document.querySelector('#targetEditor .bvt[data-tab="form"]'));
         switchTab('targets'); $('tgtName').focus();
     }

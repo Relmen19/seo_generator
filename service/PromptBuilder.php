@@ -143,7 +143,24 @@ class PromptBuilder {
         $hint   = $config['hint'] ?? '';
         $fields = $config['fields'] ?? [];
 
-        $user = sprintf(ArticlePrompt::BLOCK_USER_GENERATE, $type, $name) . "\n";
+        $hasExistingContent = false;
+        $current = $articleBlock['content'] ?? null;
+        if ($current !== null && $current !== '[]' && $current !== '{}') {
+            $decoded = is_string($current) ? json_decode($current, true) : $current;
+            $hasExistingContent = !empty($decoded);
+        }
+
+        $hasGptPrompt = !empty($articleBlock['gpt_prompt']);
+
+        // Если есть текущий контент и доп. инструкции — режим модификации
+        if ($hasExistingContent && $hasGptPrompt) {
+            $user = "Измени контент блока [{$type}] «{$name}» согласно инструкциям ниже.\n";
+            $user .= "ВАЖНО: Верни ВЕСЬ блок целиком (не только изменённую часть). "
+                    . "Сохрани существующую структуру и данные, изменяя ТОЛЬКО то, что указано в инструкциях. "
+                    . "НЕ добавляй новые элементы верхнего уровня, если это явно не запрошено.\n\n";
+        } else {
+            $user = sprintf(ArticlePrompt::BLOCK_USER_GENERATE, $type, $name) . "\n";
+        }
 
         if ($hint)            $user .= "Описание: {$hint}\n";
         if (!empty($fields))  $user .= "Поля JSON: " . implode(', ', $fields) . "\n";
@@ -157,16 +174,13 @@ class PromptBuilder {
         if (!empty($config['chart_types']))   $extra[] = "chart: " . implode('|', $config['chart_types']);
         if ($extra) $user .= implode(' | ', $extra) . "\n";
 
-        if (!empty($articleBlock['gpt_prompt'])) $user .= "Доп. инструкции: {$articleBlock['gpt_prompt']}\n";
-        if (!empty($allBlockTypes))              $user .= "Структура: " . implode(' → ', $allBlockTypes) . "\n";
+        if ($hasGptPrompt) $user .= "Инструкции по изменению: {$articleBlock['gpt_prompt']}\n";
+        if (!empty($allBlockTypes)) $user .= "Структура: " . implode(' → ', $allBlockTypes) . "\n";
 
-        // Текущий контент для улучшения
-        $current = $articleBlock['content'] ?? null;
-        if ($current !== null && $current !== '[]' && $current !== '{}') {
-            $decoded = is_string($current) ? json_decode($current, true) : $current;
-            if (!empty($decoded)) {
-                $user .= "\nТекущий контент:\n" . json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n";
-            }
+        // Текущий контент
+        if ($hasExistingContent) {
+            $user .= "\nТекущий контент (модифицируй его согласно инструкциям):\n"
+                    . json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n";
         }
 
         $user .= $this->getTypeWarning($type);
