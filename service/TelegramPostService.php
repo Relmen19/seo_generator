@@ -57,6 +57,10 @@ class TelegramPostService {
             }
         }
 
+        if (empty($renderableBlocks) && empty($textBlocks)) {
+            throw new RuntimeException('Нет блоков для поста. Проверьте типы render-блоков в настройках Telegram профиля.');
+        }
+
         // Determine format
         $format = $profileEntity->getTgPostFormat();
         $renderCount = count($renderableBlocks);
@@ -490,11 +494,23 @@ class TelegramPostService {
         $client = new TelegramApiClient($profileEntity->getTgBotToken());
         $channelId = $profileEntity->getTgChannelId();
         $postData = json_decode($post['post_data'], true);
+        $messages = $postData['messages'] ?? [];
+
+        if (empty($messages)) {
+            $this->db->update(
+                SeoTelegramPost::TABLE,
+                ['status' => SeoTelegramPost::STATUS_FAILED, 'error_message' => 'Пост не содержит сообщений'],
+                'id = :id',
+                [':id' => $postId]
+            );
+            throw new RuntimeException('Пост не содержит сообщений. Проверьте настройки render-блоков в профиле.');
+        }
+
         $messageIds = [];
         $postUrl = null;
 
         try {
-            foreach ($postData['messages'] as $msg) {
+            foreach ($messages as $msg) {
                 switch ($msg['type']) {
                     case 'media_group':
                         $images = $this->loadRenderedImagesForMessage($msg);

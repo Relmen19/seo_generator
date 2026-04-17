@@ -538,6 +538,10 @@ requireAuth();
         .preview-frame { width: 100%; min-height: 800px; max-height: 1500px; border: 1px solid #334155; border-radius: 6px; background: #fff; margin-top: 10px; display: none; }
 
         /* Telegram Preview */
+        .tg-two-panel { display: grid; grid-template-columns: 1fr 420px; gap: 20px; }
+        @media (max-width: 960px) { .tg-two-panel { grid-template-columns: 1fr; } }
+        .tg-panel-left { min-width: 0; }
+        .tg-panel-right { min-width: 0; position: sticky; top: 20px; align-self: start; }
         .tg-preview-wrap { background: #0e1621; border-radius: 12px; overflow: hidden; max-width: 420px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
         .tg-msg { background: #182533; margin: 0; padding: 0; }
         .tg-msg + .tg-msg { margin-top: 2px; }
@@ -1124,50 +1128,57 @@ requireAuth();
                 <!-- Telegram Post Panel -->
                 <div class="section-block" id="tgPostPanel" style="display:none">
                     <h3>Telegram пост</h3>
-                    <div id="tgPostControls">
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-                            <button class="btn-pub" onclick="buildTgPreview()" id="btnTgBuild">Подготовить пост</button>
-                            <button class="btn-pub" onclick="sendTgNow()" id="btnTgSend" style="display:none">Отправить сейчас</button>
-                            <button class="btn-pub btn-pub-preview" onclick="showTgSchedule()" id="btnTgScheduleShow" style="display:none">Запланировать</button>
+                    <div class="tg-two-panel">
+                        <!-- LEFT: editing panel -->
+                        <div class="tg-panel-left">
+                            <div id="tgPostControls">
+                                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+                                    <button class="btn-pub" onclick="buildTgPreview()" id="btnTgBuild">Подготовить пост</button>
+                                    <button class="btn-pub" onclick="sendTgNow()" id="btnTgSend" style="display:none">Отправить сейчас</button>
+                                    <button class="btn-pub btn-pub-preview" onclick="showTgSchedule()" id="btnTgScheduleShow" style="display:none">Запланировать</button>
+                                </div>
+                                <div id="tgScheduleRow" style="display:none;margin-bottom:12px;gap:8px;align-items:center">
+                                    <input type="datetime-local" id="tgScheduleAt" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 10px;border-radius:6px;font-size:.82rem">
+                                    <button class="btn-pub" onclick="scheduleTgPost()">Запланировать отгрузку</button>
+                                </div>
+                                <div id="tgBuildStatus" style="display:none;font-size:.82rem;color:#a78bfa;margin-bottom:12px">
+                                    <span class="spinner"></span> Подготовка поста...
+                                </div>
+                            </div>
+
+                            <!-- Caption Editor -->
+                            <div id="tgCaptionEditor" style="display:none;margin-bottom:12px">
+                                <h4 style="font-size:.82rem;color:#64748b;margin:0 0 8px">Текст поста <span style="color:#475569;font-weight:400">(HTML-разметка Telegram)</span></h4>
+                                <div id="tgCaptionEditors"></div>
+                                <div style="margin-top:6px;display:flex;gap:8px">
+                                    <button class="btn-pub btn-pub-preview" onclick="saveTgCaptions()" style="font-size:.75rem;padding:5px 12px">Сохранить текст</button>
+                                    <button class="btn-pub btn-pub-preview" onclick="refreshTgPreview()" style="font-size:.75rem;padding:5px 12px;background:linear-gradient(135deg,#4338ca,#6366f1)">Обновить превью</button>
+                                </div>
+                            </div>
+
+                            <!-- Image presets -->
+                            <div id="tgImagePresets" style="display:none;margin-top:12px">
+                                <h4 style="font-size:.82rem;color:#64748b;margin:0 0 8px">Изображения</h4>
+                                <div id="tgImageGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px"></div>
+                            </div>
+
+                            <!-- Post result/status -->
+                            <div id="tgPostResult" style="display:none;margin-top:12px"></div>
+
+                            <!-- Post history -->
+                            <div id="tgPostHistory" style="margin-top:16px">
+                                <h4 style="font-size:.82rem;color:#64748b;margin:0 0 8px">История постов</h4>
+                                <div id="tgHistoryList"></div>
+                            </div>
                         </div>
-                        <div id="tgScheduleRow" style="display:none;margin-bottom:12px;gap:8px;align-items:center">
-                            <input type="datetime-local" id="tgScheduleAt" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 10px;border-radius:6px;font-size:.82rem">
-                            <button class="btn-pub" onclick="scheduleTgPost()">Запланировать отгрузку</button>
+
+                        <!-- RIGHT: preview panel -->
+                        <div class="tg-panel-right">
+                            <div id="tgPreviewContainer" style="display:none">
+                                <h4 style="font-size:.82rem;color:#64748b;margin:0 0 8px">Предпросмотр</h4>
+                                <div id="tgPreview" class="tg-preview-wrap"></div>
+                            </div>
                         </div>
-                        <div id="tgBuildStatus" style="display:none;font-size:.82rem;color:#a78bfa;margin-bottom:12px">
-                            <span class="spinner"></span> Подготовка поста...
-                        </div>
-                    </div>
-
-                    <!-- Caption Editor -->
-                    <div id="tgCaptionEditor" style="display:none;margin-bottom:12px">
-                        <h4 style="font-size:.82rem;color:#64748b;margin:0 0 8px">Текст поста <span style="color:#475569;font-weight:400">(HTML-разметка Telegram)</span></h4>
-                        <div id="tgCaptionEditors"></div>
-                        <div style="margin-top:6px;display:flex;gap:8px">
-                            <button class="btn-pub btn-pub-preview" onclick="saveTgCaptions()" style="font-size:.75rem;padding:5px 12px">Сохранить текст</button>
-                            <button class="btn-pub btn-pub-preview" onclick="refreshTgPreview()" style="font-size:.75rem;padding:5px 12px;background:linear-gradient(135deg,#4338ca,#6366f1)">Обновить превью</button>
-                        </div>
-                    </div>
-
-                    <!-- Telegram Preview -->
-                    <div id="tgPreviewContainer" style="display:none">
-                        <h4 style="font-size:.82rem;color:#64748b;margin:0 0 8px">Предпросмотр</h4>
-                        <div id="tgPreview" class="tg-preview-wrap"></div>
-                    </div>
-
-                    <!-- Image presets -->
-                    <div id="tgImagePresets" style="display:none;margin-top:12px">
-                        <h4 style="font-size:.82rem;color:#64748b;margin:0 0 8px">Изображения</h4>
-                        <div id="tgImageGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px"></div>
-                    </div>
-
-                    <!-- Post result/status -->
-                    <div id="tgPostResult" style="display:none;margin-top:12px"></div>
-
-                    <!-- Post history -->
-                    <div id="tgPostHistory" style="margin-top:16px">
-                        <h4 style="font-size:.82rem;color:#64748b;margin:0 0 8px">История постов</h4>
-                        <div id="tgHistoryList"></div>
                     </div>
                 </div>
             </div>

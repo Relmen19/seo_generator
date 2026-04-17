@@ -2200,9 +2200,9 @@ async function fillTelegram() {
         const checked = p.tg_render_blocks || TG_DEFAULT_RENDER_BLOCKS;
         $('tgRenderBlocksList').innerHTML = types.map(t => `
             <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;color:#cbd5e1;cursor:pointer;padding:4px 0">
-                <input type="checkbox" class="tg-rb-check" value="${esc(t.slug)}"
-                    ${checked.includes(t.slug) ? 'checked' : ''}>
-                ${esc(t.name || t.slug)}
+                <input type="checkbox" class="tg-rb-check" value="${esc(t.code)}"
+                    ${checked.includes(t.code) ? 'checked' : ''}>
+                ${esc(t.display_name || t.code)}
             </label>
         `).join('');
     } catch(e) {
