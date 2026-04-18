@@ -1068,12 +1068,12 @@ class TelegramBlockFormatterService
                 $block = $pct >= 75 ? '█' : ($pct >= 50 ? '▓' : ($pct >= 25 ? '▒' : '░'));
                 $parts[] = $block;
             }
-            $lines[] = $this->bold($this->escape($rowLabel)) . ' ' . implode('', $parts);
+            $lines[] = $this->bold($rowLabel) . ' ' . implode('', $parts);
         }
 
         // Column labels legend
         $lines[] = '';
-        $lines[] = $this->italic(implode(' · ', array_map(fn($c) => $this->escape($c), $columns)));
+        $lines[] = $this->italic(implode(' · ', $columns));
 
         return new TelegramBlock(implode("\n", $lines));
     }
@@ -1096,7 +1096,7 @@ class TelegramBlockFormatterService
         foreach ($series as $s) {
             $name = $this->bold($s['name'] ?? '');
             $data = $s['data'] ?? [];
-            $desc = !empty($s['description']) ? ' — ' . $this->italic($this->escape($s['description'])) : '';
+            $desc = !empty($s['description']) ? ' — ' . $this->italic($s['description']) : '';
             $max  = max($data ?: [1]);
 
             $lines[] = "{$name}{$desc}";
@@ -1126,7 +1126,7 @@ class TelegramBlockFormatterService
         }
 
         foreach ($rows as $row) {
-            $name   = $this->bold($this->escape($row['name'] ?? ''));
+            $name   = $this->bold($row['name'] ?? '');
             $unit   = $this->escape($row['unit'] ?? '');
             $active = (int)($row['active'] ?? 0);
             $states = $row['states'] ?? [];
@@ -1138,7 +1138,7 @@ class TelegramBlockFormatterService
                 $label  = $this->escape($state['label'] ?? '');
                 $range  = $this->escape($state['range'] ?? '');
                 $stateDesc = !empty($state['description'])
-                    ? ' — ' . $this->italic($this->escape($state['description']))
+                    ? ' — ' . $this->italic($state['description'])
                     : '';
                 $lines[] = "  {$marker} {$label}: {$range}{$stateDesc}";
             }
@@ -1164,7 +1164,7 @@ class TelegramBlockFormatterService
         }
 
         foreach ($rows as $row) {
-            $name   = $this->bold($this->escape($row['name'] ?? ''));
+            $name   = $this->bold($row['name'] ?? '');
             $values = $row['values'] ?? [];
             $ranges = $row['ranges'] ?? [];
 
