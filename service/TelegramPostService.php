@@ -20,10 +20,22 @@ class TelegramPostService {
 
     private Database $db;
     private TelegramBlockFormatterService $blockFormatter;
+    private ?TelegramCopywriterService $copywriter;
 
-    public function __construct(?TelegramBlockFormatterService $blockFormatter = null) {
-        $this->db            = Database::getInstance();
+    public function __construct(
+        ?TelegramBlockFormatterService $blockFormatter = null,
+        ?TelegramCopywriterService $copywriter = null
+    ) {
+        $this->db             = Database::getInstance();
         $this->blockFormatter = $blockFormatter ?? new TelegramBlockFormatterService();
+        $this->copywriter     = $copywriter;
+    }
+
+    private function copywriter(): TelegramCopywriterService {
+        if ($this->copywriter === null) {
+            $this->copywriter = new TelegramCopywriterService();
+        }
+        return $this->copywriter;
     }
 
     // ── Post building ────────────────────────────────────────────────────────
@@ -73,7 +85,6 @@ class TelegramPostService {
         // Determine format
         $format = $profileEntity->getTgPostFormat();
         $renderCount = count($renderableBlocks);
-        $formattedExtraMessages = $this->formatExtraBlocks($formattableBlocks);
 
         if ($format === 'auto') {
             $format = ($renderCount > 7) ? 'series' : 'single';
@@ -86,7 +97,7 @@ class TelegramPostService {
             $profileEntity,
             $renderableBlocks,
             $textBlocks,
-            $formattedExtraMessages
+            $formattableBlocks
         );
 
         // Create telegram post record
@@ -115,6 +126,7 @@ class TelegramPostService {
 
     /**
      * Compose the post_data structure based on format.
+     * Tries Copywriter (structured GPT) first, falls back to legacy layout on failure.
      */
     private function composePostData(
         string $format,
@@ -122,9 +134,249 @@ class TelegramPostService {
         SeoSiteProfile $profile,
         array $renderableBlocks,
         array $textBlocks,
-        array $formattedExtraMessages
+        array $formattableBlocks
     ): array {
         $articleLink = $this->buildArticleLink($article);
+
+        try {
+            $copy = $this->copywriter()->compose(
+                $article,
+                $renderableBlocks,
+                $textBlocks,
+                $formattableBlocks,
+                $articleLink,
+                $profile
+            );
+            return $this->buildMessagesFromCopy($format, $copy, $renderableBlocks, $articleLink);
+        } catch (\Throwable $e) {
+            logMessage('Telegram Copywriter failed, using fallback: ' . $e->getMessage());
+        }
+
+        $formattedExtraMessages = $this->formatExtraBlocks($formattableBlocks);
+        return $this->composePostDataLegacy(
+            $format,
+            $article,
+            $profile,
+            $renderableBlocks,
+            $textBlocks,
+            $formattedExtraMessages,
+            $articleLink
+        );
+    }
+
+    /**
+     * Build post_data messages from Copywriter output.
+     *
+     * Single format: 1 image message (caption = hook + segments, trimmed to 1024),
+     * overflow → follow-up text message with remaining segments.
+     *
+     * Series format: several image messages with per-chunk captions built from
+     * image_captions; segments go into a final text message (or message group).
+     *
+     * CTA is attached as an URL-button inline_keyboard on the last message.
+     */
+    private function buildMessagesFromCopy(
+        string $format,
+        array $copy,
+        array $renderableBlocks,
+        string $articleLink
+    ): array {
+        $messages = [];
+
+        $hook           = (string)($copy['hook'] ?? '');
+        $segments       = (array)($copy['segments'] ?? []);
+        $imageCaptions  = (array)($copy['image_captions'] ?? []);
+        $cta            = $copy['cta'] ?? null;
+
+        $hookMd = $hook !== '' ? $this->blockFormatter->boldPlain($hook) : '';
+
+        if ($format === 'single') {
+            $imageBlocks = array_slice($renderableBlocks, 0, min(3, self::MAX_MEDIA_GROUP_SIZE));
+
+            $segmentsBlock = $this->blockFormatter->formatSegments($segments);
+            $fullText = trim($hookMd
+                . ($segmentsBlock->text !== '' ? "\n\n" . $segmentsBlock->text : ''));
+
+            [$captionText, $overflow] = $this->splitForCaption($fullText, self::MAX_CAPTION_LENGTH);
+
+            if (count($imageBlocks) > 1) {
+                $messages[] = [
+                    'type'        => 'media_group',
+                    'block_ids'   => array_map(fn($b) => (int)$b['id'], $imageBlocks),
+                    'block_types' => array_map(fn($b) => $b['type'], $imageBlocks),
+                    'caption'     => $captionText,
+                    'parse_mode'  => 'MarkdownV2',
+                ];
+            } elseif (count($imageBlocks) === 1) {
+                $messages[] = [
+                    'type'       => 'photo',
+                    'block_id'   => (int)$imageBlocks[0]['id'],
+                    'block_type' => $imageBlocks[0]['type'],
+                    'caption'    => $captionText,
+                    'parse_mode' => 'MarkdownV2',
+                ];
+            } else {
+                // No images — text-only post
+                $messages[] = [
+                    'type'       => 'text',
+                    'text'       => mb_substr($fullText, 0, self::MAX_TEXT_LENGTH),
+                    'parse_mode' => 'MarkdownV2',
+                ];
+                $overflow = '';
+            }
+
+            if ($overflow !== '') {
+                foreach ($this->splitTextByLimit($overflow, self::MAX_TEXT_LENGTH) as $chunk) {
+                    $messages[] = [
+                        'type'       => 'text',
+                        'text'       => $chunk,
+                        'parse_mode' => 'MarkdownV2',
+                    ];
+                }
+            }
+        } else {
+            // series
+            $chunks = array_chunk($renderableBlocks, 3);
+
+            foreach ($chunks as $i => $chunk) {
+                $captionLines = [];
+                if ($i === 0 && $hookMd !== '') {
+                    $captionLines[] = $hookMd;
+                }
+                foreach ($chunk as $b) {
+                    $bid = (string)(int)$b['id'];
+                    if (isset($imageCaptions[$bid])) {
+                        $captionLines[] = $this->blockFormatter->escapePlain($imageCaptions[$bid]);
+                    }
+                }
+                $caption = mb_substr(implode("\n\n", $captionLines), 0, self::MAX_CAPTION_LENGTH);
+
+                if (count($chunk) > 1) {
+                    $messages[] = [
+                        'type'        => 'media_group',
+                        'block_ids'   => array_map(fn($b) => (int)$b['id'], $chunk),
+                        'block_types' => array_map(fn($b) => $b['type'], $chunk),
+                        'caption'     => $caption,
+                        'parse_mode'  => 'MarkdownV2',
+                    ];
+                } else {
+                    $messages[] = [
+                        'type'       => 'photo',
+                        'block_id'   => (int)$chunk[0]['id'],
+                        'block_type' => $chunk[0]['type'],
+                        'caption'    => $caption,
+                        'parse_mode' => 'MarkdownV2',
+                    ];
+                }
+            }
+
+            // Segments → trailing text message(s)
+            $segmentsBlock = $this->blockFormatter->formatSegments($segments);
+            if ($segmentsBlock->text !== '') {
+                foreach ($this->splitTextByLimit($segmentsBlock->text, self::MAX_TEXT_LENGTH) as $chunk) {
+                    $messages[] = [
+                        'type'       => 'text',
+                        'text'       => $chunk,
+                        'parse_mode' => 'MarkdownV2',
+                    ];
+                }
+            }
+
+            // If no renderable blocks at all, push hook too
+            if (empty($chunks) && $hookMd !== '' && empty($messages)) {
+                $messages[] = [
+                    'type'       => 'text',
+                    'text'       => $hookMd,
+                    'parse_mode' => 'MarkdownV2',
+                ];
+            }
+        }
+
+        if (!empty($messages)) {
+            $this->attachCtaKeyboard($messages, $cta, $articleLink);
+        }
+
+        return [
+            'messages'     => $messages,
+            'article_link' => $articleLink,
+            'format'       => $format,
+        ];
+    }
+
+    /**
+     * Attach URL button to the last message for the article link / custom CTA.
+     * If the last message is a media_group/photo (caption-only), create a
+     * trailing text message with the keyboard, since media_group doesn't
+     * support inline_keyboard.
+     */
+    private function attachCtaKeyboard(array &$messages, ?array $cta, string $articleLink): void
+    {
+        $ctaText = 'Читать полностью';
+        if (is_array($cta) && !empty($cta['text'])) {
+            $ctaText = (string)$cta['text'];
+        }
+
+        $keyboard = [
+            'inline_keyboard' => [[
+                ['text' => $ctaText, 'url' => $articleLink],
+            ]],
+        ];
+
+        $lastIdx = count($messages) - 1;
+        $last = &$messages[$lastIdx];
+        if ($last['type'] === 'text') {
+            $last['keyboard'] = $keyboard;
+            return;
+        }
+        unset($last);
+
+        // Trailing text-only hint to carry the keyboard
+        $messages[] = [
+            'type'       => 'text',
+            'text'       => $this->blockFormatter->escapePlain('Подробнее в статье'),
+            'parse_mode' => 'MarkdownV2',
+            'keyboard'   => $keyboard,
+        ];
+    }
+
+    /**
+     * Cut a MarkdownV2 text at the caption limit, returning [caption, overflow].
+     * Tries to split on paragraph boundaries; avoids breaking MarkdownV2 entities
+     * mid-line only as best effort (GPT output is plain text escaped by formatter).
+     */
+    private function splitForCaption(string $text, int $limit): array
+    {
+        if (mb_strlen($text) <= $limit) {
+            return [$text, ''];
+        }
+
+        $paragraphs = explode("\n\n", $text);
+        $caption    = '';
+        $overflow   = [];
+
+        foreach ($paragraphs as $para) {
+            $candidate = $caption === '' ? $para : $caption . "\n\n" . $para;
+            if ($overflow === [] && mb_strlen($candidate) <= $limit) {
+                $caption = $candidate;
+            } else {
+                $overflow[] = $para;
+            }
+        }
+
+        return [$caption, implode("\n\n", $overflow)];
+    }
+
+    // ── Legacy layout (fallback) ─────────────────────────────────────────────
+
+    private function composePostDataLegacy(
+        string $format,
+        array $article,
+        SeoSiteProfile $profile,
+        array $renderableBlocks,
+        array $textBlocks,
+        array $formattedExtraMessages,
+        string $articleLink
+    ): array {
         $articleTitle = $article['title'] ?? '';
 
         if ($format === 'single') {
@@ -635,7 +887,8 @@ class TelegramPostService {
                         foreach ($images as $idx => $img) {
                             $item = ['data' => $img['image_data']];
                             if ($idx === 0 && isset($msg['caption'])) {
-                                $item['caption'] = $msg['caption'];
+                                $item['caption']    = $msg['caption'];
+                                $item['parse_mode'] = $msg['parse_mode'] ?? 'HTML';
                             }
                             $mediaItems[] = $item;
                         }
@@ -726,6 +979,89 @@ class TelegramPostService {
             );
             throw $e;
         }
+    }
+
+    /**
+     * Regenerate post text via Copywriter without re-rendering block images.
+     * Keeps existing rendered images attached (same block_id → image_id map).
+     *
+     * @throws RuntimeException when post is not editable (sending/sent) or
+     *                          Copywriter unavailable.
+     */
+    public function recompose(int $postId): array {
+        $post = $this->loadPost($postId);
+
+        if (in_array($post['status'], [SeoTelegramPost::STATUS_SENDING, SeoTelegramPost::STATUS_SENT], true)) {
+            throw new RuntimeException('Нельзя перегенерировать отправленный пост');
+        }
+
+        $article = $this->loadArticle((int)$post['article_id']);
+        $profile = $this->loadProfile((int)$post['profile_id']);
+        $profileEntity = new SeoSiteProfile($profile);
+
+        if (!$profileEntity->hasTelegramConfig()) {
+            throw new RuntimeException('Telegram не настроен для этого профиля');
+        }
+
+        $blocks = $this->db->fetchAll(
+            'SELECT * FROM seo_article_blocks WHERE article_id = :aid ORDER BY sort_order',
+            [':aid' => (int)$post['article_id']]
+        );
+
+        $renderableTypes = $profileEntity->getEffectiveTgRenderBlocks();
+        $renderableBlocks  = [];
+        $textBlocks        = [];
+        $formattableBlocks = [];
+
+        foreach ($blocks as $b) {
+            if ((int)$b['is_visible'] !== 1) continue;
+            if (in_array($b['type'], $renderableTypes, true)) {
+                $renderableBlocks[] = $b;
+            } elseif ($b['type'] === 'richtext') {
+                $textBlocks[] = $b;
+            } else {
+                $formattableBlocks[] = $b;
+            }
+        }
+
+        $format = $post['post_format'] ?? 'single';
+        if ($format === 'auto') {
+            $format = (count($renderableBlocks) > 7) ? 'series' : 'single';
+        }
+
+        $postData = $this->composePostData(
+            $format,
+            $article,
+            $profileEntity,
+            $renderableBlocks,
+            $textBlocks,
+            $formattableBlocks
+        );
+
+        // Re-attach existing rendered image IDs (block_id → image_id)
+        $existing = $this->db->fetchAll(
+            'SELECT id, block_id FROM ' . SeoTelegramRenderedImage::TABLE
+            . ' WHERE tg_post_id = :pid',
+            [':pid' => $postId]
+        );
+        $blockToImage = [];
+        foreach ($existing as $row) {
+            $blockToImage[(int)$row['block_id']] = (int)$row['id'];
+        }
+        $postData = $this->attachImageIds($postData, $blockToImage);
+
+        $this->db->update(
+            SeoTelegramPost::TABLE,
+            'id = :id',
+            [
+                'post_data'     => json_encode($postData, JSON_UNESCAPED_UNICODE),
+                'status'        => SeoTelegramPost::STATUS_DRAFT,
+                'error_message' => null,
+            ],
+            [':id' => $postId]
+        );
+
+        return $this->getPostWithImages($postId);
     }
 
     /**

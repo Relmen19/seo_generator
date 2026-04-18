@@ -81,7 +81,7 @@ class TelegramApiClient {
             ];
             if ($i === 0 && isset($img['caption'])) {
                 $mediaItem['caption'] = $img['caption'];
-                $mediaItem['parse_mode'] = 'HTML';
+                $mediaItem['parse_mode'] = $img['parse_mode'] ?? 'HTML';
             }
 
             $media[] = $mediaItem;

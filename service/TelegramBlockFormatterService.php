@@ -1202,6 +1202,101 @@ class TelegramBlockFormatterService
     }
 
     // ──────────────────────────────────────────────────────────────────────────
+    //  Copywriter segments
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Отформатировать структуру, пришедшую от TelegramCopywriterService.
+     *
+     * @param array $segments массив элементов с ключом `type`:
+     *   paragraph / heading / list(+intro) / highlight / quote(+author) /
+     *   callout(severity) / stat(value,label) / faq(items[{question,answer}])
+     * @return TelegramBlock  текст в MarkdownV2, keyboard = null
+     */
+    public function formatSegments(array $segments): TelegramBlock
+    {
+        $parts = [];
+
+        foreach ($segments as $seg) {
+            $type = $seg['type'] ?? '';
+            $chunk = $this->renderSegment($type, $seg);
+            if ($chunk !== '') {
+                $parts[] = $chunk;
+            }
+        }
+
+        return new TelegramBlock(implode("\n\n", $parts));
+    }
+
+    private function renderSegment(string $type, array $seg): string
+    {
+        switch ($type) {
+            case 'heading':
+                return $this->bold((string)($seg['text'] ?? ''));
+
+            case 'paragraph':
+                return $this->escape((string)($seg['text'] ?? ''));
+
+            case 'list':
+                $lines = [];
+                $intro = trim((string)($seg['intro'] ?? ''));
+                if ($intro !== '') {
+                    $lines[] = $this->escape($intro);
+                }
+                foreach ((array)($seg['items'] ?? []) as $item) {
+                    $lines[] = self::BULLET . ' ' . $this->escape((string)$item);
+                }
+                return implode("\n", $lines);
+
+            case 'highlight':
+                return $this->blockQuote((string)($seg['text'] ?? ''));
+
+            case 'quote':
+                $text   = (string)($seg['text'] ?? '');
+                $author = trim((string)($seg['author'] ?? ''));
+                $line   = self::QUOTE_OPEN . ' ' . $this->italic($text);
+                if ($author !== '') {
+                    $line .= "\n— " . $this->bold($author);
+                }
+                return $line;
+
+            case 'callout':
+                $severity = (string)($seg['severity'] ?? 'info');
+                $text     = (string)($seg['text'] ?? '');
+                $emoji    = $this->calloutEmoji($severity);
+                return $emoji . ' ' . $this->escape($text);
+
+            case 'stat':
+                $value = (string)($seg['value'] ?? '');
+                $label = (string)($seg['label'] ?? '');
+                return $this->bold($value) . ' — ' . $this->escape($label);
+
+            case 'faq':
+                $items = [];
+                foreach ((array)($seg['items'] ?? []) as $it) {
+                    if (!is_array($it)) continue;
+                    $q = $this->bold((string)($it['question'] ?? ''));
+                    $a = $this->blockQuote((string)($it['answer'] ?? ''));
+                    $items[] = $q . "\n" . $a;
+                }
+                return implode("\n\n", $items);
+        }
+
+        return '';
+    }
+
+    private function calloutEmoji(string $severity): string
+    {
+        switch ($severity) {
+            case 'alert':   return self::ALERT;
+            case 'warning': return self::WARN;
+            case 'success': return self::CHECK;
+            case 'info':
+            default:        return self::INFO;
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
     //  Helpers
     // ──────────────────────────────────────────────────────────────────────────
 
@@ -1216,6 +1311,18 @@ class TelegramBlockFormatterService
         });
 
         return new TelegramBlock($this->escape(implode("\n", $texts)));
+    }
+
+    /** Public: MarkdownV2-safe escape of a raw string. */
+    public function escapePlain(string $text): string
+    {
+        return $this->escape($text);
+    }
+
+    /** Public: bold-wrap (with internal escape) a raw string. */
+    public function boldPlain(string $text): string
+    {
+        return $this->bold($text);
     }
 
     /** Escape special chars for MarkdownV2 */

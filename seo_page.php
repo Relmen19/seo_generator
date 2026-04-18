@@ -631,6 +631,10 @@ requireAuth();
         .tg-msg-caption a { color: #6ab2f2; text-decoration: none; }
         .tg-msg-caption a:hover { text-decoration: underline; }
         .tg-msg-caption code { background: rgba(255,255,255,.08); padding: 1px 5px; border-radius: 4px; font-family: monospace; font-size: .82em; }
+        .tg-msg-caption .tg-quote { margin: 4px 0; padding: 4px 10px; border-left: 3px solid #6ab2f2; color: #b6c4d1; font-style: italic; background: rgba(106,178,242,.06); border-radius: 0 4px 4px 0; }
+        .tg-msg-keyboard { padding: 6px 10px 8px; display: flex; flex-direction: column; gap: 4px; }
+        .tg-msg-kb-row { display: flex; gap: 4px; }
+        .tg-msg-kb-btn { flex: 1; text-align: center; background: rgba(106,178,242,.12); color: #6ab2f2; padding: 8px 12px; border-radius: 6px; font-size: .82rem; font-weight: 500; }
         .tg-msg-footer { display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding: 2px 14px 8px; font-size: .68rem; color: #6d7f8e; }
         .tg-msg-footer-views::before { content: ''; display: inline-block; width: 12px; height: 10px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 11' fill='%236d7f8e'%3E%3Cpath d='M8 1C4.5 1 1.5 3.5 0 5.5c1.5 2 4.5 4.5 8 4.5s6.5-2.5 8-4.5C14.5 3.5 11.5 1 8 1zm0 7.5A3 3 0 118 2.5a3 3 0 010 6z'/%3E%3C/svg%3E") no-repeat center; margin-right: 3px; }
         .tg-msg-reactions { display: flex; gap: 4px; padding: 2px 14px 10px; flex-wrap: wrap; }
@@ -1211,6 +1215,7 @@ requireAuth();
                             <div class="tg-actions" id="tgPostControls">
                                 <button class="btn-pub" onclick="buildTgPreview()" id="btnTgBuild">Подготовить пост</button>
                                 <button class="btn-pub tg-btn-rebuild" onclick="buildTgPreview()" id="btnTgRebuild" style="display:none">Пересобрать</button>
+                                <button class="btn-pub btn-pub-preview" onclick="recomposeTgPost()" id="btnTgRecompose" style="display:none" title="Перегенерировать текст через AI, изображения сохраняются">Перегенерировать текст</button>
                                 <button class="btn-pub" onclick="sendTgNow()" id="btnTgSend" style="display:none">Отправить</button>
                                 <button class="btn-pub btn-pub-preview" onclick="showTgSchedule()" id="btnTgScheduleShow" style="display:none">Запланировать</button>
                                 <button class="btn-pub tg-btn-danger" onclick="deleteAllTgPosts()" id="btnTgDeleteAll" style="display:none">Удалить все</button>
@@ -3911,11 +3916,13 @@ requireAuth();
         var isFailed = status === 'failed';
         $('btnTgBuild').style.display = !currentTgPostId ? '' : 'none';
         $('btnTgRebuild').style.display = currentTgPostId ? '' : 'none';
+        $('btnTgRecompose').style.display = (isDraft || isFailed) && currentTgPostId ? 'inline-flex' : 'none';
         $('btnTgSend').style.display = (isDraft || isFailed) && currentTgPostId ? 'inline-flex' : 'none';
         $('btnTgScheduleShow').style.display = (isDraft || isFailed) && currentTgPostId ? 'inline-flex' : 'none';
         if (isSent) {
             $('btnTgSend').style.display = 'none';
             $('btnTgScheduleShow').style.display = 'none';
+            $('btnTgRecompose').style.display = 'none';
         }
         $('tgCurrentStatus').innerHTML = status
             ? '<span class="tg-status-pill tg-status-' + status + '">' + tgStatusLabel(status) + '</span>'
@@ -3964,6 +3971,33 @@ requireAuth();
             $('tgBuildStatus').style.display = 'none';
             $('btnTgBuild').disabled = false;
             $('btnTgRebuild').disabled = false;
+        }
+    }
+
+    async function recomposeTgPost() {
+        if (!currentTgPostId) return;
+        if (!confirm('Перегенерировать текст поста через AI? Изображения сохранятся, ручные правки текста будут потеряны.')) return;
+
+        $('tgBuildStatus').style.display = 'block';
+        $('tgBuildStatus').querySelector('span').nextSibling.nodeValue = ' Генерация текста...';
+        $('btnTgRecompose').disabled = true;
+
+        try {
+            var res = await api('telegram/recompose/' + currentTgPostId, { method: 'POST', body: {} });
+            if (!res.success) { toast(res.error || 'Ошибка', true); return; }
+
+            currentTgPostData = res.data;
+            renderTgCaptionEditors(res.data);
+            renderTgPreview(res.data);
+            renderTgImagePresets(res.data);
+            updateTgButtons(res.data.status);
+            toast('Текст перегенерирован');
+        } catch(e) {
+            toast('Ошибка: ' + e.message, true);
+        } finally {
+            $('tgBuildStatus').style.display = 'none';
+            $('tgBuildStatus').querySelector('span').nextSibling.nodeValue = ' Подготовка поста...';
+            $('btnTgRecompose').disabled = false;
         }
     }
 
@@ -4116,6 +4150,93 @@ requireAuth();
         return tmp.innerHTML;
     }
 
+    // Minimal MarkdownV2 → preview HTML. Handles *b*, _i_, ~s~, `code`, >quote,
+    // \X unescaping and newlines. Good enough for in-page preview, NOT for sending.
+    function formatTgMarkdownV2(text) {
+        if (!text) return '';
+        var out = '';
+        var i = 0;
+        var lineStart = true;
+        var inQuote = false;
+
+        function flushQuote() {
+            if (inQuote) { out += '</blockquote>'; inQuote = false; }
+        }
+
+        while (i < text.length) {
+            var ch = text[i];
+            if (lineStart && ch === '>') {
+                if (!inQuote) { out += '<blockquote class="tg-quote">'; inQuote = true; }
+                i++; lineStart = false; continue;
+            }
+            if (ch === '\n') {
+                out += '<br>';
+                lineStart = true;
+                i++;
+                // Close quote on blank line
+                if (text[i] === '\n') { flushQuote(); }
+                continue;
+            }
+            if (ch === '\\' && i + 1 < text.length) {
+                out += escHtml(text[i + 1]);
+                i += 2; lineStart = false; continue;
+            }
+            if (ch === '*') {
+                var close = text.indexOf('*', i + 1);
+                if (close > i) {
+                    out += '<b>' + formatTgMarkdownV2Inline(text.substring(i + 1, close)) + '</b>';
+                    i = close + 1; lineStart = false; continue;
+                }
+            }
+            if (ch === '_') {
+                var closeI = text.indexOf('_', i + 1);
+                if (closeI > i) {
+                    out += '<i>' + formatTgMarkdownV2Inline(text.substring(i + 1, closeI)) + '</i>';
+                    i = closeI + 1; lineStart = false; continue;
+                }
+            }
+            if (ch === '~') {
+                var closeS = text.indexOf('~', i + 1);
+                if (closeS > i) {
+                    out += '<s>' + formatTgMarkdownV2Inline(text.substring(i + 1, closeS)) + '</s>';
+                    i = closeS + 1; lineStart = false; continue;
+                }
+            }
+            if (ch === '`') {
+                var closeC = text.indexOf('`', i + 1);
+                if (closeC > i) {
+                    out += '<code>' + escHtml(text.substring(i + 1, closeC).replace(/\\(.)/g, '$1')) + '</code>';
+                    i = closeC + 1; lineStart = false; continue;
+                }
+            }
+            out += escHtml(ch);
+            lineStart = false;
+            i++;
+        }
+        flushQuote();
+        return out;
+    }
+
+    function formatTgMarkdownV2Inline(text) {
+        // Same logic as outer, but without quote/newline handling
+        return (text || '').replace(/\\(.)/g, function(_, c) { return escHtml(c); });
+    }
+
+    function escHtml(s) {
+        return String(s).replace(/[&<>"']/g, function(c) {
+            return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+        });
+    }
+
+    function renderTgText(msg) {
+        var text = msg.caption || msg.text || '';
+        if (!text) return '';
+        if ((msg.parse_mode || '').toLowerCase() === 'markdownv2') {
+            return formatTgMarkdownV2(text);
+        }
+        return formatTgCaption(text);
+    }
+
     function renderTgPreview(postData) {
         var container = $('tgPreview');
         var pd = postData.post_data || {};
@@ -4148,9 +4269,22 @@ requireAuth();
             }
 
             // Caption/text with proper formatting
-            var text = msg.caption || msg.text || '';
-            if (text) {
-                html += '<div class="tg-msg-caption">' + formatTgCaption(text) + '</div>';
+            var renderedText = renderTgText(msg);
+            if (renderedText) {
+                html += '<div class="tg-msg-caption">' + renderedText + '</div>';
+            }
+
+            // Inline keyboard preview (URL buttons)
+            if (msg.keyboard && msg.keyboard.inline_keyboard) {
+                html += '<div class="tg-msg-keyboard">';
+                msg.keyboard.inline_keyboard.forEach(function(row) {
+                    html += '<div class="tg-msg-kb-row">';
+                    row.forEach(function(btn) {
+                        html += '<span class="tg-msg-kb-btn">' + escHtml(btn.text || '') + '</span>';
+                    });
+                    html += '</div>';
+                });
+                html += '</div>';
             }
 
             // Footer

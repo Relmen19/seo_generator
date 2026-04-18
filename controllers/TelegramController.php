@@ -15,6 +15,7 @@ use Throwable;
    GET    /telegram/posts/{postId}              — get single post
    PUT    /telegram/posts/{postId}              — update post data
    DELETE /telegram/posts/{postId}              — delete draft/scheduled post
+   POST   /telegram/recompose/{postId}          — regenerate text via Copywriter
    POST   /telegram/test-connection             — test bot token + channel
    POST   /telegram/refresh-channel/{profileId} — refresh channel info
    GET    /telegram/rendered-image/{imageId}    — get rendered image data
@@ -76,6 +77,12 @@ class TelegramController extends AbstractController {
         // PUT /telegram/post/{postId} — update post
         if ($method === 'PUT' && $action === 'post' && $id !== null) {
             $this->doUpdatePost($service, $id);
+            return;
+        }
+
+        // POST /telegram/recompose/{postId} — regenerate text via Copywriter
+        if ($method === 'POST' && $action === 'recompose' && $id !== null) {
+            $this->doRecompose($service, $id);
             return;
         }
 
@@ -196,6 +203,15 @@ class TelegramController extends AbstractController {
             $this->success($result);
         } catch (Throwable $e) {
             $this->error($e->getMessage(), 400);
+        }
+    }
+
+    private function doRecompose(TelegramPostService $service, int $postId): void {
+        try {
+            $result = $service->recompose($postId);
+            $this->success($result);
+        } catch (Throwable $e) {
+            $this->error($e->getMessage(), 500);
         }
     }
 
