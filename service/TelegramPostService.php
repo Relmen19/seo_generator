@@ -803,6 +803,7 @@ class TelegramPostService {
                     'tg_post_id' => $postId,
                     'block_id'   => (int)$block['id'],
                     'block_type' => $block['type'],
+                    'source'     => SeoTelegramRenderedImage::SOURCE_BLOCK_RENDER,
                     'image_data' => $result['image'],
                     'width'      => $result['width'] ?? null,
                     'height'     => $result['height'] ?? null,
@@ -836,6 +837,234 @@ class TelegramPostService {
         }
         unset($msg);
         return $postData;
+    }
+
+    // ── Post-level image CRUD (Phase 2) ──────────────────────────────────────
+
+    /**
+     * Render a specific article block and attach its PNG to the post.
+     * The block must belong to the post's article.
+     */
+    public function addBlockImage(int $postId, int $blockId): array {
+        $post = $this->loadPost($postId);
+        $this->assertEditable($post);
+
+        $block = $this->db->fetchOne(
+            'SELECT * FROM seo_article_blocks WHERE id = :id',
+            [':id' => $blockId]
+        );
+        if ($block === null) {
+            throw new RuntimeException("Блок #{$blockId} не найден");
+        }
+        if ((int)$block['article_id'] !== (int)$post['article_id']) {
+            throw new RuntimeException("Блок #{$blockId} не принадлежит статье этого поста");
+        }
+
+        $profile = $this->loadProfile((int)$post['profile_id']);
+
+        $renderer = new HtmlRendererService();
+        $renderer->setSiteProfile($profile);
+        $puppeteer = new PuppeteerClient();
+
+        $content = json_decode($block['content'] ?? '{}', true);
+        if (!is_array($content)) {
+            $content = [];
+        }
+
+        $html = $renderer->renderSingleBlockPreview($block['type'], $content);
+        $result = $puppeteer->screenshot($html, 800, 2);
+
+        $this->db->insert(SeoTelegramRenderedImage::TABLE, [
+            'tg_post_id' => $postId,
+            'block_id'   => (int)$block['id'],
+            'block_type' => (string)$block['type'],
+            'source'     => SeoTelegramRenderedImage::SOURCE_BLOCK_RENDER,
+            'image_data' => $result['image'],
+            'width'      => $result['width'] ?? null,
+            'height'     => $result['height'] ?? null,
+            'sort_order' => $this->nextImageSortOrder($postId),
+        ]);
+
+        return $this->getPostWithImages($postId);
+    }
+
+    /**
+     * Copy an article image (from seo_images) into the post's rendered images pool.
+     */
+    public function addArticleImage(int $postId, int $articleImageId): array {
+        $post = $this->loadPost($postId);
+        $this->assertEditable($post);
+
+        $img = $this->db->fetchOne(
+            'SELECT id, article_id, name, mime_type, width, height, data_base64 '
+            . 'FROM seo_images WHERE id = :id',
+            [':id' => $articleImageId]
+        );
+        if ($img === null) {
+            throw new RuntimeException("Изображение #{$articleImageId} не найдено");
+        }
+        if ((int)$img['article_id'] !== (int)$post['article_id']) {
+            throw new RuntimeException('Изображение не принадлежит статье этого поста');
+        }
+
+        $mime = (string)($img['mime_type'] ?? 'image/png');
+        $data = (string)($img['data_base64'] ?? '');
+        if ($data === '') {
+            throw new RuntimeException('У исходного изображения пустые данные');
+        }
+
+        $this->db->insert(SeoTelegramRenderedImage::TABLE, [
+            'tg_post_id' => $postId,
+            'block_id'   => null,
+            'block_type' => '',
+            'source'     => SeoTelegramRenderedImage::SOURCE_ARTICLE_IMAGE,
+            'image_data' => $data,
+            'custom_meta' => json_encode([
+                'article_image_id' => (int)$img['id'],
+                'name'             => $img['name'] ?? null,
+                'mime'             => $mime,
+            ], JSON_UNESCAPED_UNICODE),
+            'width'      => isset($img['width']) ? (int)$img['width'] : null,
+            'height'     => isset($img['height']) ? (int)$img['height'] : null,
+            'sort_order' => $this->nextImageSortOrder($postId),
+        ]);
+
+        return $this->getPostWithImages($postId);
+    }
+
+    /**
+     * Upload a user-provided image file to the post's pool.
+     *
+     * @param int    $postId
+     * @param string $tmpPath  Path to the uploaded tmp file (from $_FILES)
+     * @param string $mime     Detected MIME type
+     * @param int    $size     File size in bytes
+     * @param string $name     Original filename (for metadata)
+     */
+    public function uploadImage(int $postId, string $tmpPath, string $mime, int $size, string $name): array {
+        $post = $this->loadPost($postId);
+        $this->assertEditable($post);
+
+        $allowed = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!in_array($mime, $allowed, true)) {
+            throw new RuntimeException('Недопустимый тип файла: ' . $mime
+                . '. Разрешены: ' . implode(', ', $allowed));
+        }
+        // Telegram photo limit: 10 MB
+        if ($size > 10 * 1024 * 1024) {
+            throw new RuntimeException('Файл больше 10 MB');
+        }
+
+        $binary = @file_get_contents($tmpPath);
+        if ($binary === false || $binary === '') {
+            throw new RuntimeException('Не удалось прочитать загруженный файл');
+        }
+
+        $width = null;
+        $height = null;
+        $info = @getimagesizefromstring($binary);
+        if ($info !== false) {
+            $width  = (int)$info[0];
+            $height = (int)$info[1];
+        }
+
+        $this->db->insert(SeoTelegramRenderedImage::TABLE, [
+            'tg_post_id' => $postId,
+            'block_id'   => null,
+            'block_type' => '',
+            'source'     => SeoTelegramRenderedImage::SOURCE_UPLOAD,
+            'image_data' => base64_encode($binary),
+            'custom_meta' => json_encode([
+                'name' => $name,
+                'mime' => $mime,
+                'size' => $size,
+            ], JSON_UNESCAPED_UNICODE),
+            'width'      => $width,
+            'height'     => $height,
+            'sort_order' => $this->nextImageSortOrder($postId),
+        ]);
+
+        return $this->getPostWithImages($postId);
+    }
+
+    /**
+     * Delete a rendered image and strip its references from all messages of
+     * the owning post.
+     */
+    public function deleteImage(int $imageId): array {
+        $img = $this->db->fetchOne(
+            'SELECT id, tg_post_id FROM ' . SeoTelegramRenderedImage::TABLE
+            . ' WHERE id = :id',
+            [':id' => $imageId]
+        );
+        if ($img === null) {
+            throw new RuntimeException("Изображение #{$imageId} не найдено");
+        }
+
+        $postId = (int)$img['tg_post_id'];
+        $post = $this->loadPost($postId);
+        $this->assertEditable($post);
+
+        $this->db->delete(
+            SeoTelegramRenderedImage::TABLE,
+            'id = :id',
+            [':id' => $imageId]
+        );
+
+        // Strip from post_data.messages
+        $postData = json_decode($post['post_data'] ?? '{}', true);
+        if (is_array($postData) && isset($postData['messages']) && is_array($postData['messages'])) {
+            $changed = false;
+            foreach ($postData['messages'] as &$msg) {
+                if (isset($msg['rendered_image_id']) && (int)$msg['rendered_image_id'] === $imageId) {
+                    unset($msg['rendered_image_id']);
+                    $changed = true;
+                }
+                if (isset($msg['rendered_image_ids']) && is_array($msg['rendered_image_ids'])) {
+                    $before = $msg['rendered_image_ids'];
+                    $msg['rendered_image_ids'] = array_values(array_filter(
+                        $msg['rendered_image_ids'],
+                        function ($id) use ($imageId) { return (int)$id !== $imageId; }
+                    ));
+                    if ($msg['rendered_image_ids'] !== $before) {
+                        $changed = true;
+                    }
+                    if (empty($msg['rendered_image_ids'])) {
+                        unset($msg['rendered_image_ids']);
+                    }
+                }
+            }
+            unset($msg);
+
+            if ($changed) {
+                $this->db->update(
+                    SeoTelegramPost::TABLE,
+                    'id = :id',
+                    ['post_data' => json_encode($postData, JSON_UNESCAPED_UNICODE)],
+                    [':id' => $postId]
+                );
+            }
+        }
+
+        return $this->getPostWithImages($postId);
+    }
+
+    private function assertEditable(array $post): void {
+        if ($post['status'] === SeoTelegramPost::STATUS_SENDING) {
+            throw new RuntimeException('Нельзя менять пост во время отправки');
+        }
+        if ($post['status'] === SeoTelegramPost::STATUS_SENT) {
+            throw new RuntimeException('Нельзя менять уже отправленный пост');
+        }
+    }
+
+    private function nextImageSortOrder(int $postId): int {
+        $row = $this->db->fetchOne(
+            'SELECT COALESCE(MAX(sort_order), -1) AS m FROM '
+            . SeoTelegramRenderedImage::TABLE . ' WHERE tg_post_id = :pid',
+            [':pid' => $postId]
+        );
+        return ((int)($row['m'] ?? -1)) + 1;
     }
 
     // ── Sending ──────────────────────────────────────────────────────────────
@@ -1167,10 +1396,17 @@ class TelegramPostService {
         $post['tg_message_ids'] = json_decode($post['tg_message_ids'] ?? 'null', true);
 
         $images = $this->db->fetchAll(
-            'SELECT id, block_id, block_type, width, height, sort_order FROM '
+            'SELECT id, block_id, block_type, source, custom_meta, width, height, sort_order FROM '
             . SeoTelegramRenderedImage::TABLE . ' WHERE tg_post_id = :pid ORDER BY sort_order',
             [':pid' => $postId]
         );
+        foreach ($images as &$row) {
+            if (isset($row['custom_meta']) && is_string($row['custom_meta'])) {
+                $decoded = json_decode($row['custom_meta'], true);
+                $row['custom_meta'] = is_array($decoded) ? $decoded : null;
+            }
+        }
+        unset($row);
         $post['rendered_images'] = $images;
 
         return $post;

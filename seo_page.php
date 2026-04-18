@@ -571,8 +571,39 @@ requireAuth();
         .tg-textarea:focus { outline: none; border-color: #6366f1; }
         .tg-char-count { text-align: right; font-size: .68rem; color: #475569; margin-top: 4px; }
         .tg-char-count.over { color: #f87171; }
-        .tg-msg-images { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
-        .tg-msg-images img { width: 56px; height: 42px; object-fit: cover; border-radius: 6px; border: 1px solid #334155; }
+        .tg-msg-images { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: flex-start; }
+        .tg-msg-img-thumb { position: relative; width: 72px; height: 54px; border-radius: 6px; overflow: hidden; border: 1px solid #334155; background: #1e293b; flex-shrink: 0; }
+        .tg-msg-img-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .tg-msg-img-ctrls { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: space-between; padding: 3px; background: linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(0,0,0,.65) 100%); opacity: 0; transition: opacity .15s; }
+        .tg-msg-img-thumb:hover .tg-msg-img-ctrls { opacity: 1; }
+        .tg-img-mini-btn { background: rgba(30,41,59,.9); border: 1px solid #475569; color: #e2e8f0; width: 18px; height: 18px; border-radius: 3px; font-size: .65rem; cursor: pointer; padding: 0; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+        .tg-img-mini-btn:hover:not(:disabled) { background: #334155; border-color: #6366f1; }
+        .tg-img-mini-btn:disabled { opacity: .35; cursor: not-allowed; }
+        .tg-img-mini-btn.danger { color: #fca5a5; margin-left: auto; }
+        .tg-img-mini-btn.danger:hover { background: rgba(239,68,68,.2); border-color: #ef4444; }
+        .tg-msg-img-add { width: 72px; height: 54px; border: 1px dashed #475569; background: #0c1322; color: #94a3b8; border-radius: 6px; font-size: .68rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; text-align: center; transition: all .15s; flex-shrink: 0; }
+        .tg-msg-img-add:hover { border-color: #6366f1; color: #a5b4fc; background: #1e293b; }
+
+        /* Image picker modal tabs */
+        .tg-picker-tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid #1e293b; }
+        .tg-picker-tab { background: transparent; border: none; color: #64748b; padding: 8px 14px; font-size: .78rem; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+        .tg-picker-tab:hover { color: #cbd5e1; }
+        .tg-picker-tab.active { color: #a5b4fc; border-bottom-color: #6366f1; }
+        .tg-picker-pane { display: none; max-height: 440px; overflow-y: auto; padding: 4px; }
+        .tg-picker-pane.active { display: block; }
+        .tg-picker-empty { text-align: center; color: #475569; padding: 24px; font-size: .85rem; }
+        .tg-picker-dropzone { border: 2px dashed #334155; border-radius: 10px; padding: 26px; text-align: center; color: #94a3b8; font-size: .82rem; cursor: pointer; transition: all .15s; }
+        .tg-picker-dropzone:hover, .tg-picker-dropzone.drag { border-color: #6366f1; color: #a5b4fc; background: rgba(99,102,241,.05); }
+        .tg-picker-hint { font-size: .7rem; color: #475569; margin-top: 8px; }
+        .tg-source-badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: .62rem; font-weight: 500; text-transform: uppercase; letter-spacing: .3px; }
+        .tg-src-block_render { background: #1e1b4b; color: #a5b4fc; }
+        .tg-src-article_image { background: #052e2b; color: #5eead4; }
+        .tg-src-upload { background: #422006; color: #fdba74; }
+        .tg-src-ai_generated { background: #3b0764; color: #d8b4fe; }
+        .tg-img-card { position: relative; }
+        .tg-img-card .tg-img-del { position: absolute; top: 4px; right: 4px; background: rgba(15,23,42,.85); border: 1px solid #334155; color: #fca5a5; width: 22px; height: 22px; border-radius: 4px; font-size: .7rem; cursor: pointer; padding: 0; opacity: 0; transition: opacity .15s; }
+        .tg-img-card:hover .tg-img-del { opacity: 1; }
+        .tg-img-card .tg-img-del:hover { border-color: #ef4444; background: rgba(239,68,68,.2); }
 
         /* Message composer cards */
         .tg-msg-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
@@ -1613,6 +1644,34 @@ requireAuth();
         <div id="imgPickerEmpty" style="text-align:center;color:#475569;padding:16px;font-size:.85rem">Нет изображений. Загрузите в секции «Изображения».</div>
         <div class="modal-btns" style="margin-top:14px">
             <button class="btn btn-ghost" onclick="closeModal('imgPickerModal')">Отмена</button>
+        </div>
+    </div>
+</div>
+
+<!-- Telegram: attach image to message -->
+<div class="modal-overlay" id="tgImgPickerModal">
+    <div class="modal" style="max-width:720px">
+        <h3>Добавить изображение в сообщение <span id="tgPickerMsgLabel" style="color:#64748b;font-weight:400;font-size:.85rem"></span></h3>
+        <div class="tg-picker-tabs">
+            <button type="button" class="tg-picker-tab active" data-tab="block" onclick="tgPickerSetTab('block')">Блок статьи</button>
+            <button type="button" class="tg-picker-tab" data-tab="gallery" onclick="tgPickerSetTab('gallery')">Галерея статьи</button>
+            <button type="button" class="tg-picker-tab" data-tab="upload" onclick="tgPickerSetTab('upload')">Загрузить</button>
+        </div>
+        <div class="tg-picker-pane active" id="tgPickerPane_block">
+            <div id="tgPickerBlockList"></div>
+        </div>
+        <div class="tg-picker-pane" id="tgPickerPane_gallery">
+            <div id="tgPickerGalleryList"></div>
+        </div>
+        <div class="tg-picker-pane" id="tgPickerPane_upload">
+            <div class="tg-picker-dropzone" id="tgPickerDropzone" onclick="$('tgPickerFileInput').click()">
+                Перетащите файл сюда или кликните для выбора
+                <div class="tg-picker-hint">JPEG, PNG или WebP, до 10 МБ</div>
+            </div>
+            <input type="file" id="tgPickerFileInput" accept="image/jpeg,image/png,image/webp" style="display:none">
+        </div>
+        <div class="modal-btns" style="margin-top:14px">
+            <button class="btn btn-ghost" onclick="closeModal('tgImgPickerModal')">Отмена</button>
         </div>
     </div>
 </div>
@@ -4112,14 +4171,26 @@ requireAuth();
 
         html += '<div class="tg-msg-card-body">';
 
-        // Images (read-only preview in Phase 1; Phase 2 adds CRUD)
-        if (imgIds.length > 0) {
-            html += '<div class="tg-msg-images">';
-            imgIds.forEach(function(id) {
-                html += '<img src="' + API + '?r=telegram/rendered-image/' + id + '" loading="lazy">';
-            });
+        // Images editor (× detach, ◂▸ reorder, + add up to 10)
+        html += '<div class="tg-msg-images">';
+        imgIds.forEach(function(id, ii) {
+            html += '<div class="tg-msg-img-thumb">';
+            html += '<img src="' + API + '?r=telegram/rendered-image/' + id + '" loading="lazy">';
+            html += '<div class="tg-msg-img-ctrls">';
+            html += '<button type="button" class="tg-img-mini-btn" ' + (ii === 0 ? 'disabled' : '')
+                 + ' onclick="moveTgImg(' + idx + ',' + ii + ',-1)" title="Влево">&#9664;</button>';
+            html += '<button type="button" class="tg-img-mini-btn" ' + (ii === imgIds.length - 1 ? 'disabled' : '')
+                 + ' onclick="moveTgImg(' + idx + ',' + ii + ',1)" title="Вправо">&#9654;</button>';
+            html += '<button type="button" class="tg-img-mini-btn danger"'
+                 + ' onclick="removeTgImgFromMsg(' + idx + ',' + ii + ')" title="Открепить">×</button>';
             html += '</div>';
+            html += '</div>';
+        });
+        if (imgIds.length < 10) {
+            html += '<button type="button" class="tg-msg-img-add" onclick="openTgImgPicker(' + idx + ')"'
+                 + ' title="Добавить изображение">+ Картинка</button>';
         }
+        html += '</div>';
 
         // Text / caption
         var overClass = text.length > maxLen ? ' over' : '';
@@ -4271,6 +4342,237 @@ requireAuth();
             var ta = $('tgMsgText_' + (tgComposer.length - 1));
             if (ta) ta.focus();
         }, 0);
+    }
+
+    // ── Image editing within message
+    var tgPickerMsgIdx = null;
+
+    function tgMsgNormalizeImgIds(msg) {
+        if (Array.isArray(msg.rendered_image_ids)) {
+            return msg.rendered_image_ids;
+        }
+        if (msg.rendered_image_id) {
+            msg.rendered_image_ids = [msg.rendered_image_id];
+            delete msg.rendered_image_id;
+            return msg.rendered_image_ids;
+        }
+        msg.rendered_image_ids = [];
+        return msg.rendered_image_ids;
+    }
+
+    function removeTgImgFromMsg(msgIdx, imgIdx) {
+        var msg = tgComposer[msgIdx];
+        if (!msg) return;
+        var ids = tgMsgNormalizeImgIds(msg);
+        if (imgIdx < 0 || imgIdx >= ids.length) return;
+        ids.splice(imgIdx, 1);
+        if (ids.length === 0) {
+            delete msg.rendered_image_ids;
+            delete msg.rendered_image_id;
+        }
+        renderTgComposer();
+    }
+
+    function moveTgImg(msgIdx, imgIdx, dir) {
+        var msg = tgComposer[msgIdx];
+        if (!msg) return;
+        var ids = tgMsgNormalizeImgIds(msg);
+        var j = imgIdx + dir;
+        if (j < 0 || j >= ids.length) return;
+        var tmp = ids[imgIdx]; ids[imgIdx] = ids[j]; ids[j] = tmp;
+        renderTgComposer();
+    }
+
+    function openTgImgPicker(msgIdx) {
+        if (!currentTgPostId) { toast('Сначала подготовьте пост', true); return; }
+        tgPickerMsgIdx = msgIdx;
+        $('tgPickerMsgLabel').textContent = '#' + (msgIdx + 1);
+        tgPickerSetTab('block');
+        tgPickerRenderBlockList();
+        tgPickerRenderGalleryList();
+        tgPickerBindUpload();
+        $('tgImgPickerModal').classList.add('show');
+    }
+
+    function tgPickerSetTab(tab) {
+        ['block', 'gallery', 'upload'].forEach(function(t) {
+            var pane = $('tgPickerPane_' + t);
+            if (pane) pane.classList.toggle('active', t === tab);
+        });
+        var tabs = document.querySelectorAll('#tgImgPickerModal .tg-picker-tab');
+        tabs.forEach(function(b) { b.classList.toggle('active', b.getAttribute('data-tab') === tab); });
+    }
+
+    function tgPickerRenderBlockList() {
+        var host = $('tgPickerBlockList');
+        if (!artBlocks || !artBlocks.length) {
+            host.innerHTML = '<div class="tg-picker-empty">У статьи нет блоков</div>';
+            return;
+        }
+        host.innerHTML = '<div class="tg-img-grid">' + artBlocks.map(function(b) {
+            var label = esc(b.type) + (b.name ? ' · ' + esc(b.name) : '');
+            return '<div class="tg-img-card" style="cursor:pointer" onclick="tgPickerPickBlock(' + b.id + ')">'
+                + '<div style="aspect-ratio:4/3;background:#0c1322;display:flex;align-items:center;justify-content:center;color:#6366f1;font-size:.8rem;font-weight:600">' + esc(b.type) + '</div>'
+                + '<div class="tg-img-card-label">' + label + '</div>'
+                + '</div>';
+        }).join('') + '</div>';
+    }
+
+    function tgPickerRenderGalleryList() {
+        var host = $('tgPickerGalleryList');
+        if (!artImages || !artImages.length) {
+            host.innerHTML = '<div class="tg-picker-empty">Нет изображений в галерее статьи</div>';
+            return;
+        }
+        host.innerHTML = '<div class="tg-img-grid">' + artImages.map(function(img) {
+            var src = API + '?r=images/' + img.id + '/raw';
+            return '<div class="tg-img-card" style="cursor:pointer" onclick="tgPickerPickArticleImage(' + img.id + ')">'
+                + '<img src="' + src + '" loading="lazy">'
+                + '<div class="tg-img-card-label">' + esc(img.name || ('#' + img.id)) + '</div>'
+                + '</div>';
+        }).join('') + '</div>';
+    }
+
+    function tgPickerBindUpload() {
+        var input = $('tgPickerFileInput');
+        var zone = $('tgPickerDropzone');
+        if (!input || !zone || input._tgBound) return;
+        input._tgBound = true;
+
+        input.addEventListener('change', function() {
+            if (input.files && input.files[0]) {
+                var f = input.files[0];
+                input.value = '';
+                tgPickerPickUpload(f);
+            }
+        });
+        ['dragover', 'dragenter'].forEach(function(ev) {
+            zone.addEventListener(ev, function(e) { e.preventDefault(); zone.classList.add('drag'); });
+        });
+        ['dragleave', 'drop'].forEach(function(ev) {
+            zone.addEventListener(ev, function(e) { e.preventDefault(); zone.classList.remove('drag'); });
+        });
+        zone.addEventListener('drop', function(e) {
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+                tgPickerPickUpload(e.dataTransfer.files[0]);
+            }
+        });
+    }
+
+    async function tgPickerPickBlock(blockId) {
+        if (tgPickerMsgIdx === null) return;
+        var msgIdx = tgPickerMsgIdx;
+        closeModal('tgImgPickerModal');
+        await callAddImage(msgIdx, 'telegram/add-block-image/' + currentTgPostId, { block_id: blockId });
+    }
+
+    async function tgPickerPickArticleImage(imgId) {
+        if (tgPickerMsgIdx === null) return;
+        var msgIdx = tgPickerMsgIdx;
+        closeModal('tgImgPickerModal');
+        await callAddImage(msgIdx, 'telegram/add-article-image/' + currentTgPostId, { article_image_id: imgId });
+    }
+
+    async function tgPickerPickUpload(file) {
+        if (tgPickerMsgIdx === null) return;
+        var msgIdx = tgPickerMsgIdx;
+        var allowed = ['image/jpeg', 'image/png', 'image/webp'];
+        if (allowed.indexOf(file.type) === -1) {
+            toast('Только JPEG, PNG или WebP', true);
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            toast('Файл больше 10 МБ', true);
+            return;
+        }
+        closeModal('tgImgPickerModal');
+        await uploadTgImage(msgIdx, file);
+    }
+
+    async function callAddImage(msgIdx, endpoint, body) {
+        if (!currentTgPostId || !currentTgPostData) return;
+        var msg = tgComposer[msgIdx];
+        if (!msg) return;
+        var ids = tgMsgNormalizeImgIds(msg);
+        if (ids.length >= 10) { toast('Максимум 10 изображений в сообщении', true); return; }
+
+        var oldIds = (currentTgPostData.rendered_images || []).map(function(i) { return i.id; });
+
+        try {
+            var res = await api(endpoint, { method: 'POST', body: body });
+            if (!res.success) { toast(res.error || 'Ошибка', true); return; }
+
+            var newImages = res.data.rendered_images || [];
+            var added = null;
+            for (var i = 0; i < newImages.length; i++) {
+                if (oldIds.indexOf(newImages[i].id) === -1) { added = newImages[i].id; break; }
+            }
+            currentTgPostData = res.data;
+            renderTgImagePresets(currentTgPostData);
+
+            if (added && tgComposer[msgIdx]) {
+                var ids2 = tgMsgNormalizeImgIds(tgComposer[msgIdx]);
+                ids2.push(added);
+                renderTgComposer();
+                await saveTgPost();
+            } else {
+                toast('Изображение добавлено в пул, но не привязано', true);
+            }
+        } catch(e) { toast('Ошибка: ' + e.message, true); }
+    }
+
+    async function uploadTgImage(msgIdx, file) {
+        if (!currentTgPostId || !currentTgPostData) return;
+        var msg = tgComposer[msgIdx];
+        if (!msg) return;
+        var ids = tgMsgNormalizeImgIds(msg);
+        if (ids.length >= 10) { toast('Максимум 10 изображений в сообщении', true); return; }
+
+        var oldIds = (currentTgPostData.rendered_images || []).map(function(i) { return i.id; });
+
+        try {
+            var fd = new FormData();
+            fd.append('file', file);
+            var resp = await fetch(API + '?r=telegram/upload-image/' + currentTgPostId, {
+                method: 'POST', body: fd
+            });
+            var data = await resp.json();
+            if (!resp.ok || !data.success) {
+                toast((data && data.error) || 'Ошибка загрузки', true);
+                return;
+            }
+
+            var newImages = data.data.rendered_images || [];
+            var added = null;
+            for (var i = 0; i < newImages.length; i++) {
+                if (oldIds.indexOf(newImages[i].id) === -1) { added = newImages[i].id; break; }
+            }
+            currentTgPostData = data.data;
+            renderTgImagePresets(currentTgPostData);
+
+            if (added && tgComposer[msgIdx]) {
+                var ids2 = tgMsgNormalizeImgIds(tgComposer[msgIdx]);
+                ids2.push(added);
+                renderTgComposer();
+                await saveTgPost();
+                toast('Файл загружен');
+            }
+        } catch(e) { toast('Ошибка: ' + e.message, true); }
+    }
+
+    async function deleteTgImageFromPool(imageId) {
+        if (!currentTgPostId) return;
+        if (!confirm('Удалить изображение из пула? Оно будет откреплено от всех сообщений, ваши несохранённые правки композитора будут заменены серверной версией.')) return;
+
+        try {
+            var res = await api('telegram/image/' + imageId, { method: 'DELETE' });
+            if (!res.success) { toast(res.error || 'Ошибка', true); return; }
+            currentTgPostData = res.data;
+            renderTgCaptionEditors(res.data);
+            renderTgImagePresets(res.data);
+            renderTgPreview(res.data);
+            toast('Изображение удалено');
+        } catch(e) { toast('Ошибка: ' + e.message, true); }
     }
 
     function refreshTgPreviewFromComposer() {
@@ -4488,6 +4790,26 @@ requireAuth();
         container.scrollTop = 0;
     }
 
+    function tgImgSourceLabel(img) {
+        var src = img.source || 'block_render';
+        if (src === 'block_render') {
+            return '<span class="tg-source-badge tg-src-block_render">блок</span> '
+                + esc(img.block_type || '');
+        }
+        if (src === 'article_image') {
+            return '<span class="tg-source-badge tg-src-article_image">галерея</span>';
+        }
+        if (src === 'upload') {
+            var meta = img.custom_meta || {};
+            return '<span class="tg-source-badge tg-src-upload">загружено</span> '
+                + esc((meta.name || '').substring(0, 20));
+        }
+        if (src === 'ai_generated') {
+            return '<span class="tg-source-badge tg-src-ai_generated">AI</span>';
+        }
+        return esc(src);
+    }
+
     function renderTgImagePresets(postData) {
         var images = postData.rendered_images || [];
         if (images.length === 0) { $('tgImagePresets').style.display = 'none'; return; }
@@ -4495,8 +4817,10 @@ requireAuth();
         $('tgImgCount').textContent = images.length;
         $('tgImageGrid').innerHTML = images.map(function(img) {
             return '<div class="tg-img-card">'
+                + '<button type="button" class="tg-img-del" title="Удалить изображение из пула"'
+                + ' onclick="deleteTgImageFromPool(' + img.id + ')">×</button>'
                 + '<img src="' + API + '?r=telegram/rendered-image/' + img.id + '" loading="lazy">'
-                + '<div class="tg-img-card-label">' + esc(img.block_type) + '</div>'
+                + '<div class="tg-img-card-label">' + tgImgSourceLabel(img) + '</div>'
                 + '</div>';
         }).join('');
         $('tgImagePresets').style.display = '';
