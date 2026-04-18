@@ -569,6 +569,14 @@ requireAuth();
         .tg-card-body.collapsed { display: none; }
         .tg-textarea { width: 100%; background: #1e293b; border: 1px solid #334155; color: #e2e8f0; padding: 10px 12px; border-radius: 8px; font-size: .8rem; font-family: 'SF Mono', 'Fira Code', monospace; resize: vertical; line-height: 1.5; transition: border-color .2s; }
         .tg-textarea:focus { outline: none; border-color: #6366f1; }
+
+        /* MarkdownV2 formatting toolbar */
+        .tg-fmt-toolbar { display: flex; gap: 3px; margin-bottom: 6px; flex-wrap: wrap; }
+        .tg-fmt-btn { background: #1e293b; border: 1px solid #334155; color: #cbd5e1; padding: 4px 8px; border-radius: 5px; font-size: .72rem; cursor: pointer; font-family: 'SF Mono', 'Fira Code', monospace; transition: all .15s; min-width: 26px; display: inline-flex; align-items: center; justify-content: center; }
+        .tg-fmt-btn:hover { border-color: #6366f1; color: #a5b4fc; background: #1e293b; }
+        .tg-fmt-btn b, .tg-fmt-btn i, .tg-fmt-btn s, .tg-fmt-btn u { font-family: -apple-system, sans-serif; }
+        .tg-fmt-btn.wide { padding: 4px 10px; font-size: .7rem; }
+        .tg-fmt-btn-sep { width: 1px; background: #1e293b; margin: 0 4px; }
         .tg-char-count { text-align: right; font-size: .68rem; color: #475569; margin-top: 4px; }
         .tg-char-count.over { color: #f87171; }
         .tg-msg-images { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: flex-start; }
@@ -1644,6 +1652,27 @@ requireAuth();
         <div id="imgPickerEmpty" style="text-align:center;color:#475569;padding:16px;font-size:.85rem">Нет изображений. Загрузите в секции «Изображения».</div>
         <div class="modal-btns" style="margin-top:14px">
             <button class="btn btn-ghost" onclick="closeModal('imgPickerModal')">Отмена</button>
+        </div>
+    </div>
+</div>
+
+<!-- Telegram: insert/edit link in message text -->
+<div class="modal-overlay" id="tgLinkModal">
+    <div class="modal" style="max-width:480px">
+        <h3>Вставить ссылку</h3>
+        <div class="form-grid">
+            <div class="form-group full">
+                <label>Текст ссылки</label>
+                <input type="text" id="tgLinkText" placeholder="Отображаемый текст" onkeydown="if(event.key==='Enter')tgLinkConfirm()">
+            </div>
+            <div class="form-group full">
+                <label>URL</label>
+                <input type="url" id="tgLinkUrl" placeholder="https://..." onkeydown="if(event.key==='Enter')tgLinkConfirm()">
+            </div>
+        </div>
+        <div class="modal-btns" style="margin-top:14px">
+            <button class="btn btn-ghost" onclick="closeModal('tgLinkModal')">Отмена</button>
+            <button class="btn" onclick="tgLinkConfirm()">Вставить</button>
         </div>
     </div>
 </div>
@@ -4192,6 +4221,20 @@ requireAuth();
         }
         html += '</div>';
 
+        // MarkdownV2 formatting toolbar
+        html += '<div class="tg-fmt-toolbar">';
+        html += '<button type="button" class="tg-fmt-btn" title="Жирный" onclick="tgFmtWrap(' + idx + ',\'*\',\'*\')"><b>B</b></button>';
+        html += '<button type="button" class="tg-fmt-btn" title="Курсив" onclick="tgFmtWrap(' + idx + ',\'_\',\'_\')"><i>I</i></button>';
+        html += '<button type="button" class="tg-fmt-btn" title="Подчёркнутый" onclick="tgFmtWrap(' + idx + ',\'__\',\'__\')"><u>U</u></button>';
+        html += '<button type="button" class="tg-fmt-btn" title="Зачёркнутый" onclick="tgFmtWrap(' + idx + ',\'~\',\'~\')"><s>S</s></button>';
+        html += '<span class="tg-fmt-btn-sep"></span>';
+        html += '<button type="button" class="tg-fmt-btn wide" title="Моноширинный код" onclick="tgFmtWrap(' + idx + ',\'`\',\'`\')">&lt;/&gt;</button>';
+        html += '<button type="button" class="tg-fmt-btn wide" title="Спойлер" onclick="tgFmtWrap(' + idx + ',\'||\',\'||\')">||</button>';
+        html += '<button type="button" class="tg-fmt-btn wide" title="Цитата (строка)" onclick="tgFmtLine(' + idx + ',\'&gt;\')">&gt;</button>';
+        html += '<span class="tg-fmt-btn-sep"></span>';
+        html += '<button type="button" class="tg-fmt-btn wide" title="Вставить ссылку" onclick="tgFmtLink(' + idx + ')">ссылка</button>';
+        html += '</div>';
+
         // Text / caption
         var overClass = text.length > maxLen ? ' over' : '';
         html += '<textarea id="tgMsgText_' + idx + '" rows="5" class="tg-textarea"'
@@ -4573,6 +4616,117 @@ requireAuth();
             renderTgPreview(res.data);
             toast('Изображение удалено');
         } catch(e) { toast('Ошибка: ' + e.message, true); }
+    }
+
+    // ── MarkdownV2 formatting toolbar
+    function tgApplyTextareaChange(ta, idx) {
+        var maxLen = (ta.getAttribute('data-maxlen') ? parseInt(ta.getAttribute('data-maxlen'), 10) : null);
+        if (!maxLen) {
+            var msg = tgComposer[idx];
+            maxLen = msg && tgMsgType(msg) === 'text' ? 4096 : 1024;
+        }
+        onTgTextInput(idx, maxLen);
+    }
+
+    function tgFmtWrap(idx, before, after) {
+        var ta = $('tgMsgText_' + idx);
+        if (!ta) return;
+        var s = ta.selectionStart, e = ta.selectionEnd;
+        var val = ta.value;
+        var sel = val.substring(s, e);
+        var out = val.substring(0, s) + before + sel + after + val.substring(e);
+        ta.value = out;
+        var newStart = s + before.length;
+        var newEnd = newStart + sel.length;
+        ta.setSelectionRange(newStart, newEnd);
+        ta.focus();
+        tgApplyTextareaChange(ta, idx);
+    }
+
+    function tgFmtLine(idx, prefix) {
+        var ta = $('tgMsgText_' + idx);
+        if (!ta) return;
+        var val = ta.value;
+        var s = ta.selectionStart;
+        var lineStart = val.lastIndexOf('\n', s - 1) + 1;
+        var lineEnd = val.indexOf('\n', lineStart);
+        if (lineEnd === -1) lineEnd = val.length;
+
+        var line = val.substring(lineStart, lineEnd);
+        var pws = prefix + ' ';
+        var out, newCaret;
+        if (line.indexOf(pws) === 0) {
+            out = val.substring(0, lineStart) + line.substring(pws.length) + val.substring(lineEnd);
+            newCaret = Math.max(lineStart, s - pws.length);
+        } else {
+            out = val.substring(0, lineStart) + pws + val.substring(lineStart);
+            newCaret = s + pws.length;
+        }
+        ta.value = out;
+        ta.setSelectionRange(newCaret, newCaret);
+        ta.focus();
+        tgApplyTextareaChange(ta, idx);
+    }
+
+    var tgLinkCtx = null;
+
+    function tgFmtLink(idx) {
+        var ta = $('tgMsgText_' + idx);
+        if (!ta) return;
+        tgLinkCtx = { idx: idx, start: ta.selectionStart, end: ta.selectionEnd };
+        var sel = ta.value.substring(ta.selectionStart, ta.selectionEnd);
+
+        // Detect editing existing [text](url) around cursor
+        var val = ta.value;
+        var re = /\[([^\]]+)\]\(([^)]+)\)/g;
+        var match, existing = null;
+        while ((match = re.exec(val)) !== null) {
+            if (match.index <= ta.selectionStart && match.index + match[0].length >= ta.selectionEnd) {
+                existing = { start: match.index, end: match.index + match[0].length, text: match[1], url: match[2] };
+                break;
+            }
+        }
+        if (existing) {
+            tgLinkCtx.start = existing.start;
+            tgLinkCtx.end = existing.end;
+            $('tgLinkText').value = existing.text;
+            $('tgLinkUrl').value = existing.url;
+        } else {
+            $('tgLinkText').value = sel;
+            $('tgLinkUrl').value = '';
+        }
+
+        $('tgLinkModal').classList.add('show');
+        setTimeout(function() {
+            if ($('tgLinkText').value && !$('tgLinkUrl').value) $('tgLinkUrl').focus();
+            else $('tgLinkText').focus();
+        }, 50);
+    }
+
+    function tgLinkConfirm() {
+        var text = $('tgLinkText').value.trim();
+        var url = $('tgLinkUrl').value.trim();
+        if (!text) { toast('Укажите текст ссылки', true); return; }
+        if (!url) { toast('Укажите URL', true); return; }
+        if (!/^https?:\/\//i.test(url) && !/^tg:\/\//i.test(url)) {
+            toast('URL должен начинаться с http://, https:// или tg://', true);
+            return;
+        }
+        if (!tgLinkCtx) return;
+
+        var ta = $('tgMsgText_' + tgLinkCtx.idx);
+        if (!ta) { closeModal('tgLinkModal'); tgLinkCtx = null; return; }
+
+        var v = ta.value;
+        var ins = '[' + text + '](' + url + ')';
+        ta.value = v.substring(0, tgLinkCtx.start) + ins + v.substring(tgLinkCtx.end);
+        var caret = tgLinkCtx.start + ins.length;
+        ta.setSelectionRange(caret, caret);
+        ta.focus();
+        tgApplyTextareaChange(ta, tgLinkCtx.idx);
+
+        closeModal('tgLinkModal');
+        tgLinkCtx = null;
     }
 
     function refreshTgPreviewFromComposer() {
