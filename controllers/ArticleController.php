@@ -211,7 +211,7 @@ class ArticleController extends AbstractController {
         $article = new SeoArticle($existing);
         $article->fromArray($data);
 
-        $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, $article->toArray(), 'id = :aid', [':aid' => $id]);
+        $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, 'id = :aid', $article->toArray(), [':aid' => $id]);
 
         $this->db->insert(SeoAuditLog::SEO_AUDIT_LOG_TABLE, SeoAuditLog::articleAction(
             $id, SeoAuditLog::ACTION_UPDATE, $data['actor'] ?? 'admin',
