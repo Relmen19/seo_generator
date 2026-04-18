@@ -570,6 +570,10 @@ requireAuth();
         .tg-textarea { width: 100%; background: #1e293b; border: 1px solid #334155; color: #e2e8f0; padding: 10px 12px; border-radius: 8px; font-size: .8rem; font-family: 'SF Mono', 'Fira Code', monospace; resize: vertical; line-height: 1.5; transition: border-color .2s; }
         .tg-textarea:focus { outline: none; border-color: #6366f1; }
 
+        /* Dirty state of composer save button */
+        #btnTgSave.tg-dirty { background: #ea580c; box-shadow: 0 0 0 2px rgba(251,191,36,.2); }
+        #btnTgSave.tg-dirty:hover { background: #c2410c; }
+
         /* MarkdownV2 formatting toolbar */
         .tg-fmt-toolbar { display: flex; gap: 3px; margin-bottom: 6px; flex-wrap: wrap; }
         .tg-fmt-btn { background: #1e293b; border: 1px solid #334155; color: #cbd5e1; padding: 4px 8px; border-radius: 5px; font-size: .72rem; cursor: pointer; font-family: 'SF Mono', 'Fira Code', monospace; transition: all .15s; min-width: 26px; display: inline-flex; align-items: center; justify-content: center; }
@@ -1301,9 +1305,10 @@ requireAuth();
                             <!-- Message composer (per-message cards) -->
                             <div id="tgCaptionEditor" style="display:none">
                                 <div id="tgCaptionEditors"></div>
-                                <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-                                    <button class="btn-pub" onclick="saveTgPost()" style="font-size:.75rem;padding:6px 14px">Сохранить</button>
+                                <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
+                                    <button id="btnTgSave" class="btn-pub" onclick="saveTgPost()" style="font-size:.75rem;padding:6px 14px" title="Ctrl+Enter для сохранения">Сохранить</button>
                                     <button class="btn-pub btn-pub-preview" onclick="addTgMsg()" style="font-size:.75rem;padding:6px 14px">+ Добавить сообщение</button>
+                                    <span id="tgDirtyHint" style="display:none;font-size:.72rem;color:#fbbf24">● Несохранённые изменения</span>
                                 </div>
                             </div>
 
@@ -2026,7 +2031,8 @@ requireAuth();
     }
 
     async function selectArticle(id) {
-        if (dirty && !confirm('Несохранённые изменения. Продолжить?')) return;
+        if ((dirty || tgDirty) && !confirm('Несохранённые изменения. Продолжить?')) return;
+        if (tgDirty) tgSetDirty(false);
         try {
             const data = await api('articles/'+id);
             const art = data.data;
@@ -2084,7 +2090,8 @@ requireAuth();
     }
 
     function newArticle() {
-        if (dirty && !confirm('Несохранённые изменения. Продолжить?')) return;
+        if ((dirty || tgDirty) && !confirm('Несохранённые изменения. Продолжить?')) return;
+        if (tgDirty) tgSetDirty(false);
         artId = null; artBlocks = []; artImages = []; artTemplateTplBlocks = [];
         activeEditor = 'article';
         showEditor('articleEditor', 'Новая статья', null, '<span class="status-badge status-draft">Черновик</span>');
@@ -4135,6 +4142,31 @@ requireAuth();
 
     // ── Composer state (mirrors post_data.messages[], source of truth for edits)
     var tgComposer = [];
+    var tgDirty = false;
+
+    function tgSetDirty(v) {
+        tgDirty = !!v;
+        var btn = $('btnTgSave');
+        if (btn) btn.classList.toggle('tg-dirty', tgDirty);
+        var hint = $('tgDirtyHint');
+        if (hint) hint.style.display = tgDirty ? '' : 'none';
+    }
+
+    window.addEventListener('beforeunload', function(e) {
+        if (tgDirty) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (!(e.ctrlKey || e.metaKey) || e.key !== 'Enter') return;
+        var target = e.target;
+        if (target && target.id && target.id.indexOf('tgMsgText_') === 0) {
+            e.preventDefault();
+            saveTgPost();
+        }
+    });
 
     function tgMsgImgIds(msg) {
         if (Array.isArray(msg.rendered_image_ids) && msg.rendered_image_ids.length > 0) {
@@ -4162,6 +4194,7 @@ requireAuth();
         var msgs = (postData && postData.post_data && postData.post_data.messages) || [];
         tgComposer = JSON.parse(JSON.stringify(msgs));
         renderTgComposer();
+        tgSetDirty(false);
     }
 
     function renderTgComposer() {
@@ -4302,6 +4335,7 @@ requireAuth();
             msg.caption = val;
             delete msg.text;
         }
+        tgSetDirty(true);
         refreshTgPreviewFromComposer();
     }
 
@@ -4311,6 +4345,7 @@ requireAuth();
         var row = msg.keyboard.inline_keyboard[r];
         if (!row || !row[b]) return;
         row[b][field] = value;
+        tgSetDirty(true);
         refreshTgPreviewFromComposer();
     }
 
@@ -4319,6 +4354,7 @@ requireAuth();
         if (!msg) return;
         if (!msg.keyboard) msg.keyboard = { inline_keyboard: [] };
         msg.keyboard.inline_keyboard.push([{ text: '', url: '' }]);
+        tgSetDirty(true);
         renderTgComposer();
     }
 
@@ -4326,6 +4362,7 @@ requireAuth();
         var msg = tgComposer[idx];
         if (!msg || !msg.keyboard || !msg.keyboard.inline_keyboard[r]) return;
         msg.keyboard.inline_keyboard[r].push({ text: '', url: '' });
+        tgSetDirty(true);
         renderTgComposer();
     }
 
@@ -4337,6 +4374,7 @@ requireAuth();
             msg.keyboard.inline_keyboard.splice(r, 1);
         }
         if (msg.keyboard.inline_keyboard.length === 0) delete msg.keyboard;
+        tgSetDirty(true);
         renderTgComposer();
     }
 
@@ -4345,6 +4383,7 @@ requireAuth();
         if (!msg || !msg.keyboard || !msg.keyboard.inline_keyboard) return;
         msg.keyboard.inline_keyboard.splice(r, 1);
         if (msg.keyboard.inline_keyboard.length === 0) delete msg.keyboard;
+        tgSetDirty(true);
         renderTgComposer();
     }
 
@@ -4354,6 +4393,7 @@ requireAuth();
         var tmp = tgComposer[idx];
         tgComposer[idx] = tgComposer[j];
         tgComposer[j] = tmp;
+        tgSetDirty(true);
         renderTgComposer();
     }
 
@@ -4362,6 +4402,7 @@ requireAuth();
         if (!msg) return;
         var clone = JSON.parse(JSON.stringify(msg));
         tgComposer.splice(idx + 1, 0, clone);
+        tgSetDirty(true);
         renderTgComposer();
     }
 
@@ -4370,6 +4411,7 @@ requireAuth();
             if (!confirm('Это единственное сообщение. Удалить всё равно?')) return;
         }
         tgComposer.splice(idx, 1);
+        tgSetDirty(true);
         renderTgComposer();
     }
 
@@ -4379,11 +4421,15 @@ requireAuth();
             text: '',
             parse_mode: 'MarkdownV2'
         });
+        tgSetDirty(true);
         renderTgComposer();
-        // Focus the new textarea
+        // Focus the new textarea and scroll into view
         setTimeout(function() {
             var ta = $('tgMsgText_' + (tgComposer.length - 1));
-            if (ta) ta.focus();
+            if (ta) {
+                ta.focus();
+                if (ta.scrollIntoView) ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         }, 0);
     }
 
@@ -4413,6 +4459,7 @@ requireAuth();
             delete msg.rendered_image_ids;
             delete msg.rendered_image_id;
         }
+        tgSetDirty(true);
         renderTgComposer();
     }
 
@@ -4423,6 +4470,7 @@ requireAuth();
         var j = imgIdx + dir;
         if (j < 0 || j >= ids.length) return;
         var tmp = ids[imgIdx]; ids[imgIdx] = ids[j]; ids[j] = tmp;
+        tgSetDirty(true);
         renderTgComposer();
     }
 
@@ -5082,6 +5130,8 @@ requireAuth();
             if (currentTgPostId === postId) {
                 currentTgPostId = null;
                 currentTgPostData = null;
+                tgComposer = [];
+                tgSetDirty(false);
                 $('tgCaptionEditor').style.display = 'none';
                 $('tgImagePresets').style.display = 'none';
                 $('tgPostResult').style.display = 'none';
@@ -5100,6 +5150,8 @@ requireAuth();
             await api('telegram/' + artId + '/posts', { method: 'DELETE' });
             currentTgPostId = null;
             currentTgPostData = null;
+            tgComposer = [];
+            tgSetDirty(false);
             $('tgCaptionEditor').style.display = 'none';
             $('tgImagePresets').style.display = 'none';
             $('tgPostResult').style.display = 'none';
