@@ -912,6 +912,12 @@ class TelegramPostService {
                                 $opts['caption'] = $msg['caption'];
                                 $opts['parse_mode'] = $msg['parse_mode'] ?? 'HTML';
                             }
+                            if (!empty($msg['keyboard'])) {
+                                $opts['reply_markup'] = json_encode(
+                                    $msg['keyboard'],
+                                    JSON_UNESCAPED_UNICODE
+                                );
+                            }
                             $result = $client->sendPhoto($channelId, $imgData, $opts);
                             $msgId = $result['result']['message_id'] ?? null;
                             if ($msgId !== null) {
@@ -1181,7 +1187,7 @@ class TelegramPostService {
     }
 
     /**
-     * Update post data (edit caption/text).
+     * Update post data (edit caption/text/keyboard/ordering/count).
      */
     public function updatePost(int $postId, array $data): array {
         $post = $this->loadPost($postId);
@@ -1192,7 +1198,12 @@ class TelegramPostService {
 
         $updateFields = [];
         if (isset($data['post_data'])) {
-            $updateFields['post_data'] = json_encode($data['post_data'], JSON_UNESCAPED_UNICODE);
+            $normalized = $this->validateAndNormalizePostData(
+                $data['post_data'],
+                $postId,
+                $post
+            );
+            $updateFields['post_data'] = json_encode($normalized, JSON_UNESCAPED_UNICODE);
         }
         if (isset($data['scheduled_at'])) {
             $updateFields['scheduled_at'] = $data['scheduled_at'];
@@ -1208,6 +1219,223 @@ class TelegramPostService {
         }
 
         return $this->getPostWithImages($postId);
+    }
+
+    /**
+     * Normalize incoming post_data: infer message type from image count,
+     * enforce Telegram limits, validate keyboard structure + URLs.
+     * Throws RuntimeException on violations.
+     */
+    private function validateAndNormalizePostData(array $incoming, int $postId, array $post): array {
+        if (!isset($incoming['messages']) || !is_array($incoming['messages']) || empty($incoming['messages'])) {
+            throw new RuntimeException('Пост должен содержать хотя бы одно сообщение');
+        }
+
+        $validImageIds = $this->loadPostImageIds($postId);
+
+        $messages = [];
+        foreach ($incoming['messages'] as $i => $raw) {
+            if (!is_array($raw)) {
+                throw new RuntimeException('Сообщение #' . ($i + 1) . ': некорректная структура');
+            }
+            $messages[] = $this->normalizeMessage($raw, $i + 1, $validImageIds);
+        }
+
+        // Preserve article_link / format from previous post_data when possible
+        $prev = json_decode($post['post_data'] ?? '{}', true);
+        if (!is_array($prev)) {
+            $prev = [];
+        }
+
+        return [
+            'messages'     => $messages,
+            'article_link' => (string)($incoming['article_link'] ?? $prev['article_link'] ?? ''),
+            'format'       => (string)($incoming['format'] ?? $prev['format'] ?? 'single'),
+        ];
+    }
+
+    private function normalizeMessage(array $raw, int $num, array $validImageIds): array {
+        // Collect image IDs (support both media_group list and single photo refs)
+        $imgIds = [];
+        if (isset($raw['rendered_image_ids']) && is_array($raw['rendered_image_ids'])) {
+            foreach ($raw['rendered_image_ids'] as $id) {
+                $id = (int)$id;
+                if ($id > 0) {
+                    $imgIds[] = $id;
+                }
+            }
+        }
+        if (empty($imgIds) && isset($raw['rendered_image_id']) && (int)$raw['rendered_image_id'] > 0) {
+            $imgIds[] = (int)$raw['rendered_image_id'];
+        }
+
+        // Dedup while preserving order
+        $imgIds = array_values(array_unique($imgIds));
+
+        if (count($imgIds) > self::MAX_MEDIA_GROUP_SIZE) {
+            throw new RuntimeException(
+                'Сообщение #' . $num . ': превышен лимит изображений ('
+                . self::MAX_MEDIA_GROUP_SIZE . ')'
+            );
+        }
+        foreach ($imgIds as $id) {
+            if (!in_array($id, $validImageIds, true)) {
+                throw new RuntimeException(
+                    'Сообщение #' . $num . ': изображение #' . $id
+                    . ' не принадлежит этому посту'
+                );
+            }
+        }
+
+        // Infer type from image count
+        if (count($imgIds) === 0) {
+            $type = 'text';
+        } elseif (count($imgIds) === 1) {
+            $type = 'photo';
+        } else {
+            $type = 'media_group';
+        }
+
+        $parseMode = (string)($raw['parse_mode'] ?? 'MarkdownV2');
+        if (!in_array($parseMode, ['MarkdownV2', 'HTML'], true)) {
+            $parseMode = 'MarkdownV2';
+        }
+
+        $out = [
+            'type'       => $type,
+            'parse_mode' => $parseMode,
+        ];
+
+        if ($type === 'text') {
+            $text = (string)($raw['text'] ?? $raw['caption'] ?? '');
+            if (trim($text) === '') {
+                throw new RuntimeException('Сообщение #' . $num . ': пустой текст');
+            }
+            if (mb_strlen($text) > self::MAX_TEXT_LENGTH) {
+                throw new RuntimeException(
+                    'Сообщение #' . $num . ': текст превышает лимит '
+                    . self::MAX_TEXT_LENGTH . ' символов (' . mb_strlen($text) . ')'
+                );
+            }
+            $out['text'] = $text;
+        } else {
+            $caption = (string)($raw['caption'] ?? $raw['text'] ?? '');
+            if (mb_strlen($caption) > self::MAX_CAPTION_LENGTH) {
+                throw new RuntimeException(
+                    'Сообщение #' . $num . ': подпись превышает лимит '
+                    . self::MAX_CAPTION_LENGTH . ' символов (' . mb_strlen($caption) . ')'
+                );
+            }
+            if ($type === 'photo') {
+                $out['rendered_image_id'] = $imgIds[0];
+            } else {
+                $out['rendered_image_ids'] = $imgIds;
+            }
+            if ($caption !== '') {
+                $out['caption'] = $caption;
+            }
+        }
+
+        // Preserve source-block refs if the client sent them (useful for re-render in Phase 2)
+        if (isset($raw['block_id']) && (int)$raw['block_id'] > 0) {
+            $out['block_id'] = (int)$raw['block_id'];
+        }
+        if (isset($raw['block_type']) && is_string($raw['block_type']) && $raw['block_type'] !== '') {
+            $out['block_type'] = $raw['block_type'];
+        }
+        if (isset($raw['block_ids']) && is_array($raw['block_ids'])) {
+            $out['block_ids'] = array_values(array_map('intval', $raw['block_ids']));
+        }
+        if (isset($raw['block_types']) && is_array($raw['block_types'])) {
+            $out['block_types'] = array_values(array_map('strval', $raw['block_types']));
+        }
+
+        // Keyboard
+        if (!empty($raw['keyboard'])) {
+            if ($type === 'media_group') {
+                throw new RuntimeException(
+                    'Сообщение #' . $num . ': кнопки нельзя прикрепить к группе изображений. '
+                    . 'Перенесите кнопки в текстовое сообщение.'
+                );
+            }
+            $kb = $this->normalizeKeyboard($raw['keyboard'], $num);
+            if (!empty($kb)) {
+                $out['keyboard'] = $kb;
+            }
+        }
+
+        return $out;
+    }
+
+    private function normalizeKeyboard($keyboard, int $msgNum): array {
+        if (!is_array($keyboard) || !isset($keyboard['inline_keyboard']) || !is_array($keyboard['inline_keyboard'])) {
+            throw new RuntimeException('Сообщение #' . $msgNum . ': некорректная структура клавиатуры');
+        }
+
+        $rows = [];
+        foreach ($keyboard['inline_keyboard'] as $r => $row) {
+            if (!is_array($row)) {
+                throw new RuntimeException(
+                    'Сообщение #' . $msgNum . ': строка кнопок ' . ($r + 1) . ' некорректна'
+                );
+            }
+            $outRow = [];
+            foreach ($row as $btn) {
+                if (!is_array($btn)) {
+                    continue;
+                }
+                $text = trim((string)($btn['text'] ?? ''));
+                $url  = trim((string)($btn['url'] ?? ''));
+
+                // Silently drop fully empty button slots (user hasn't filled them yet)
+                if ($text === '' && $url === '') {
+                    continue;
+                }
+                if ($text === '') {
+                    throw new RuntimeException(
+                        'Сообщение #' . $msgNum . ': кнопка в строке ' . ($r + 1) . ' без текста'
+                    );
+                }
+                if (mb_strlen($text) > 64) {
+                    throw new RuntimeException(
+                        'Сообщение #' . $msgNum . ': текст кнопки «'
+                        . mb_substr($text, 0, 30) . '…» длиннее 64 символов'
+                    );
+                }
+                if ($url === '') {
+                    throw new RuntimeException(
+                        'Сообщение #' . $msgNum . ': кнопка «' . $text . '» без ссылки'
+                    );
+                }
+                if (!preg_match('#^https?://#i', $url)) {
+                    throw new RuntimeException(
+                        'Сообщение #' . $msgNum . ': кнопка «' . $text
+                        . '» — недопустимая ссылка (нужна http:// или https://)'
+                    );
+                }
+                $outRow[] = ['text' => $text, 'url' => $url];
+            }
+            if (!empty($outRow)) {
+                $rows[] = $outRow;
+            }
+        }
+
+        if (empty($rows)) {
+            return [];
+        }
+        return ['inline_keyboard' => $rows];
+    }
+
+    private function loadPostImageIds(int $postId): array {
+        $rows = $this->db->fetchAll(
+            'SELECT id FROM ' . SeoTelegramRenderedImage::TABLE . ' WHERE tg_post_id = :pid',
+            [':pid' => $postId]
+        );
+        $ids = [];
+        foreach ($rows as $r) {
+            $ids[] = (int)$r['id'];
+        }
+        return $ids;
     }
 
     /**

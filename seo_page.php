@@ -571,8 +571,36 @@ requireAuth();
         .tg-textarea:focus { outline: none; border-color: #6366f1; }
         .tg-char-count { text-align: right; font-size: .68rem; color: #475569; margin-top: 4px; }
         .tg-char-count.over { color: #f87171; }
-        .tg-msg-images { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+        .tg-msg-images { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
         .tg-msg-images img { width: 56px; height: 42px; object-fit: cover; border-radius: 6px; border: 1px solid #334155; }
+
+        /* Message composer cards */
+        .tg-msg-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+        .tg-msg-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; background: #0c1322; border-bottom: 1px solid #1e293b; }
+        .tg-msg-card-title { font-size: .8rem; font-weight: 600; color: #cbd5e1; display: flex; align-items: center; gap: 6px; min-width: 0; }
+        .tg-msg-card-title .tg-badge { font-size: .65rem; padding: 2px 7px; border-radius: 4px; background: #1e293b; color: #64748b; font-weight: 500; }
+        .tg-msg-card-actions { display: flex; gap: 4px; flex-shrink: 0; }
+        .tg-msg-card-body { padding: 12px; }
+        .tg-icon-btn { background: #1e293b; border: 1px solid #334155; color: #cbd5e1; width: 26px; height: 26px; border-radius: 5px; font-size: .72rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; transition: all .15s; }
+        .tg-icon-btn:hover:not(:disabled) { border-color: #6366f1; color: #a5b4fc; background: #1e293b; }
+        .tg-icon-btn:disabled { opacity: .35; cursor: not-allowed; }
+        .tg-icon-btn-danger { color: #fca5a5; }
+        .tg-icon-btn-danger:hover:not(:disabled) { border-color: #ef4444 !important; color: #fecaca !important; background: rgba(239,68,68,.1) !important; }
+
+        /* Inline keyboard editor */
+        .tg-kb-editor { margin-top: 12px; padding: 10px; background: #0c1322; border: 1px dashed #1e293b; border-radius: 8px; }
+        .tg-kb-editor-head { font-size: .7rem; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .tg-kb-warn { color: #fbbf24; text-transform: none; letter-spacing: normal; font-size: .7rem; font-weight: 500; }
+        .tg-kb-row { display: flex; flex-direction: column; gap: 6px; padding: 8px; background: rgba(15,23,42,.6); border-radius: 6px; margin-bottom: 6px; border: 1px solid #1e293b; }
+        .tg-kb-btn { display: flex; gap: 6px; align-items: center; }
+        .tg-kb-input { flex: 1; background: #1e293b; border: 1px solid #334155; color: #e2e8f0; padding: 6px 10px; border-radius: 6px; font-size: .76rem; min-width: 0; }
+        .tg-kb-input:focus { outline: none; border-color: #6366f1; }
+        .tg-kb-input[type=url] { font-family: 'SF Mono', 'Fira Code', monospace; }
+        .tg-kb-row-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+        .tg-kb-small-btn { background: #1e293b; border: 1px solid #334155; color: #94a3b8; padding: 4px 10px; border-radius: 5px; font-size: .7rem; cursor: pointer; transition: all .15s; }
+        .tg-kb-small-btn:hover { border-color: #6366f1; color: #a5b4fc; }
+        .tg-kb-small-btn-danger { color: #fca5a5; }
+        .tg-kb-small-btn-danger:hover { border-color: #ef4444; color: #fecaca; }
 
         /* Image grid in edit panel */
         .tg-img-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
@@ -1231,12 +1259,12 @@ requireAuth();
                                 <span class="spinner"></span> Подготовка поста...
                             </div>
 
-                            <!-- Message editors (per-message cards) -->
+                            <!-- Message composer (per-message cards) -->
                             <div id="tgCaptionEditor" style="display:none">
                                 <div id="tgCaptionEditors"></div>
-                                <div style="display:flex;gap:8px;margin-top:8px">
-                                    <button class="btn-pub" onclick="saveTgCaptions()" style="font-size:.75rem;padding:6px 14px">Сохранить</button>
-                                    <button class="btn-pub btn-pub-preview" onclick="refreshTgPreview()" style="font-size:.75rem;padding:6px 14px">Обновить превью</button>
+                                <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+                                    <button class="btn-pub" onclick="saveTgPost()" style="font-size:.75rem;padding:6px 14px">Сохранить</button>
+                                    <button class="btn-pub btn-pub-preview" onclick="addTgMsg()" style="font-size:.75rem;padding:6px 14px">+ Добавить сообщение</button>
                                 </div>
                             </div>
 
@@ -4017,85 +4045,252 @@ requireAuth();
         } catch(e) { toast(e.message, true); }
     }
 
-    function renderTgCaptionEditors(postData) {
-        var pd = postData.post_data || {};
-        var messages = pd.messages || [];
-        var container = $('tgCaptionEditors');
+    // ── Composer state (mirrors post_data.messages[], source of truth for edits)
+    var tgComposer = [];
 
-        if (messages.length === 0) {
-            $('tgCaptionEditor').style.display = 'none';
-            return;
+    function tgMsgImgIds(msg) {
+        if (Array.isArray(msg.rendered_image_ids) && msg.rendered_image_ids.length > 0) {
+            return msg.rendered_image_ids.slice();
+        }
+        if (msg.rendered_image_id) return [msg.rendered_image_id];
+        return [];
+    }
+
+    function tgMsgType(msg) {
+        var n = tgMsgImgIds(msg).length;
+        if (n === 0) return 'text';
+        if (n === 1) return 'photo';
+        return 'media_group';
+    }
+
+    function tgMsgTypeLabel(type, n) {
+        if (type === 'text') return 'текст';
+        if (type === 'photo') return 'фото';
+        return 'медиа · ' + n;
+    }
+
+    // Entry point used by build/recompose/loadPost
+    function renderTgCaptionEditors(postData) {
+        var msgs = (postData && postData.post_data && postData.post_data.messages) || [];
+        tgComposer = JSON.parse(JSON.stringify(msgs));
+        renderTgComposer();
+    }
+
+    function renderTgComposer() {
+        var container = $('tgCaptionEditors');
+        if (tgComposer.length === 0) {
+            container.innerHTML = '<div class="tg-empty-state" style="padding:20px">Сообщений нет. Нажмите «+ Добавить сообщение» ниже.</div>';
+        } else {
+            container.innerHTML = tgComposer.map(function(m, i) { return renderTgMsgCard(m, i); }).join('');
+        }
+        $('tgCaptionEditor').style.display = '';
+        refreshTgPreviewFromComposer();
+    }
+
+    function renderTgMsgCard(msg, idx) {
+        var total = tgComposer.length;
+        var imgIds = tgMsgImgIds(msg);
+        var type = tgMsgType(msg);
+        var maxLen = type === 'text' ? 4096 : 1024;
+        var text = type === 'text' ? (msg.text || '') : (msg.caption || '');
+        var typeLabel = tgMsgTypeLabel(type, imgIds.length);
+        var kbRows = (msg.keyboard && msg.keyboard.inline_keyboard) || [];
+
+        var html = '<div class="tg-msg-card">';
+        // Head
+        html += '<div class="tg-msg-card-head">';
+        html += '<div class="tg-msg-card-title">Сообщение ' + (idx + 1)
+             + ' <span class="tg-badge">' + typeLabel + ' · ' + maxLen + '</span></div>';
+        html += '<div class="tg-msg-card-actions">';
+        html += '<button type="button" class="tg-icon-btn" ' + (idx === 0 ? 'disabled' : '')
+             + ' onclick="moveTgMsg(' + idx + ',-1)" title="Вверх">&#9650;</button>';
+        html += '<button type="button" class="tg-icon-btn" ' + (idx === total - 1 ? 'disabled' : '')
+             + ' onclick="moveTgMsg(' + idx + ',1)" title="Вниз">&#9660;</button>';
+        html += '<button type="button" class="tg-icon-btn" onclick="duplicateTgMsg(' + idx + ')" title="Дублировать">⎘</button>';
+        html += '<button type="button" class="tg-icon-btn tg-icon-btn-danger" onclick="removeTgMsg(' + idx + ')" title="Удалить">×</button>';
+        html += '</div></div>';
+
+        html += '<div class="tg-msg-card-body">';
+
+        // Images (read-only preview in Phase 1; Phase 2 adds CRUD)
+        if (imgIds.length > 0) {
+            html += '<div class="tg-msg-images">';
+            imgIds.forEach(function(id) {
+                html += '<img src="' + API + '?r=telegram/rendered-image/' + id + '" loading="lazy">';
+            });
+            html += '</div>';
         }
 
-        var html = '';
-        messages.forEach(function(msg, idx) {
-            var text = msg.caption || msg.text || '';
-            var isCaption = msg.type !== 'text';
-            var maxLen = isCaption ? 1024 : 4096;
-            var typeLabel = isCaption ? 'подпись' : 'текст';
-            var imgIds = msg.rendered_image_ids || (msg.rendered_image_id ? [msg.rendered_image_id] : []);
+        // Text / caption
+        var overClass = text.length > maxLen ? ' over' : '';
+        html += '<textarea id="tgMsgText_' + idx + '" rows="5" class="tg-textarea"'
+             + ' oninput="onTgTextInput(' + idx + ',' + maxLen + ')" placeholder="'
+             + (type === 'text' ? 'Текст сообщения (MarkdownV2)' : 'Подпись к изображению (MarkdownV2)')
+             + '">' + esc(text) + '</textarea>';
+        html += '<div id="tgMsgCount_' + idx + '" class="tg-char-count' + overClass + '">'
+             + text.length + ' / ' + maxLen + '</div>';
 
-            html += '<div class="tg-card" style="margin-bottom:10px">';
-            html += '<div class="tg-card-head" onclick="toggleTgCard(this)">';
-            html += '<span class="tg-card-title">';
-            if (messages.length > 1) {
-                html += 'Сообщение ' + (idx + 1);
-            } else {
-                html += 'Текст поста';
-            }
-            html += ' <span class="tg-badge">' + typeLabel + ' &middot; ' + maxLen + '</span>';
-            html += '</span>';
-            html += '<span class="tg-card-chevron open">&#9654;</span>';
-            html += '</div>';
-            html += '<div class="tg-card-body">';
+        // Keyboard editor
+        html += '<div class="tg-kb-editor">';
+        html += '<div class="tg-kb-editor-head"><span>Inline-кнопки</span>';
+        if (type === 'media_group' && kbRows.length > 0) {
+            html += ' <span class="tg-kb-warn">⚠ Telegram не поддерживает кнопки у медиа-групп — перенесите в текстовое сообщение</span>';
+        }
+        html += '</div>';
 
-            if (imgIds.length > 0) {
-                html += '<div class="tg-msg-images">';
-                imgIds.forEach(function(imgId) {
-                    html += '<img src="' + API + '?r=telegram/rendered-image/' + imgId + '" loading="lazy">';
+        if (kbRows.length > 0) {
+            kbRows.forEach(function(row, r) {
+                html += '<div class="tg-kb-row">';
+                row.forEach(function(btn, b) {
+                    html += '<div class="tg-kb-btn">';
+                    html += '<input type="text" class="tg-kb-input" placeholder="Текст кнопки" value="'
+                         + esc(btn.text || '') + '"'
+                         + ' oninput="onTgBtnChange(' + idx + ',' + r + ',' + b + ',\'text\',this.value)">';
+                    html += '<input type="url" class="tg-kb-input" placeholder="https://..." value="'
+                         + esc(btn.url || '') + '"'
+                         + ' oninput="onTgBtnChange(' + idx + ',' + r + ',' + b + ',\'url\',this.value)">';
+                    html += '<button type="button" class="tg-icon-btn tg-icon-btn-danger"'
+                         + ' onclick="removeTgBtn(' + idx + ',' + r + ',' + b + ')" title="Удалить кнопку">×</button>';
+                    html += '</div>';
                 });
-                html += '</div>';
-                html += '<div style="height:8px"></div>';
-            }
+                html += '<div class="tg-kb-row-actions">';
+                html += '<button type="button" class="tg-kb-small-btn" onclick="addTgBtnToRow(' + idx + ',' + r + ')">+ кнопка в ряд</button>';
+                html += '<button type="button" class="tg-kb-small-btn tg-kb-small-btn-danger" onclick="removeTgKbRow(' + idx + ',' + r + ')">удалить ряд</button>';
+                html += '</div></div>';
+            });
+        }
 
-            html += '<textarea id="tgCaption_' + idx + '" rows="5" maxlength="' + maxLen + '" class="tg-textarea"'
-                + ' oninput="updateTgCaptionCounter(' + idx + ',' + maxLen + ')"'
-                + '>' + esc(text) + '</textarea>';
-            html += '<div id="tgCaptionCount_' + idx + '" class="tg-char-count' + (text.length > maxLen ? ' over' : '') + '">'
-                + text.length + ' / ' + maxLen + '</div>';
+        html += '<button type="button" class="tg-kb-small-btn" onclick="addTgKbRow(' + idx + ')">+ Ряд кнопок</button>';
+        html += '</div>'; // .tg-kb-editor
 
-            html += '</div></div>';
+        html += '</div></div>'; // .tg-msg-card-body, .tg-msg-card
+        return html;
+    }
+
+    function onTgTextInput(idx, maxLen) {
+        var ta = $('tgMsgText_' + idx);
+        if (!ta) return;
+        var val = ta.value;
+        var len = val.length;
+
+        var cnt = $('tgMsgCount_' + idx);
+        if (cnt) {
+            cnt.textContent = len + ' / ' + maxLen;
+            cnt.className = 'tg-char-count' + (len > maxLen ? ' over' : '');
+        }
+
+        var msg = tgComposer[idx];
+        if (!msg) return;
+        if (tgMsgType(msg) === 'text') {
+            msg.text = val;
+            delete msg.caption;
+        } else {
+            msg.caption = val;
+            delete msg.text;
+        }
+        refreshTgPreviewFromComposer();
+    }
+
+    function onTgBtnChange(idx, r, b, field, value) {
+        var msg = tgComposer[idx];
+        if (!msg || !msg.keyboard || !msg.keyboard.inline_keyboard) return;
+        var row = msg.keyboard.inline_keyboard[r];
+        if (!row || !row[b]) return;
+        row[b][field] = value;
+        refreshTgPreviewFromComposer();
+    }
+
+    function addTgKbRow(idx) {
+        var msg = tgComposer[idx];
+        if (!msg) return;
+        if (!msg.keyboard) msg.keyboard = { inline_keyboard: [] };
+        msg.keyboard.inline_keyboard.push([{ text: '', url: '' }]);
+        renderTgComposer();
+    }
+
+    function addTgBtnToRow(idx, r) {
+        var msg = tgComposer[idx];
+        if (!msg || !msg.keyboard || !msg.keyboard.inline_keyboard[r]) return;
+        msg.keyboard.inline_keyboard[r].push({ text: '', url: '' });
+        renderTgComposer();
+    }
+
+    function removeTgBtn(idx, r, b) {
+        var msg = tgComposer[idx];
+        if (!msg || !msg.keyboard || !msg.keyboard.inline_keyboard[r]) return;
+        msg.keyboard.inline_keyboard[r].splice(b, 1);
+        if (msg.keyboard.inline_keyboard[r].length === 0) {
+            msg.keyboard.inline_keyboard.splice(r, 1);
+        }
+        if (msg.keyboard.inline_keyboard.length === 0) delete msg.keyboard;
+        renderTgComposer();
+    }
+
+    function removeTgKbRow(idx, r) {
+        var msg = tgComposer[idx];
+        if (!msg || !msg.keyboard || !msg.keyboard.inline_keyboard) return;
+        msg.keyboard.inline_keyboard.splice(r, 1);
+        if (msg.keyboard.inline_keyboard.length === 0) delete msg.keyboard;
+        renderTgComposer();
+    }
+
+    function moveTgMsg(idx, dir) {
+        var j = idx + dir;
+        if (j < 0 || j >= tgComposer.length) return;
+        var tmp = tgComposer[idx];
+        tgComposer[idx] = tgComposer[j];
+        tgComposer[j] = tmp;
+        renderTgComposer();
+    }
+
+    function duplicateTgMsg(idx) {
+        var msg = tgComposer[idx];
+        if (!msg) return;
+        var clone = JSON.parse(JSON.stringify(msg));
+        tgComposer.splice(idx + 1, 0, clone);
+        renderTgComposer();
+    }
+
+    function removeTgMsg(idx) {
+        if (tgComposer.length <= 1) {
+            if (!confirm('Это единственное сообщение. Удалить всё равно?')) return;
+        }
+        tgComposer.splice(idx, 1);
+        renderTgComposer();
+    }
+
+    function addTgMsg() {
+        tgComposer.push({
+            type: 'text',
+            text: '',
+            parse_mode: 'MarkdownV2'
         });
-
-        container.innerHTML = html;
-        $('tgCaptionEditor').style.display = '';
+        renderTgComposer();
+        // Focus the new textarea
+        setTimeout(function() {
+            var ta = $('tgMsgText_' + (tgComposer.length - 1));
+            if (ta) ta.focus();
+        }, 0);
     }
 
-    function updateTgCaptionCounter(idx, maxLen) {
-        var ta = $('tgCaption_' + idx);
-        var cnt = $('tgCaptionCount_' + idx);
-        var len = ta.value.length;
-        cnt.textContent = len + ' / ' + maxLen;
-        cnt.className = 'tg-char-count' + (len > maxLen ? ' over' : '');
+    function refreshTgPreviewFromComposer() {
+        if (!currentTgPostData) return;
+        var previewData = JSON.parse(JSON.stringify(currentTgPostData));
+        previewData.post_data = previewData.post_data || {};
+        // Preview uses transient types based on current composer state
+        previewData.post_data.messages = tgComposer.map(function(m) {
+            var copy = JSON.parse(JSON.stringify(m));
+            copy.type = tgMsgType(copy);
+            return copy;
+        });
+        renderTgPreview(previewData);
     }
 
-    async function saveTgCaptions() {
+    async function saveTgPost() {
         if (!currentTgPostId || !currentTgPostData) return;
 
         var pd = JSON.parse(JSON.stringify(currentTgPostData.post_data || {}));
-        var messages = pd.messages || [];
-
-        messages.forEach(function(msg, idx) {
-            var ta = $('tgCaption_' + idx);
-            if (!ta) return;
-            if (msg.type === 'text') {
-                msg.text = ta.value;
-            } else {
-                msg.caption = ta.value;
-            }
-        });
-
-        pd.messages = messages;
+        pd.messages = JSON.parse(JSON.stringify(tgComposer));
 
         try {
             var res = await api('telegram/post/' + currentTgPostId, {
@@ -4104,29 +4299,14 @@ requireAuth();
             });
             if (res.success) {
                 currentTgPostData = res.data;
-                toast('Текст сохранен');
+                // Reload composer from server-normalized state
+                renderTgCaptionEditors(res.data);
+                updateTgButtons(res.data.status);
+                toast('Пост сохранён');
             } else {
-                toast(res.error || 'Ошибка', true);
+                toast(res.error || 'Ошибка сохранения', true);
             }
         } catch(e) { toast(e.message, true); }
-    }
-
-    function refreshTgPreview() {
-        if (!currentTgPostData) return;
-
-        // Read current values from textareas into postData
-        var pd = JSON.parse(JSON.stringify(currentTgPostData.post_data || {}));
-        var messages = pd.messages || [];
-        messages.forEach(function(msg, idx) {
-            var ta = $('tgCaption_' + idx);
-            if (!ta) return;
-            if (msg.type === 'text') { msg.text = ta.value; }
-            else { msg.caption = ta.value; }
-        });
-
-        var previewData = JSON.parse(JSON.stringify(currentTgPostData));
-        previewData.post_data = pd;
-        renderTgPreview(previewData);
     }
 
     function formatTgCaption(text) {
