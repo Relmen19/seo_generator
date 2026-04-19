@@ -104,6 +104,17 @@ class TelegramApiClient {
     }
 
     /**
+     * Delete a message from a chat. Bot must have permission to delete.
+     * Telegram allows deleting own messages within 48 hours in channels.
+     */
+    public function deleteMessage(string $chatId, int $messageId): array {
+        return $this->request('deleteMessage', [
+            'chat_id'    => $chatId,
+            'message_id' => $messageId,
+        ]);
+    }
+
+    /**
      * Get chat info (name, photo, member count).
      */
     public function getChat(string $chatId): array {

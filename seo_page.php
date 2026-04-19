@@ -1511,7 +1511,7 @@ requireAuth();
                         </div>
                         <div class="form-group">
                             <label>Тип</label>
-                            <select id="tgtType" onchange="updateTgtConfigFormVisibility()">
+                            <select id="tgtType" onchange="onTgtTypeChange()">
                                 <option value="hostia">Hostia</option>
                                 <option value="ftp">FTP</option>
                                 <option value="ssh">SSH</option>
@@ -1547,7 +1547,7 @@ requireAuth();
                                         <div class="form-group"><label style="font-size:.72rem;color:#64748b">host</label>
                                             <input type="text" id="tgtCfgHost" placeholder="ftp.example.com" onchange="syncTgtFormToJson()"></div>
                                         <div class="form-group"><label style="font-size:.72rem;color:#64748b">port</label>
-                                            <input type="text" id="tgtCfgPort" placeholder="21" onchange="syncTgtFormToJson()"></div>
+                                            <input type="text" id="tgtCfgPort" placeholder="21 (ftp) / 22 (ssh)" onchange="syncTgtFormToJson()"></div>
                                     </div>
                                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
                                         <div class="form-group"><label style="font-size:.72rem;color:#64748b">username</label>
@@ -1559,15 +1559,34 @@ requireAuth();
                                         <label style="font-size:.72rem;color:#64748b">document_root</label>
                                         <input type="text" id="tgtCfgDocRoot" placeholder="/var/www/html" onchange="syncTgtFormToJson()">
                                     </div>
+                                    <div id="tgtCfgFtpExtra" style="margin-bottom:8px">
+                                        <label style="display:flex;align-items:center;gap:6px;font-size:.76rem;color:#cbd5e1;cursor:pointer">
+                                            <input type="checkbox" id="tgtCfgSsl" onchange="syncTgtFormToJson()"> ssl (FTPS)
+                                        </label>
+                                    </div>
+                                    <div id="tgtCfgSshExtra" style="display:none;margin-bottom:8px">
+                                        <div class="form-group">
+                                            <label style="font-size:.72rem;color:#64748b">private_key (путь на сервере)</label>
+                                            <input type="text" id="tgtCfgPrivateKey" placeholder="/home/user/.ssh/id_rsa" onchange="syncTgtFormToJson()">
+                                        </div>
+                                    </div>
                                 </div>
                                 <div id="tgtConfigFormApi" style="display:none">
-                                    <div class="form-group" style="margin-bottom:8px">
-                                        <label style="font-size:.72rem;color:#64748b">endpoint</label>
-                                        <input type="text" id="tgtCfgApiEndpoint" placeholder="https://api.example.com/publish" onchange="syncTgtFormToJson()">
+                                    <div style="display:grid;grid-template-columns:1fr 140px;gap:8px;margin-bottom:8px">
+                                        <div class="form-group"><label style="font-size:.72rem;color:#64748b">endpoint</label>
+                                            <input type="text" id="tgtCfgApiEndpoint" placeholder="https://api.example.com/publish" onchange="syncTgtFormToJson()"></div>
+                                        <div class="form-group"><label style="font-size:.72rem;color:#64748b">method</label>
+                                            <select id="tgtCfgApiMethod" onchange="syncTgtFormToJson()">
+                                                <option value="POST">POST</option>
+                                                <option value="PUT">PUT</option>
+                                                <option value="PATCH">PATCH</option>
+                                                <option value="DELETE">DELETE</option>
+                                            </select>
+                                        </div>
                                     </div>
                                     <div class="form-group" style="margin-bottom:8px">
-                                        <label style="font-size:.72rem;color:#64748b">api_key</label>
-                                        <input type="text" id="tgtCfgApiKey" onchange="syncTgtFormToJson()">
+                                        <label style="font-size:.72rem;color:#64748b">headers (JSON объект)</label>
+                                        <textarea id="tgtCfgApiHeaders" rows="3" placeholder='{"Authorization":"Bearer XXX"}' onchange="syncTgtFormToJson()" style="font-family:monospace;font-size:.78rem"></textarea>
                                     </div>
                                 </div>
                                 <span style="font-size:.7rem;color:#475569;display:block;margin-top:4px">
@@ -3516,39 +3535,95 @@ requireAuth();
         navigator.clipboard.writeText(tgtConfigEditor.getValue()).then(function() { toast('JSON скопирован'); });
     }
 
+    function onTgtTypeChange() {
+        var type = $('tgtType').value;
+        Object.keys(TGT_CFG_OWNED_KEYS).forEach(function(t) {
+            if (t === type) return;
+            TGT_CFG_OWNED_KEYS[t].forEach(function(k) {
+                if ((TGT_CFG_OWNED_KEYS[type] || []).indexOf(k) === -1) {
+                    delete tgtConfigData[k];
+                }
+            });
+        });
+        updateTgtConfigFormVisibility();
+        syncTgtFormToJson();
+    }
+
     function updateTgtConfigFormVisibility() {
         var type = $('tgtType').value;
         $('tgtConfigFormHostia').style.display = (type === 'hostia') ? 'block' : 'none';
         $('tgtConfigFormFtp').style.display = (type === 'ftp' || type === 'ssh') ? 'block' : 'none';
         $('tgtConfigFormApi').style.display = (type === 'api') ? 'block' : 'none';
+        $('tgtCfgFtpExtra').style.display = (type === 'ftp') ? 'block' : 'none';
+        $('tgtCfgSshExtra').style.display = (type === 'ssh') ? 'block' : 'none';
     }
 
     function populateTgtConfigForm(cfg) {
+        cfg = cfg || {};
         $('tgtCfgPublishEndpoint').value = cfg.publish_endpoint || '';
         $('tgtCfgHost').value = cfg.host || '';
         $('tgtCfgPort').value = cfg.port || '';
         $('tgtCfgUsername').value = cfg.username || '';
         $('tgtCfgPassword').value = cfg.password || '';
         $('tgtCfgDocRoot').value = cfg.document_root || '';
+        $('tgtCfgSsl').checked = !!cfg.ssl;
+        $('tgtCfgPrivateKey').value = cfg.private_key || '';
         $('tgtCfgApiEndpoint').value = cfg.endpoint || '';
-        $('tgtCfgApiKey').value = cfg.api_key || '';
+        $('tgtCfgApiMethod').value = (cfg.method || 'POST').toUpperCase();
+        $('tgtCfgApiHeaders').value = cfg.headers
+            ? JSON.stringify(cfg.headers, null, 2)
+            : '';
     }
+
+    const TGT_CFG_OWNED_KEYS = {
+        hostia: ['publish_endpoint'],
+        ftp:    ['host','port','username','password','document_root','ssl'],
+        ssh:    ['host','port','username','password','document_root','private_key'],
+        api:    ['endpoint','method','headers']
+    };
 
     function syncTgtFormToJson() {
         var type = $('tgtType').value;
+        var owned = TGT_CFG_OWNED_KEYS[type] || [];
+        owned.forEach(function(k) { delete tgtConfigData[k]; });
+
         if (type === 'hostia') {
             var ep = $('tgtCfgPublishEndpoint').value.trim();
             if (ep) tgtConfigData.publish_endpoint = ep;
-            else delete tgtConfigData.publish_endpoint;
         } else if (type === 'ftp' || type === 'ssh') {
-            tgtConfigData.host = $('tgtCfgHost').value.trim();
-            tgtConfigData.port = $('tgtCfgPort').value.trim() || (type === 'ftp' ? '21' : '22');
-            tgtConfigData.username = $('tgtCfgUsername').value;
-            tgtConfigData.password = $('tgtCfgPassword').value;
-            tgtConfigData.document_root = $('tgtCfgDocRoot').value.trim();
+            var host = $('tgtCfgHost').value.trim();
+            if (host) tgtConfigData.host = host;
+            var port = $('tgtCfgPort').value.trim();
+            if (port) tgtConfigData.port = port;
+            var un = $('tgtCfgUsername').value;
+            if (un) tgtConfigData.username = un;
+            var pw = $('tgtCfgPassword').value;
+            if (pw) tgtConfigData.password = pw;
+            var dr = $('tgtCfgDocRoot').value.trim();
+            if (dr) tgtConfigData.document_root = dr;
+            if (type === 'ftp' && $('tgtCfgSsl').checked) {
+                tgtConfigData.ssl = true;
+            }
+            if (type === 'ssh') {
+                var pk = $('tgtCfgPrivateKey').value.trim();
+                if (pk) tgtConfigData.private_key = pk;
+            }
         } else if (type === 'api') {
-            tgtConfigData.endpoint = $('tgtCfgApiEndpoint').value.trim();
-            tgtConfigData.api_key = $('tgtCfgApiKey').value;
+            var epa = $('tgtCfgApiEndpoint').value.trim();
+            if (epa) tgtConfigData.endpoint = epa;
+            var method = ($('tgtCfgApiMethod').value || 'POST').toUpperCase();
+            if (method && method !== 'POST') tgtConfigData.method = method;
+            var hdr = $('tgtCfgApiHeaders').value.trim();
+            if (hdr) {
+                try {
+                    var parsed = JSON.parse(hdr);
+                    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                        tgtConfigData.headers = parsed;
+                    }
+                } catch (e) {
+                    toast('headers: невалидный JSON', true);
+                }
+            }
         }
         if (tgtConfigEditor) { tgtConfigEditor.setValue(jsonPretty(tgtConfigData)); }
     }
@@ -5028,6 +5103,27 @@ requireAuth();
         $('tgImagePresets').style.display = '';
     }
 
+    async function sendTgPostById(postId) {
+        if (!postId) return;
+        if (!confirm('Отправить этот пост в Telegram сейчас?')) return;
+        try {
+            var res = await api('telegram/' + artId + '/send', {
+                method: 'POST',
+                body: { post_id: postId }
+            });
+            if (res.success) {
+                if (currentTgPostId === postId) {
+                    currentTgPostData = res.data;
+                    updateTgButtons('sent');
+                }
+                loadTgPostHistory(artId);
+                toast('Пост отправлен в Telegram');
+            } else {
+                toast(res.error || 'Ошибка отправки', true);
+            }
+        } catch(e) { toast('Ошибка: ' + e.message, true); }
+    }
+
     async function sendTgNow() {
         if (!currentTgPostId) { toast('Сначала подготовьте пост', true); return; }
         if (!confirm('Отправить пост в Telegram сейчас?')) return;
@@ -5104,8 +5200,12 @@ requireAuth();
                 var sched = p.scheduled_at ? ' &middot; ' + esc(p.scheduled_at) : '';
                 var err = p.error_message ? '<div class="tg-history-error">' + esc(p.error_message) + '</div>' : '';
 
+                var canSend = p.status === 'draft' || p.status === 'scheduled' || p.status === 'failed';
                 var actions = '';
                 actions += '<button class="tg-history-btn" onclick="loadTgPost(' + p.id + ')">Загрузить</button>';
+                if (canSend) {
+                    actions += '<button class="tg-history-btn" onclick="sendTgPostById(' + p.id + ')">Отправить</button>';
+                }
                 if (!isSending) {
                     actions += '<button class="tg-history-btn danger" onclick="deleteTgPost(' + p.id + ')">Удалить</button>';
                 }

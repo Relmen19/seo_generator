@@ -56,6 +56,16 @@ class SeoPublishTarget extends AbstractEntity {
         ];
     }
 
+    /**
+     * API-friendly view: overrides DB-oriented toArray() so the config
+     * field arrives at the client as a decoded object, not a JSON string.
+     */
+    public function toFullArray(): array {
+        $full = parent::toFullArray();
+        $full['config'] = $this->config;
+        return $full;
+    }
+
 
     public function getConfigValue(string $key, $default = null) {
         return $this->config[$key] ?? $default;

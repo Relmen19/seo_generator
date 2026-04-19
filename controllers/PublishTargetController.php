@@ -60,10 +60,6 @@ class PublishTargetController extends AbstractController{
         $data = $this->getJsonBody();
         $this->abortIfErrors($this->validateRequired($data, ['name', 'base_url']));
 
-        if (isset($data['config']) && is_array($data['config'])) {
-            $data['config'] = json_encode($data['config'], JSON_UNESCAPED_UNICODE);
-        }
-
         $target = new SeoPublishTarget($data);
         $newId = $this->db->insert(SeoPublishTarget::SEO_PUBLISH_TARGET_TABLE, $target->toArray());
         $target->setId($newId);

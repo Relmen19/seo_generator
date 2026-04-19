@@ -336,7 +336,89 @@ class TelegramPostService {
             'text'       => $this->blockFormatter->escapePlain('Подробнее в статье'),
             'parse_mode' => 'MarkdownV2',
             'keyboard'   => $keyboard,
+            'cta_hint'   => true,
         ];
+    }
+
+    /**
+     * Validate that URL is acceptable to Telegram (public HTTP/HTTPS host).
+     * Rejects localhost, private IPs, bare hostnames without a dot.
+     */
+    private function isPublicTelegramUrl(string $url): bool {
+        if ($url === '') {
+            return false;
+        }
+        if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return false;
+        }
+        $scheme = strtolower((string)parse_url($url, PHP_URL_SCHEME));
+        if ($scheme !== 'http' && $scheme !== 'https') {
+            return false;
+        }
+        $host = parse_url($url, PHP_URL_HOST);
+        if (!is_string($host) || $host === '') {
+            return false;
+        }
+        $host = strtolower($host);
+        if ($host === 'localhost' || $host === '127.0.0.1' || $host === '::1') {
+            return false;
+        }
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            $isPublic = filter_var(
+                $host,
+                FILTER_VALIDATE_IP,
+                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+            );
+            if ($isPublic === false) {
+                return false;
+            }
+        } elseif (strpos($host, '.') === false) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Sanitize inline keyboards before sending: strip buttons whose URL is
+     * not acceptable to Telegram (localhost etc.). Drop keyboards / hint-only
+     * messages that become empty as a result. Returns cleaned messages.
+     */
+    private function sanitizeKeyboards(array $messages): array {
+        $cleaned = [];
+        foreach ($messages as $msg) {
+            if (empty($msg['keyboard']) || !is_array($msg['keyboard'])) {
+                $cleaned[] = $msg;
+                continue;
+            }
+            $rows = $msg['keyboard']['inline_keyboard'] ?? [];
+            $newRows = [];
+            foreach ($rows as $row) {
+                $newRow = [];
+                foreach ($row as $btn) {
+                    if (isset($btn['url']) && !$this->isPublicTelegramUrl((string)$btn['url'])) {
+                        logMessage(
+                            'Telegram: inline button URL rejected (not public): ' . $btn['url'],
+                            'WARN'
+                        );
+                        continue;
+                    }
+                    $newRow[] = $btn;
+                }
+                if (!empty($newRow)) {
+                    $newRows[] = $newRow;
+                }
+            }
+            if (empty($newRows)) {
+                unset($msg['keyboard']);
+                if (!empty($msg['cta_hint'])) {
+                    continue;
+                }
+            } else {
+                $msg['keyboard'] = ['inline_keyboard' => $newRows];
+            }
+            $cleaned[] = $msg;
+        }
+        return $cleaned;
     }
 
     /**
@@ -1104,6 +1186,8 @@ class TelegramPostService {
             throw new RuntimeException('Пост не содержит сообщений. Проверьте настройки render-блоков в профиле.');
         }
 
+        $messages = $this->sanitizeKeyboards($messages);
+
         $messageIds = [];
         $postUrl = null;
 
@@ -1675,7 +1759,10 @@ class TelegramPostService {
     }
 
     /**
-     * Delete a draft or scheduled post.
+     * Delete a draft/scheduled/failed/sent post. For sent posts, also deletes
+     * the messages from the Telegram channel. Message-deletion failures are
+     * logged but do not block DB removal — Telegram's 48h channel limit or
+     * lack of admin rights must not leave orphan DB rows.
      */
     public function deletePost(int $postId): void {
         $post = $this->loadPost($postId);
@@ -1684,6 +1771,7 @@ class TelegramPostService {
             throw new RuntimeException('Нельзя удалить пост во время отправки');
         }
 
+        $this->deleteTelegramMessagesFor($post);
         $this->db->delete(SeoTelegramPost::TABLE, 'id = :id', [':id' => $postId]);
     }
 
@@ -1693,7 +1781,7 @@ class TelegramPostService {
     public function deleteAllForArticle(int $articleId): int
     {
         $posts = $this->db->fetchAll(
-            'SELECT id, status FROM ' . SeoTelegramPost::TABLE . ' WHERE article_id = :aid',
+            'SELECT * FROM ' . SeoTelegramPost::TABLE . ' WHERE article_id = :aid',
             [':aid' => $articleId]
         );
 
@@ -1702,11 +1790,57 @@ class TelegramPostService {
             if ($p['status'] === SeoTelegramPost::STATUS_SENDING) {
                 continue;
             }
+            $this->deleteTelegramMessagesFor($p);
             $this->db->delete(SeoTelegramPost::TABLE, 'id = :id', [':id' => (int)$p['id']]);
             $deleted++;
         }
 
         return $deleted;
+    }
+
+    /**
+     * Best-effort deletion of Telegram messages associated with a post.
+     * Failures per-message are logged and swallowed.
+     */
+    private function deleteTelegramMessagesFor(array $post): void {
+        if ($post['status'] !== SeoTelegramPost::STATUS_SENT) {
+            return;
+        }
+        $raw = $post['tg_message_ids'] ?? null;
+        $ids = is_string($raw) ? json_decode($raw, true) : (is_array($raw) ? $raw : null);
+        if (!is_array($ids) || empty($ids)) {
+            return;
+        }
+
+        $profile = $this->db->fetchOne(
+            'SELECT * FROM ' . SeoSiteProfile::TABLE . ' WHERE id = :id',
+            [':id' => (int)$post['profile_id']]
+        );
+        if ($profile === null) {
+            return;
+        }
+        $profileEntity = new SeoSiteProfile($profile);
+        if (!$profileEntity->hasTelegramConfig()) {
+            return;
+        }
+
+        $client = new TelegramApiClient($profileEntity->getTgBotToken());
+        $channelId = $profileEntity->getTgChannelId();
+
+        foreach ($ids as $mid) {
+            $mid = (int)$mid;
+            if ($mid <= 0) {
+                continue;
+            }
+            try {
+                $client->deleteMessage($channelId, $mid);
+            } catch (\Throwable $e) {
+                logMessage(
+                    "Telegram deleteMessage failed (post #{$post['id']}, msg #{$mid}): " . $e->getMessage(),
+                    'WARN'
+                );
+            }
+        }
     }
 
     /**
