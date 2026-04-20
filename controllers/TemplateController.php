@@ -275,7 +275,7 @@ class TemplateController extends AbstractController {
         while (ob_get_level()) {
             ob_end_flush();
         }
-        ob_implicit_flush(1);
+        ob_implicit_flush();
 
         $body = [];
         $raw = file_get_contents('php://input');

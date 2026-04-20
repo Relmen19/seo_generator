@@ -19,7 +19,7 @@ class TelegramPostService {
     private const MAX_RETRY_ATTEMPTS = 3;
 
     private Database $db;
-    private TelegramBlockFormatterService $blockFormatter;
+    private ?TelegramBlockFormatterService $blockFormatter;
     private ?TelegramCopywriterService $copywriter;
 
     public function __construct(

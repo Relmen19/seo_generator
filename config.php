@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 const SEO_ROOT  = __DIR__;
-const SEO_DEBUG = false;
+const SEO_DEBUG = true;
 
 // ── Parent app integration (optional) ────────────────────────────────────────
 // When deployed inside a parent admin app, pull shared config/database.
