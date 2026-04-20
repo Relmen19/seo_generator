@@ -19,11 +19,13 @@ class StatsBlockRenderer extends AbstractBlockRenderer
         $c = $content;
         [$imgTop, $imgH, $imgBot, $bgStyle] = $this->resolveBlockImages($c, 'right');
         $bgAttr = $bgStyle ? ' style="' . $bgStyle . '" ' : '';
+        $title = $this->e($c['title'] ?? '');
 
-        $h = '<section id="' . $id . '" class="block-stats reveal' . ($bgStyle ? ' has-bg-img' : '') . '"' . $bgAttr . ' data-toc="Показатели">'
+        $h = '<section id="' . $id . '" class="block-stats reveal' . ($bgStyle ? ' has-bg-img' : '') . '"' . $bgAttr . ' data-toc="' . ($title !== '' ? $title : 'Показатели') . '">'
             . '<div class="container">'
             . $imgTop
             . $imgH
+            . ($title !== '' ? '<h2 class="sec-title">' . $title . '</h2>' : '')
             . '<div class="stats-grid">';
         foreach ($c['items'] ?? [] as $it) {
             $h .= '<div class="stat-card">'
@@ -63,6 +65,6 @@ class StatsBlockRenderer extends AbstractBlockRenderer
 
     public function getTocLabel(array $content, array $meta): string
     {
-        return 'Показатели';
+        return $content['title'] ?? 'Показатели';
     }
 }

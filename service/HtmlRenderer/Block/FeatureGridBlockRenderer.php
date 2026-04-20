@@ -19,11 +19,13 @@ class FeatureGridBlockRenderer extends AbstractBlockRenderer
         $c = $content;
         [$imgTop, $imgH, $imgBot, $bgStyle] = $this->resolveBlockImages($c, 'right');
         $bgAttr = $bgStyle ? ' style="' . $bgStyle . '" ' : '';
+        $title = $this->e($c['title'] ?? '');
 
-        $h = '<section id="' . $id . '" class="block-features reveal' . ($bgStyle ? ' has-bg-img' : '') . '"' . $bgAttr . ' data-toc="Особенности">'
+        $h = '<section id="' . $id . '" class="block-features reveal' . ($bgStyle ? ' has-bg-img' : '') . '"' . $bgAttr . ' data-toc="' . ($title !== '' ? $title : 'Особенности') . '">'
             . '<div class="container">'
             . $imgTop
             . $imgH
+            . ($title !== '' ? '<h2 class="sec-title">' . $title . '</h2>' : '')
             . '<div class="features-grid">';
         foreach (array_values($c['items'] ?? $c['features'] ?? []) as $i => $it) {
             $num = str_pad((string)($i + 1), 2, '0', STR_PAD_LEFT);
@@ -64,6 +66,6 @@ class FeatureGridBlockRenderer extends AbstractBlockRenderer
 
     public function getTocLabel(array $content, array $meta): string
     {
-        return 'Особенности';
+        return $content['title'] ?? 'Особенности';
     }
 }

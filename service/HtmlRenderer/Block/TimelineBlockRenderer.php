@@ -32,7 +32,7 @@ class TimelineBlockRenderer extends AbstractBlockRenderer
             . $imgH
             . '<h2 class="sec-title">' . $title . '</h2>'
             . '<div class="mac-window"><div class="mac-bar"><div class="mac-dots"><span></span><span></span><span></span></div>'
-            . '<div class="mac-title">Процесс</div></div>'
+            . '<div class="mac-title">' . $this->e($c['mac_title'] ?? 'Процесс') . '</div></div>'
             . '<div class="mac-body">'
             . '<div class="tl-wrap" data-timeline="' . $id . '">'
             . '<div class="tl-line"></div>'
@@ -40,7 +40,8 @@ class TimelineBlockRenderer extends AbstractBlockRenderer
 
         foreach ($items as $i => $it) {
             $color = $this->e($it['color'] ?? $colors[$i % count($colors)]);
-            $step = $this->e(('Шаг ' . $it['step']) ?? ('Шаг ' . ($i + 1)));
+            $stepRaw = isset($it['step']) && $it['step'] !== '' ? (string)$it['step'] : (string)($i + 1);
+            $step = $this->e('Шаг ' . $stepRaw);
             $itTitle = $this->e($it['title'] ?? '');
             $summary = $this->e($it['summary'] ?? '');
             $detail = $this->e($it['detail'] ?? '');

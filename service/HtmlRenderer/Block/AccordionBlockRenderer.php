@@ -19,15 +19,26 @@ class AccordionBlockRenderer extends AbstractBlockRenderer
         $c = $content;
         [$imgTop, $imgH, $imgBot, $bgStyle] = $this->resolveBlockImages($c, 'right');
         $bgAttr = $bgStyle ? ' style="' . $bgStyle . '" ' : '';
+        $title = $this->e($c['title'] ?? '');
 
-        $h = '<section id="' . $id . '" class="block-accordion reveal' . ($bgStyle ? ' has-bg-img' : '') . '"' . $bgAttr . ' data-toc="Подробности">'
+        $h = '<section id="' . $id . '" class="block-accordion reveal' . ($bgStyle ? ' has-bg-img' : '') . '"' . $bgAttr . ' data-toc="' . ($title !== '' ? $title : 'Подробности') . '">'
             . '<div class="container">'
             . $imgTop
-            . $imgH;
+            . $imgH
+            . ($title !== '' ? '<h2 class="sec-title">' . $title . '</h2>' : '');
         foreach ($c['items'] ?? [] as $i => $it) {
+            $itContent = $it['content'] ?? $it['answer'] ?? $it['text'] ?? '';
+            if (is_array($itContent)) {
+                $parts = [];
+                foreach ($itContent as $p) {
+                    if (is_string($p)) $parts[] = $p;
+                    elseif (is_array($p) && isset($p['text'])) $parts[] = (string)$p['text'];
+                }
+                $itContent = implode("\n\n", $parts);
+            }
             $h .= '<details' . ($i === 0 ? ' open' : '') . '>'
-                . '<summary>' . $this->e($it['title'] ?? '') . '</summary>'
-                . '<div class="acc-body">' . $this->e($it['content'] ?? '') . '</div>'
+                . '<summary>' . $this->e($it['title'] ?? $it['question'] ?? '') . '</summary>'
+                . '<div class="acc-body">' . $this->e((string)$itContent) . '</div>'
                 . '</details>';
         }
         return $h . '<div class="clearfix"></div>'
@@ -56,6 +67,6 @@ class AccordionBlockRenderer extends AbstractBlockRenderer
 
     public function getTocLabel(array $content, array $meta): string
     {
-        return 'Подробности';
+        return $content['title'] ?? 'Подробности';
     }
 }

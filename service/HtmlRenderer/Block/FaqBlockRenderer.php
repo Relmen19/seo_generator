@@ -21,25 +21,37 @@ class FaqBlockRenderer extends AbstractBlockRenderer
         [$imgTop, $imgH, $imgBot, $bgStyle] = $this->resolveBlockImages($c, 'right');
         $bgAttr = $bgStyle ? ' style="' . $bgStyle . '" ' : '';
         $schema  = ['@context' => 'https://schema.org', '@type' => 'FAQPage', 'mainEntity' => []];
+        $title   = trim((string)($c['title'] ?? ''));
+        $h2Text  = $this->e($title !== '' ? $title : 'Часто задаваемые вопросы');
+        $tocText = $this->e($title !== '' ? $title : 'FAQ');
 
-        $h = '<section id="' . $id . '" class="block-faq reveal' . ($bgStyle ? ' has-bg-img' : '') . '"' . $bgAttr . ' data-toc="FAQ">'
+        $h = '<section id="' . $id . '" class="block-faq reveal' . ($bgStyle ? ' has-bg-img' : '') . '"' . $bgAttr . ' data-toc="' . $tocText . '">'
             . '<div class="container">'
             . $imgTop
             . $imgH
-            . '<h2 class="sec-title">Часто задаваемые вопросы</h2>'
+            . '<h2 class="sec-title">' . $h2Text . '</h2>'
             . '<div class="faq-list">';
 
         foreach ($items as $it) {
-            $q = $this->e($it['question'] ?? '');
-            $a = $this->e($it['answer'] ?? '');
+            $answerRaw = $it['answer'] ?? $it['text'] ?? '';
+            if (is_array($answerRaw)) {
+                $parts = [];
+                foreach ($answerRaw as $p) {
+                    if (is_string($p)) $parts[] = $p;
+                    elseif (is_array($p) && isset($p['text'])) $parts[] = (string)$p['text'];
+                }
+                $answerRaw = implode("\n\n", $parts);
+            }
+            $q = $this->e((string)($it['question'] ?? ''));
+            $a = $this->e((string)$answerRaw);
             $h .= '<div class="faq-item">'
                 . '<button class="faq-q">' . $q . '<span class="faq-arr">+</span></button>'
                 . '<div class="faq-a"><div class="faq-a-in">' . $a . '</div></div>'
                 . '</div>';
             $schema['mainEntity'][] = [
                 '@type'          => 'Question',
-                'name'           => $it['question'] ?? '',
-                'acceptedAnswer' => ['@type' => 'Answer', 'text' => $it['answer'] ?? ''],
+                'name'           => (string)($it['question'] ?? ''),
+                'acceptedAnswer' => ['@type' => 'Answer', 'text' => (string)$answerRaw],
             ];
         }
         $h .= '</div><div class="clearfix"></div>'
@@ -84,6 +96,6 @@ class FaqBlockRenderer extends AbstractBlockRenderer
 
     public function getTocLabel(array $content, array $meta): string
     {
-        return 'FAQ';
+        return $content['title'] ?? 'FAQ';
     }
 }
