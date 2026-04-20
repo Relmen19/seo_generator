@@ -35,7 +35,7 @@ class MiniCalculatorBlockRenderer extends AbstractBlockRenderer
             . '<h2 class="sec-title">' . $title . '</h2>'
             . ($desc ? '<p class="sec-desc">' . $desc . '</p>' : '')
             . '<div class="mac-window"><div class="mac-bar"><div class="mac-dots"><span></span><span></span><span></span></div>'
-            . '<div class="mac-title">Расчёт</div></div>'
+            . '<div class="mac-title">' . $this->e($c['mac_title'] ?? 'Расчёт') . '</div></div>'
             . '<div class="mac-body">'
             . '<div class="mc-wrap" data-mcalc="' . $id . '">'
             . '<div class="mc-inputs">';

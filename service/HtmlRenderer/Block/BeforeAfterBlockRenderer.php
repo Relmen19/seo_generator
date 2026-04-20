@@ -77,6 +77,7 @@ class BeforeAfterBlockRenderer extends AbstractBlockRenderer
             . 'var jsonEl=wrap.parentElement.querySelector(".ba-data");if(!jsonEl)return;'
             . 'var metrics=[];try{metrics=JSON.parse(jsonEl.textContent)}catch(e){}'
             . 'if(!metrics.length)return;'
+            . 'metrics.forEach(function(m){var mx=parseFloat(m.max);if(!isFinite(mx)||mx<=0){var b=parseFloat(m.before)||0,a=parseFloat(m.after)||0;m.max=Math.max(b,a,1)}});'
             . 'var h=\'<div class="ba-cards"><div class="ba-side ba-side--before"><div class="ba-tag ba-tag--before">До</div>\';'
             . 'metrics.forEach(function(m){h+=\'<div class="ba-metric"><div class="ba-metric-val">\'+m.before+\'<small style="font-size:.5em;color:var(--muted);margin-left:2px">\'+((m.unit||""))+\'</small></div><div class="ba-metric-name">\'+(m.name||"")+\'</div><div class="ba-bar-track"><div class="ba-bar-fill" style="background:var(--red);width:0" data-w="\'+Math.round(m.before/m.max*100)+\'"></div></div></div>\'});'
             . 'h+=\'</div><div class="ba-side ba-side--after"><div class="ba-tag ba-tag--after">После</div>\';'

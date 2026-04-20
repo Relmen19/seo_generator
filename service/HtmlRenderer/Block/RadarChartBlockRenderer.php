@@ -34,7 +34,7 @@ class RadarChartBlockRenderer extends AbstractBlockRenderer
             . '<div class="mac-title">' . $title . '</div></div>'
             . '<div class="mac-body">'
             . '<div class="radar-layout" data-radar="' . $id . '">'
-            . '<div class="radar-svg-wrap"><svg class="radar-svg" viewBox="0 0 260 260"></svg></div>'
+            . '<div class="radar-svg-wrap"><svg class="radar-svg" viewBox="0 0 320 300" preserveAspectRatio="xMidYMid meet"></svg></div>'
             . '<div class="radar-aside"></div>'
             . '</div>'
             . '<div class="radar-detail" data-radar-detail="' . $id . '"><div><div class="radar-detail-inner"></div></div></div>'
@@ -49,8 +49,8 @@ class RadarChartBlockRenderer extends AbstractBlockRenderer
 
     public function getCss(): string
     {
-        return '.radar-layout{display:grid;grid-template-columns:260px 1fr;gap:28px;align-items:start}'
-            . "\n" . '.radar-svg-wrap{position:relative;width:260px;height:260px}'
+        return '.radar-layout{display:grid;grid-template-columns:320px 1fr;gap:28px;align-items:start}'
+            . "\n" . '.radar-svg-wrap{position:relative;width:320px;max-width:100%;aspect-ratio:320/300}'
             . "\n" . '.radar-svg{width:100%;height:100%}'
             . "\n" . '.radar-grid-line{fill:none;stroke:var(--border);stroke-width:1}'
             . "\n" . '.radar-axis{stroke:var(--border);stroke-width:1}'
@@ -84,7 +84,7 @@ class RadarChartBlockRenderer extends AbstractBlockRenderer
             . 'var axes=cfg.axes||[];var svg=wrap.querySelector(".radar-svg");var aside=wrap.querySelector(".radar-aside");'
             . 'var detailEl=wrap.parentElement.querySelector("[data-radar-detail]")||wrap.parentElement.querySelector(".radar-detail");'
             . 'var detailInner=detailEl?detailEl.querySelector(".radar-detail-inner"):null;'
-            . 'var cx=130,cy=130,R=100,n=axes.length,active=-1;'
+            . 'var cx=160,cy=150,R=100,n=axes.length,active=-1;'
             . 'var colors=["#2563EB","#0D9488","#8B5CF6","#F59E0B","#EF4444","#16A34A","#EC4899","#06B6D4"];'
             . 'if(!n)return;'
             . '[.25,.5,.75,1].forEach(function(s){var pts=[];for(var i=0;i<n;i++){var a=-Math.PI/2+2*Math.PI/n*i;pts.push((cx+R*s*Math.cos(a))+","+(cy+R*s*Math.sin(a)))}var poly=document.createElementNS("http://www.w3.org/2000/svg","polygon");poly.setAttribute("points",pts.join(" "));poly.setAttribute("class","radar-grid-line");svg.appendChild(poly)});'

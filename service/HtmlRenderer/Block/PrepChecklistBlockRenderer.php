@@ -33,7 +33,7 @@ class PrepChecklistBlockRenderer extends AbstractBlockRenderer
             . '<h2 class="sec-title">' . $title . '</h2>'
             . ($sub ? '<p class="sec-desc">' . $sub . '</p>' : '')
             . '<div class="mac-window"><div class="mac-bar"><div class="mac-dots"><span></span><span></span><span></span></div>'
-            . '<div class="mac-title">Чек-лист</div></div>'
+            . '<div class="mac-title">' . $this->e($c['mac_title'] ?? 'Чек-лист') . '</div></div>'
             . '<div class="mac-body">'
             . '<div class="pc-wrap" data-prepcheck="' . $id . '" data-total="' . $totalItems . '">'
             . '<div class="pc-progress-row"><span class="pc-progress-text">Готово <b class="pc-done">0</b> из <b>' . $totalItems . '</b></span>'
