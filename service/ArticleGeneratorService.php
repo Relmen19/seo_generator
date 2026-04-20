@@ -333,6 +333,8 @@ class ArticleGeneratorService {
             $blockContent = $data[$key] ?? null;
             if ($blockContent === null) continue;
 
+            $blockContent = $this->unwrapBlockContent($blockContent, $tb['type'] ?? '');
+
             $existing = $this->findExistingBlock($existingBlocks, $tb);
             $contentJson = json_encode($blockContent, JSON_UNESCAPED_UNICODE);
 
@@ -401,7 +403,8 @@ class ArticleGeneratorService {
         ];
 
         $result = $this->gpt->chatJson($messages, $gptOptions);
-        $contentJson = json_encode($result['data'], JSON_UNESCAPED_UNICODE);
+        $unwrapped = $this->unwrapBlockContent($result['data'], $block['type'] ?? '');
+        $contentJson = json_encode($unwrapped, JSON_UNESCAPED_UNICODE);
 
         $this->db->update(SeoArticleBlock::SEO_ART_BLOCK_TABLE,
             'id = :bid AND article_id = :aid',
@@ -419,10 +422,29 @@ class ArticleGeneratorService {
         ]);
 
         return [
-            'content' => $result['data'],
+            'content' => $unwrapped,
             'usage' => $result['usage'],
             'model' => $result['model'],
         ];
+    }
+
+    /**
+     * Разворачивает контент, обёрнутый GPT во внешний объект с именем типа
+     * или в общие обёртки: {comparison_table: {...}}, {content: {...}}, {data: {...}}, {fields: {...}}.
+     */
+    private function unwrapBlockContent($data, string $type)
+    {
+        if (!is_array($data)) return $data;
+        $wrappers = array_unique(array_filter([$type, 'content', 'data', 'fields', 'block', 'result']));
+        $guard = 0;
+        while ($guard++ < 3 && is_array($data) && count($data) === 1) {
+            $key = array_key_first($data);
+            if (!is_string($key) || !in_array($key, $wrappers, true)) break;
+            $inner = $data[$key];
+            if (!is_array($inner)) break;
+            $data = $inner;
+        }
+        return $data;
     }
 
     public function generateAllBlocksSSE(int $articleId, array $options = []): void {
@@ -471,7 +493,8 @@ class ArticleGeneratorService {
                     $totalUsage[$k] += ($result['usage'][$k] ?? 0);
                 }
 
-                $contentJson = json_encode($result['data'], JSON_UNESCAPED_UNICODE);
+                $unwrapped = $this->unwrapBlockContent($result['data'], $tb['type'] ?? '');
+                $contentJson = json_encode($unwrapped, JSON_UNESCAPED_UNICODE);
                 $existing = $this->findExistingBlock($existingBlocks, $tb);
 
                 if ($existing && $overwrite) {
@@ -493,7 +516,7 @@ class ArticleGeneratorService {
                 $this->sendSSE('block_done', [
                     'index' => $i, 'block_id' => $savedBlockId,
                     'type' => $tb['type'], 'name' => $tb['name'],
-                    'content' => $result['data'], 'usage' => $result['usage'],
+                    'content' => $unwrapped, 'usage' => $result['usage'],
                 ]);
 
             } catch (Throwable $e) {

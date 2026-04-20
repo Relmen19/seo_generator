@@ -17,7 +17,11 @@ class ScoreRingsBlockRenderer extends AbstractBlockRenderer
     public function renderHtml(array $c, string $id): string
     {
         $title = $this->e($c['title'] ?? 'Индекс здоровья');
-        $totalLabel = $this->e($c['total_label'] ?? 'общий балл');
+        $rawLabel = trim((string)($c['total_label'] ?? 'общий балл'));
+        if (mb_strlen($rawLabel) > 24) {
+            $rawLabel = mb_substr($rawLabel, 0, 22) . '…';
+        }
+        $totalLabel = $this->e($rawLabel !== '' ? $rawLabel : 'общий балл');
         $rings = $c['rings'] ?? [];
         $jsonData = json_encode([
             'rings' => $rings,
@@ -61,9 +65,9 @@ class ScoreRingsBlockRenderer extends AbstractBlockRenderer
             . "\n" . '.ring-svg{width:100%;height:100%}'
             . "\n" . '.ring-track{fill:none;stroke-width:16;stroke-linecap:round;opacity:.12}'
             . "\n" . '.ring-fill{fill:none;stroke-width:16;stroke-linecap:round;transition:stroke-dashoffset 1.8s cubic-bezier(.4,0,.2,1);filter:drop-shadow(0 0 8px var(--ring-glow,rgba(37,99,235,.3)))}'
-            . "\n" . '.ring-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}'
+            . "\n" . '.ring-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;max-width:120px}'
             . "\n" . '.ring-center-val{font-family:var(--fh);font-size:2.2rem;font-weight:900;color:var(--dark);letter-spacing:-1px;line-height:1;transition:all .3s}'
-            . "\n" . '.ring-center-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;display:block}'
+            . "\n" . '.ring-center-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;text-overflow:ellipsis;max-width:110px;line-height:1.25;word-break:break-word}'
             . "\n" . '.ring-aside{display:flex;flex-direction:column;gap:8px}'
             . "\n" . '.ring-item{display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.5);border:1px solid var(--border);transition:all .3s;cursor:pointer}'
             . "\n" . '[data-theme="dark"] .ring-item{background:rgba(255,255,255,.04)}'

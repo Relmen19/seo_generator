@@ -213,6 +213,10 @@ class ChartBlockRenderer extends AbstractBlockRenderer
     {
         $isCircular = in_array($type, ['doughnut', 'pie']);
         $isLine     = ($type === 'line');
+        $isHorizontal = ($type === 'horizontalBar');
+        if ($isHorizontal) {
+            $type = 'bar';
+        }
 
         $options = [
             'responsive'          => true,
@@ -239,6 +243,10 @@ class ChartBlockRenderer extends AbstractBlockRenderer
                 ],
             ],
         ];
+
+        if ($isHorizontal) {
+            $options['indexAxis'] = 'y';
+        }
 
         if ($isCircular) {
             $options['cutout'] = ($type === 'doughnut') ? '62%' : '0%';

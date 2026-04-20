@@ -16,8 +16,9 @@ class SymptomChecklistBlockRenderer extends AbstractBlockRenderer
 
     public function renderHtml(array $c, string $id): string
     {
-        $title = $this->e($c['title'] ?? 'Проверьте симптомы');
+        $title = $this->e($c['title'] ?? 'Чек-лист');
         $sub   = $this->e($c['subtitle'] ?? '');
+        $macTitle = $this->e($c['mac_title'] ?? 'Тест');
         $items = $c['items'] ?? [];
         $thresholds = $c['thresholds'] ?? [];
         $ctaText = $c['cta_text'] ?? '';
@@ -35,7 +36,7 @@ class SymptomChecklistBlockRenderer extends AbstractBlockRenderer
             . '<h2 class="sec-title">' . $title . '</h2>'
             . ($sub ? '<p class="sec-desc">' . $sub . '</p>' : '')
             . '<div class="mac-window"><div class="mac-bar"><div class="mac-dots"><span></span><span></span><span></span></div>'
-            . '<div class="mac-title">Тест</div></div>'
+            . '<div class="mac-title">' . $macTitle . '</div></div>'
             . '<div class="mac-body">'
             . '<div class="sc-wrap" data-symcheck="' . $id . '">'
             . '<div class="sc-progress"><div class="sc-progress-text">Отмечено: <span class="sc-count">0</span></div>'
