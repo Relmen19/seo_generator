@@ -27,7 +27,7 @@ class ExpertPanelBlockRenderer extends AbstractBlockRenderer
         [$imgTop, $imgH, $imgBot, $bgStyle] = $this->resolveBlockImages($c, 'right');
         $bgAttr = $bgStyle ? ' style="' . $bgStyle . '" ' : '';
 
-        $h = '<section id="' . $id . '" class="block-expert reveal' . ($bgStyle ? ' has-bg-img' : '') . '"' . $bgAttr . ' data-toc="Мнение: ' . $name . '">'
+        $h = '<section id="' . $id . '" class="block-expert reveal' . ($bgStyle ? ' has-bg-img' : '') . '"' . $bgAttr . ' data-toc="' . ($name !== '' ? 'Мнение: ' . $name : 'Мнение эксперта') . '">'
             . '<div class="container">'
             . $imgTop
             . $imgH

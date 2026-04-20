@@ -20,11 +20,13 @@ class TestimonialBlockRenderer extends AbstractBlockRenderer
         /* Image support */
         [$imgTop, $imgH, $imgBot, $bgStyle] = $this->resolveBlockImages($c, 'right');
         $bgAttr = $bgStyle ? ' style="' . $bgStyle . '" ' : '';
+        $title = $this->e($c['title'] ?? '');
 
-        $h = '<section id="' . $id . '" class="block-reviews reveal' . ($bgStyle ? ' has-bg-img' : '') . '"' . $bgAttr . ' data-toc="Отзывы">'
+        $h = '<section id="' . $id . '" class="block-reviews reveal' . ($bgStyle ? ' has-bg-img' : '') . '"' . $bgAttr . ' data-toc="' . ($title !== '' ? $title : 'Отзывы') . '">'
             . '<div class="container">'
             . $imgTop
             . $imgH
+            . ($title !== '' ? '<h2 class="sec-title" style="color:#fff">' . $title . '</h2>' : '')
             . '<div class="reviews-grid">';
         foreach ($c['items'] ?? $c['testimonials'] ?? [] as $it) {
             $text   = $this->e($it['text'] ?? $it['content'] ?? '');
@@ -70,6 +72,6 @@ class TestimonialBlockRenderer extends AbstractBlockRenderer
 
     public function getTocLabel(array $content, array $meta): string
     {
-        return 'Отзывы';
+        return $content['title'] ?? 'Отзывы';
     }
 }

@@ -32,7 +32,7 @@ class ProgressTrackerBlockRenderer extends AbstractBlockRenderer
             . $imgH
             . '<h2 class="sec-title">' . $title . '</h2>'
             . '<div class="mac-window"><div class="mac-bar"><div class="mac-dots"><span></span><span></span><span></span></div>'
-            . '<div class="mac-title">Прогресс</div></div>'
+            . '<div class="mac-title">' . $this->e($c['mac_title'] ?? 'Прогресс') . '</div></div>'
             . '<div class="mac-body">'
             . '<div class="pt-wrap" data-ptrack="' . $id . '">'
             . '<div class="pt-track"><div class="pt-track-fill"></div>';
@@ -65,7 +65,7 @@ class ProgressTrackerBlockRenderer extends AbstractBlockRenderer
             . "\n" . '.pt-dot{position:absolute;top:50%;transform:translateY(-50%);cursor:pointer;z-index:2}'
             . "\n" . '.pt-dot-inner{width:20px;height:20px;border-radius:50%;background:var(--bg);border:3px solid var(--blue);margin-left:-10px;transition:all .3s;box-shadow:0 2px 8px rgba(37,99,235,.15)}'
             . "\n" . '.pt-dot:hover .pt-dot-inner,.pt-dot.is-active .pt-dot-inner{background:var(--blue);transform:scale(1.3)}'
-            . "\n" . '.pt-label{position:absolute;top:28px;left:50%;transform:translateX(-50%);font-family:var(--fh);font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}'
+            . "\n" . '.pt-label{position:absolute;top:28px;left:50%;transform:translateX(-50%);font-family:var(--fh);font-size:11px;font-weight:600;color:var(--muted);white-space:normal;text-align:center;max-width:110px;line-height:1.3;word-break:break-word}'
             . "\n" . '.pt-detail{padding:18px 20px;border-radius:14px;background:rgba(255,255,255,.5);border:1px solid var(--border);backdrop-filter:blur(8px);animation:fadeInUp .4s ease}'
             . "\n" . '[data-theme="dark"] .pt-detail{background:rgba(255,255,255,.03)}'
             . "\n" . '.pt-detail-period{font-family:var(--fh);font-size:14px;font-weight:700;color:var(--blue);margin-bottom:4px}'
