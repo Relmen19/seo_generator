@@ -6,6 +6,7 @@ namespace Seo\Controller;
 
 use Seo\Entity\SeoIntentType;
 use Seo\Entity\SeoSiteProfile;
+use Seo\Enum\BriefPrompt;
 use Seo\Service\GptClient;
 use Seo\Service\TemplateGeneratorService;
 
@@ -58,6 +59,20 @@ class SiteProfileController extends AbstractController {
         }
         if ($id !== null && $action === 'generate-intents' && $method === 'POST') {
             $this->generateIntents($id);
+            return;
+        }
+        if ($id !== null && $action === 'suggest-template-purposes' && $method === 'POST') {
+            $this->suggestTemplatePurposes($id);
+            return;
+        }
+        // POST /profiles/brief — step-by-step wizard (step in body: classify/audience/usp/...)
+        if ($id === null && $action === 'brief' && $method === 'POST') {
+            $this->briefStep();
+            return;
+        }
+        // POST /profiles/{id}/brief — save compiled brief + derived persona/rules onto profile
+        if ($id !== null && $action === 'brief' && $method === 'POST') {
+            $this->briefSave($id);
             return;
         }
 
@@ -533,5 +548,250 @@ PROMPT
         }
 
         $this->success(['count' => $count, 'total_generated' => count($intents)]);
+    }
+
+    /**
+     * POST /profiles/{id}/suggest-template-purposes
+     * Returns 5 template "purpose" options tailored to the brief.
+     * Each option feeds later into /profiles/{id}/generate-template-sse as `purpose` field.
+     */
+    private function suggestTemplatePurposes(int $id): void {
+        $profile = $this->db->fetchOne(
+            "SELECT * FROM " . SeoSiteProfile::TABLE . " WHERE id = :id",
+            [':id' => $id]
+        );
+        if ($profile === null) $this->notFound('Профиль');
+
+        $brief = $profile['content_brief'] ?? null;
+        if (is_string($brief) && $brief !== '') $brief = json_decode($brief, true);
+        $briefJson = is_array($brief) ? json_encode($brief, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : '{}';
+
+        $system = BriefPrompt::ANTI_GENERIC . "\n\n"
+            . <<<'EOT'
+Ты — контент-стратег. На основе брифа проекта предложи 5 РАЗНЫХ типов статей (шаблонов), закрывающих разные интенты аудитории.
+Каждый вариант должен отличаться по формату (обзор, сравнение, руководство, кейс, аналитика, FAQ-разбор и т.п.) и по ICP, на который нацелен.
+
+Формат JSON:
+{
+  "options": [
+    {
+      "id": "tpl_1",
+      "title": "Короткое имя типа статьи",
+      "purpose": "Назначение шаблона — 2-3 предложения, с указанием ICP, цели чтения, как используется бренд и какие УТП обыгрываются",
+      "format": "обзор|сравнение|руководство|кейс|аналитика|FAQ|другое",
+      "target_icp": "На какой ICP из брифа нацелен",
+      "suggested_blocks_hint": "Какие типы блоков напрашиваются (без кода — словами)"
+    }
+  ]
+}
+EOT;
+
+        $userContent = "Бриф проекта (JSON):\n{$briefJson}\n\n"
+            . "Ниша: " . ($profile['niche'] ?? '') . "\n"
+            . "Бренд: " . ($profile['brand_name'] ?? '') . "\n"
+            . "Описание: " . ($profile['description'] ?? '');
+
+        $gpt = new GptClient();
+        $result = $gpt->chatJson([
+            ['role' => 'system', 'content' => $system],
+            ['role' => 'user', 'content' => $userContent],
+        ], [
+            'temperature' => SEO_TEMPERATURE_CREATIVE,
+            'max_tokens'  => SEO_MAX_TOKENS_SMALL,
+        ]);
+
+        $this->success([
+            'options' => $result['data']['options'] ?? [],
+            'usage'   => $result['usage'],
+        ]);
+    }
+
+    // ── Brief wizard ────────────────────────────────────────
+
+    /**
+     * POST /profiles/brief
+     * Body: { step, description, brief?, model? }
+     *   step: classify | audience | usp | competitors | voice | rules | compliance | phrases
+     *   description: original project description (required)
+     *   brief: accumulated brief state so far (optional, JSON object)
+     * Returns GPT JSON result — list of options for user to pick/edit.
+     */
+    private function briefStep(): void {
+        $data = $this->getJsonBody();
+        $step = trim((string)($data['step'] ?? ''));
+        $description = trim((string)($data['description'] ?? ''));
+        $brief = is_array($data['brief'] ?? null) ? $data['brief'] : [];
+
+        if ($description === '') {
+            $this->error('Поле description обязательно', 422);
+        }
+
+        $stepMap = [
+            'classify'    => BriefPrompt::CLASSIFY_SYSTEM,
+            'audience'    => BriefPrompt::AUDIENCE_SYSTEM,
+            'usp'         => BriefPrompt::USP_SYSTEM,
+            'competitors' => BriefPrompt::COMPETITORS_SYSTEM,
+            'voice'       => BriefPrompt::VOICE_SYSTEM,
+            'rules'       => BriefPrompt::RULES_SYSTEM,
+            'compliance'  => BriefPrompt::COMPLIANCE_SYSTEM,
+            'phrases'     => BriefPrompt::PHRASES_SYSTEM,
+        ];
+        if (!isset($stepMap[$step])) {
+            $this->error("Неизвестный шаг брифа: '{$step}'. Допустимо: " . implode(', ', array_keys($stepMap)), 422);
+        }
+
+        $systemPrompt = BriefPrompt::ANTI_GENERIC . "\n\n" . $stepMap[$step];
+
+        if ($step === 'classify') {
+            $userContent = sprintf(BriefPrompt::USER_DESCRIBE, $description);
+        } else {
+            $briefJson = json_encode($brief, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) ?: '{}';
+            $userContent = sprintf(BriefPrompt::USER_WITH_BRIEF, $description, $briefJson);
+        }
+
+        $temperature = $step === 'classify' || $step === 'compliance'
+            ? SEO_TEMPERATURE_PRECISE
+            : SEO_TEMPERATURE_CREATIVE;
+
+        $gpt = new GptClient();
+        $result = $gpt->chatJson([
+            ['role' => 'system', 'content' => $systemPrompt],
+            ['role' => 'user', 'content' => $userContent],
+        ], [
+            'model' => $data['model'] ?? null,
+            'temperature' => $temperature,
+            'max_tokens' => SEO_MAX_TOKENS_SMALL,
+        ]);
+
+        $this->success([
+            'step'  => $step,
+            'data'  => $result['data'],
+            'usage' => $result['usage'],
+        ]);
+    }
+
+    /**
+     * POST /profiles/{id}/brief
+     * Body: { brief: {...} }
+     * Persists content_brief JSON on profile and derives gpt_persona / gpt_rules
+     * deterministically from the brief (no GPT call — template formatting).
+     */
+    private function briefSave(int $id): void {
+        $existing = $this->db->fetchOne(
+            "SELECT * FROM " . SeoSiteProfile::TABLE . " WHERE id = :id",
+            [':id' => $id]
+        );
+        if ($existing === null) $this->notFound('Профиль');
+
+        $data = $this->getJsonBody();
+        $brief = $data['brief'] ?? null;
+        if (!is_array($brief) || empty($brief)) {
+            $this->error('Поле brief обязательно — передайте собранный бриф объектом', 422);
+        }
+
+        $persona = $this->compilePersonaFromBrief($brief);
+        $rules   = $this->compileRulesFromBrief($brief);
+
+        $profile = new SeoSiteProfile($existing);
+        $profile->setContentBrief($brief);
+        if ($persona !== null) $profile->setGptPersona($persona);
+        if ($rules !== null)   $profile->setGptRules($rules);
+
+        $this->db->update(SeoSiteProfile::TABLE, 'id = :id', $profile->toArray(), [':id' => $id]);
+
+        $this->success($profile->toFullArray());
+    }
+
+    /**
+     * Deterministic persona assembly from brief — no GPT call.
+     * This is what makes persona rich: we hand-stitch named entities from the brief
+     * instead of asking GPT to vomit generic sentences.
+     */
+    private function compilePersonaFromBrief(array $brief): ?string {
+        $parts = [];
+
+        $voice = $brief['voice'] ?? [];
+        if (!empty($voice['archetype'])) {
+            $label = $voice['label'] ?? $voice['archetype'];
+            $parts[] = "Ты пишешь в роли {$label} ({$voice['archetype']}).";
+        }
+
+        $audience = $brief['audience'] ?? [];
+        if (!empty($audience['label'])) {
+            $pains = !empty($audience['pains']) ? implode('; ', array_slice((array)$audience['pains'], 0, 3)) : '';
+            $goals = !empty($audience['goals']) ? implode('; ', array_slice((array)$audience['goals'], 0, 3)) : '';
+            $parts[] = "Аудитория — {$audience['label']}"
+                . (!empty($audience['demographics']) ? " ({$audience['demographics']})" : '')
+                . ($pains ? ". Их боли: {$pains}" : '')
+                . ($goals ? ". Их цели: {$goals}" : '')
+                . '.';
+        }
+
+        $usps = $brief['usps'] ?? [];
+        if (is_array($usps) && !empty($usps)) {
+            $headlines = [];
+            foreach (array_slice($usps, 0, 4) as $u) {
+                if (!empty($u['headline'])) $headlines[] = $u['headline'];
+            }
+            if ($headlines) {
+                $parts[] = 'Ключевые УТП проекта: ' . implode('; ', $headlines) . '.';
+            }
+        }
+
+        if (!empty($voice['vocabulary_hints']) && is_array($voice['vocabulary_hints'])) {
+            $parts[] = 'Характерные обороты: ' . implode(', ', array_slice($voice['vocabulary_hints'], 0, 6)) . '.';
+        }
+
+        if (!empty($voice['sample_explanation'])) {
+            $parts[] = 'Образец фразы в голосе бренда: «' . $voice['sample_explanation'] . '».';
+        }
+
+        $compliance = $brief['compliance'] ?? [];
+        if (!empty($compliance['forbidden_claims'])) {
+            $phrases = [];
+            foreach (array_slice((array)$compliance['forbidden_claims'], 0, 5) as $c) {
+                $phrases[] = is_array($c) ? ($c['phrase'] ?? '') : (string)$c;
+            }
+            $phrases = array_filter($phrases);
+            if ($phrases) {
+                $parts[] = 'СТРОГО ЗАПРЕЩЕНО использовать формулировки: «' . implode('», «', $phrases) . '».';
+            }
+        }
+
+        return $parts ? implode(' ', $parts) : null;
+    }
+
+    /**
+     * Deterministic rules compilation — bullet list built from brief do/don't + competitor angles.
+     */
+    private function compileRulesFromBrief(array $brief): ?string {
+        $lines = [];
+        $n = 1;
+
+        $do = $brief['rules']['do'] ?? [];
+        foreach (array_slice((array)$do, 0, 8) as $r) {
+            $rule = is_array($r) ? ($r['rule'] ?? '') : (string)$r;
+            if ($rule !== '') $lines[] = ($n++) . '. ' . $rule;
+        }
+
+        $dont = $brief['rules']['dont'] ?? [];
+        foreach (array_slice((array)$dont, 0, 8) as $r) {
+            $rule = is_array($r) ? ($r['rule'] ?? '') : (string)$r;
+            if ($rule !== '') $lines[] = ($n++) . '. НЕ: ' . $rule;
+        }
+
+        $competitors = $brief['competitors'] ?? [];
+        foreach (array_slice((array)$competitors, 0, 3) as $c) {
+            if (!is_array($c) || empty($c['angle'])) continue;
+            $lines[] = ($n++) . '. Отстройка от «' . ($c['name'] ?? 'конкурент') . '»: ' . $c['angle'];
+        }
+
+        $disclaimers = $brief['compliance']['required_disclaimers'] ?? [];
+        foreach (array_slice((array)$disclaimers, 0, 3) as $d) {
+            $txt = (string)$d;
+            if ($txt !== '') $lines[] = ($n++) . '. Обязательная оговорка: ' . $txt;
+        }
+
+        return $lines ? implode("\n", $lines) : null;
     }
 }

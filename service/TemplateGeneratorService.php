@@ -529,33 +529,126 @@ class TemplateGeneratorService {
 
     private function buildSingleTemplateSystemPrompt(array $profile, array $blockTypes, string $purpose): string {
         $typeList = $this->formatBlockTypeList($blockTypes);
-
-        $profileContext = '';
-        if (!empty($profile['niche'])) {
-            $profileContext .= "Ниша: {$profile['niche']}\n";
-        }
-        if (!empty($profile['brand_name'])) {
-            $profileContext .= "Бренд: {$profile['brand_name']}\n";
-        }
-        if (!empty($profile['tone'])) {
-            $profileContext .= "Тон: {$profile['tone']}\n";
-        }
-        if (!empty($profile['gpt_persona'])) {
-            $profileContext .= "Персона контента: {$profile['gpt_persona']}\n";
-        }
-        if (!empty($profile['gpt_rules'])) {
-            $profileContext .= "Правила: {$profile['gpt_rules']}\n";
-        }
-        if (!empty($profile['description'])) {
-            $profileContext .= "Описание проекта: {$profile['description']}\n";
-        }
+        $profileContext = $this->formatProfileContext($profile);
+        $briefContext = $this->formatBriefContext($profile);
 
         return TemplatePrompt::ARCHITECT_ROLE . "\n\n"
-            . "КОНТЕКСТ ПРОФИЛЯ:\n{$profileContext}\n\n"
-            . "НАЗНАЧЕНИЕ ШАБЛОНА:\n{$purpose}\n\n"
+            . TemplatePrompt::ANTI_GENERIC . "\n\n"
+            . "КОНТЕКСТ ПРОФИЛЯ:\n{$profileContext}\n"
+            . ($briefContext !== '' ? "\nДЕТАЛЬНЫЙ БРИФ:\n{$briefContext}\n" : '')
+            . "\nНАЗНАЧЕНИЕ ШАБЛОНА:\n{$purpose}\n\n"
             . "ДОСТУПНЫЕ ТИПЫ БЛОКОВ:\n{$typeList}\n\n"
             . TemplatePrompt::SINGLE_RULES . "\n\n"
             . TemplatePrompt::SINGLE_RESPONSE_FORMAT;
+    }
+
+    private function formatProfileContext(array $profile): string {
+        $ctx = '';
+        if (!empty($profile['niche']))       $ctx .= "Ниша: {$profile['niche']}\n";
+        if (!empty($profile['brand_name']))  $ctx .= "Бренд: {$profile['brand_name']}\n";
+        if (!empty($profile['tone']))        $ctx .= "Тон: {$profile['tone']}\n";
+        if (!empty($profile['gpt_persona'])) $ctx .= "Персона контента: {$profile['gpt_persona']}\n";
+        if (!empty($profile['gpt_rules']))   $ctx .= "Правила: {$profile['gpt_rules']}\n";
+        if (!empty($profile['description'])) $ctx .= "Описание проекта: {$profile['description']}\n";
+        return $ctx;
+    }
+
+    /**
+     * Render content_brief JSON into a human-readable block feeding richer context to GPT.
+     * Returns empty string when brief is missing.
+     */
+    private function formatBriefContext(array $profile): string {
+        $brief = $profile['content_brief'] ?? null;
+        if (is_string($brief) && $brief !== '') {
+            $brief = json_decode($brief, true);
+        }
+        if (!is_array($brief) || empty($brief)) {
+            return '';
+        }
+
+        $lines = [];
+
+        $audience = $brief['audience'] ?? null;
+        if (is_array($audience) && !empty($audience['label'])) {
+            $lines[] = "АУДИТОРИЯ: {$audience['label']}"
+                . (!empty($audience['demographics']) ? " — {$audience['demographics']}" : '');
+            if (!empty($audience['pains']))    $lines[] = 'Боли: ' . implode('; ', (array)$audience['pains']);
+            if (!empty($audience['goals']))    $lines[] = 'Цели: ' . implode('; ', (array)$audience['goals']);
+            if (!empty($audience['triggers'])) $lines[] = 'Триггер поиска: ' . $audience['triggers'];
+        }
+
+        $usps = $brief['usps'] ?? [];
+        if (is_array($usps) && $usps) {
+            $lines[] = 'УТП (использовать в hint и system_prompt):';
+            foreach (array_slice($usps, 0, 5) as $i => $u) {
+                if (!is_array($u)) continue;
+                $line = '- ' . ($u['headline'] ?? '');
+                if (!empty($u['proof']))          $line .= ' (подтверждение: ' . $u['proof'] . ')';
+                if (!empty($u['differentiator'])) $line .= ' [отличие: ' . $u['differentiator'] . ']';
+                $lines[] = $line;
+            }
+        }
+
+        $competitors = $brief['competitors'] ?? [];
+        if (is_array($competitors) && $competitors) {
+            $lines[] = 'КОНКУРЕНТЫ И УГЛЫ ОТСТРОЙКИ:';
+            foreach (array_slice($competitors, 0, 4) as $c) {
+                if (!is_array($c)) continue;
+                $lines[] = '- ' . ($c['name'] ?? 'архетип')
+                    . (!empty($c['weaknesses']) ? ' (слабости: ' . implode(', ', (array)$c['weaknesses']) . ')' : '')
+                    . (!empty($c['angle']) ? ' → угол: ' . $c['angle'] : '');
+            }
+        }
+
+        $voice = $brief['voice'] ?? null;
+        if (is_array($voice) && !empty($voice['archetype'])) {
+            $lines[] = 'VOICE: ' . ($voice['label'] ?? $voice['archetype']) . " ({$voice['archetype']})";
+            if (!empty($voice['sample_explanation'])) $lines[] = 'Образец стиля: «' . $voice['sample_explanation'] . '»';
+            if (!empty($voice['vocabulary_hints']))   $lines[] = 'Характерные обороты: ' . implode(', ', (array)$voice['vocabulary_hints']);
+        }
+
+        $rules = $brief['rules'] ?? [];
+        if (is_array($rules)) {
+            $do = $rules['do'] ?? [];
+            if (is_array($do) && $do) {
+                $lines[] = 'DO (соблюдать):';
+                foreach (array_slice($do, 0, 6) as $r) {
+                    $lines[] = '- ' . (is_array($r) ? ($r['rule'] ?? '') : (string)$r);
+                }
+            }
+            $dont = $rules['dont'] ?? [];
+            if (is_array($dont) && $dont) {
+                $lines[] = "DON'T (запрещено):";
+                foreach (array_slice($dont, 0, 6) as $r) {
+                    $lines[] = '- ' . (is_array($r) ? ($r['rule'] ?? '') : (string)$r);
+                }
+            }
+        }
+
+        $compliance = $brief['compliance'] ?? null;
+        if (is_array($compliance)) {
+            if (!empty($compliance['forbidden_claims'])) {
+                $phrases = [];
+                foreach ((array)$compliance['forbidden_claims'] as $c) {
+                    $phrases[] = is_array($c) ? ($c['phrase'] ?? '') : (string)$c;
+                }
+                $phrases = array_filter($phrases);
+                if ($phrases) {
+                    $lines[] = 'COMPLIANCE — ЗАПРЕЩЁННЫЕ ФОРМУЛИРОВКИ (дословно НЕ использовать):';
+                    foreach (array_slice($phrases, 0, 8) as $p) $lines[] = '- «' . $p . '»';
+                }
+            }
+            if (!empty($compliance['required_disclaimers'])) {
+                $lines[] = 'ОБЯЗАТЕЛЬНЫЕ ОГОВОРКИ: ' . implode(' | ', (array)$compliance['required_disclaimers']);
+            }
+        }
+
+        $evidence = $brief['evidence'] ?? null;
+        if (is_array($evidence) && !empty($evidence['data_sources'])) {
+            $lines[] = 'РАЗРЕШЁННЫЕ ИСТОЧНИКИ ДАННЫХ: ' . implode(', ', (array)$evidence['data_sources']);
+        }
+
+        return implode("\n", $lines);
     }
 
     private function buildSingleTemplateUserPrompt(array $profile, string $purpose, ?string $hints = null): string {
@@ -623,9 +716,12 @@ class TemplateGeneratorService {
 
     private function buildSystemPrompt(array $profile, array $blockTypes, int $count): string {
         $typeList = $this->formatBlockTypeList($blockTypes);
+        $briefContext = $this->formatBriefContext($profile);
 
         return "Ты — архитектор SEO-шаблонов. Твоя задача — спроектировать {$count} шаблонов статей для конкретной ниши.\n\n"
             . "Каждый шаблон — это набор блоков, которые будут заполнены контентом через GPT.\n\n"
+            . TemplatePrompt::ANTI_GENERIC . "\n\n"
+            . ($briefContext !== '' ? "ДЕТАЛЬНЫЙ БРИФ ПРОЕКТА:\n{$briefContext}\n\n" : '')
             . "ДОСТУПНЫЕ ТИПЫ БЛОКОВ:\n{$typeList}\n\n"
             . TemplatePrompt::PROPOSAL_RULES . "\n\n"
             . TemplatePrompt::PROPOSAL_RESPONSE_FORMAT;
@@ -634,18 +730,10 @@ class TemplateGeneratorService {
     private function buildUserPrompt(array $profile, string $nicheDescription, int $count): string {
         $parts = ["Ниша: {$nicheDescription}"];
 
-        if (!empty($profile['niche'])) {
-            $parts[] = "Тематика профиля: {$profile['niche']}";
-        }
-        if (!empty($profile['brand_name'])) {
-            $parts[] = "Бренд: {$profile['brand_name']}";
-        }
-        if (!empty($profile['tone'])) {
-            $parts[] = "Тон: {$profile['tone']}";
-        }
-        if (!empty($profile['gpt_persona'])) {
-            $parts[] = "Персона: {$profile['gpt_persona']}";
-        }
+        if (!empty($profile['niche']))      $parts[] = "Тематика профиля: {$profile['niche']}";
+        if (!empty($profile['brand_name'])) $parts[] = "Бренд: {$profile['brand_name']}";
+        if (!empty($profile['tone']))       $parts[] = "Тон: {$profile['tone']}";
+        if (!empty($profile['gpt_persona'])) $parts[] = "Персона: {$profile['gpt_persona']}";
 
         $parts[] = sprintf(TemplatePrompt::USER_PROPOSAL_CREATE, $count);
         $parts[] = TemplatePrompt::USER_PROPOSAL_COVERAGE;

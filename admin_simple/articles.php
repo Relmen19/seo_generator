@@ -159,7 +159,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .regen-btn svg { width: 18px; height: 18px; }
 
 /* ─── Preview ─── */
-.preview-frame { border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; min-height: 120px; padding: 14px; overflow: auto; }
+.preview-frame { border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; min-height: 320px; overflow: hidden; position: relative; }
+.preview-frame iframe { width: 100%; min-height: 320px; border: 0; display: block; background: #fff; }
 .preview-empty { text-align: center; color: var(--text-3); padding: 30px 10px; font-size: 13px; }
 
 /* ─── Image box ─── */
@@ -207,6 +208,56 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 
 /* ─── Image modal controls ─── */
 .img-model-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; background: var(--accent-light); color: var(--accent); border-radius: 100px; font-size: 11px; font-weight: 700; margin-bottom: 6px; }
+
+/* ─── Modal ─── */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(15,22,35,.55); z-index: 400; display: none; align-items: flex-start; justify-content: center; padding: 60px 20px 20px; overflow-y: auto; }
+.modal-backdrop.show { display: flex; }
+.modal { background: var(--surface); border-radius: var(--radius-lg); box-shadow: 0 20px 60px rgba(0,0,0,.2); width: 100%; max-width: 560px; overflow: hidden; }
+.modal-head { padding: 18px 24px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.modal-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.modal-close { background: none; border: none; font-size: 20px; color: var(--text-3); cursor: pointer; line-height: 1; }
+.modal-close:hover { color: var(--text); }
+.modal-body { padding: 22px 24px; }
+.modal-foot { padding: 14px 24px; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 8px; background: var(--bg); }
+.wiz-steps { display: flex; gap: 6px; margin-bottom: 18px; }
+.wiz-step-pill { flex: 1; height: 4px; border-radius: 2px; background: var(--border); transition: .2s; }
+.wiz-step-pill.done, .wiz-step-pill.active { background: var(--accent); }
+.tpl-pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; max-height: 340px; overflow-y: auto; padding: 2px; }
+.tpl-pick-card { border: 2px solid var(--border); border-radius: var(--radius); padding: 12px 14px; cursor: pointer; transition: .15s; background: var(--surface); }
+.tpl-pick-card:hover { border-color: rgba(91,91,214,.4); background: var(--accent-light); }
+.tpl-pick-card.selected { border-color: var(--accent); background: var(--accent-light); }
+.tpl-pick-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.tpl-pick-meta { font-size: 11px; color: var(--text-3); }
+
+/* ─── Autosave indicator ─── */
+.save-state { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-3); padding: 4px 10px; border-radius: 100px; background: var(--bg); border: 1px solid var(--border); }
+.save-state.saving { color: var(--accent); border-color: var(--accent-light); background: var(--accent-light); }
+.save-state.saved { color: var(--success); border-color: var(--success-light); background: var(--success-light); }
+.save-state.err { color: var(--danger); border-color: var(--danger-light); background: var(--danger-light); }
+.save-state-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+/* ─── Advanced toggle ─── */
+.adv-toggle { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 100px; background: var(--surface); cursor: pointer; font-size: 12px; color: var(--text-2); transition: .15s; user-select: none; }
+.adv-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.adv-toggle.on { background: var(--accent-light); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.adv-switch { width: 28px; height: 16px; border-radius: 100px; background: var(--border); position: relative; transition: .15s; }
+.adv-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: .15s; }
+.adv-toggle.on .adv-switch { background: var(--accent); }
+.adv-toggle.on .adv-switch::after { left: 14px; }
+
+/* ─── Advanced-only visibility ─── */
+.adv-only { display: none !important; }
+body.advanced .adv-only { display: revert !important; }
+body.advanced .form-row.adv-only { display: grid !important; }
+body.advanced .section.adv-only { display: block !important; }
+
+/* ─── Publish status pill ─── */
+.status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 100px; }
+.status-pill-dot { width: 8px; height: 8px; border-radius: 50%; }
+.status-pill.published { background: var(--success-light); color: var(--success); }
+.status-pill.published .status-pill-dot { background: var(--success); }
+.status-pill.draft { background: var(--bg); color: var(--text-2); border: 1px solid var(--border); }
+.status-pill.draft .status-pill-dot { background: var(--text-3); }
 </style>
 </head>
 <body>
@@ -225,7 +276,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     </div>
     <div class="topbar-right">
         <a href="profiles.php" class="topbar-nav-link">Профили</a>
-        <a href="../admin_advanced/seo_page.php" class="topbar-nav-link" style="color:var(--accent);font-weight:600">⚡ Расширенная версия</a>
+        <a href="../admin_advanced/seo_page.php" class="topbar-nav-link" style="color:var(--accent);font-weight:600">⚡ Advanced</a>
         <a href="../logout.php" class="topbar-nav-link btn-logout">Выйти</a>
     </div>
 </div>
@@ -239,10 +290,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
             <div class="page-header-title">Статьи</div>
             <div class="page-header-sub" id="listSubtitle">Загрузка...</div>
         </div>
+        <button class="btn btn-primary" onclick="openCreateModal()">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 3v10M3 8h10"/></svg>
+            Новая статья
+        </button>
     </div>
     <div class="filters">
         <input type="text" id="filterSearch" placeholder="Поиск по заголовку...">
-        <select id="filterProfile"><option value="">Все профили</option></select>
+        <select id="filterProfile"><option value="">— выберите профиль —</option></select>
         <select id="filterSort">
             <option value="updated">Недавно обновлённые</option>
             <option value="created">Недавно созданные</option>
@@ -252,6 +307,97 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     </div>
     <div id="listContainer">
         <div class="empty"><div class="spin"></div></div>
+    </div>
+</div>
+
+<!-- ─── Wizard modal: создание статьи ─── -->
+<div class="modal-backdrop" id="wizModal">
+    <div class="modal">
+        <div class="modal-head">
+            <span class="modal-title" id="wizTitle">Новая статья</span>
+            <button class="modal-close" onclick="closeCreateModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="wiz-steps">
+                <div class="wiz-step-pill" data-step="1"></div>
+                <div class="wiz-step-pill" data-step="2"></div>
+                <div class="wiz-step-pill" data-step="3"></div>
+            </div>
+
+            <!-- Step 1: profile -->
+            <div id="wizStep1">
+                <div class="field">
+                    <label>Выберите профиль</label>
+                    <div class="tpl-pick-grid" id="wizProfiles"></div>
+                </div>
+            </div>
+
+            <!-- Step 2: template -->
+            <div id="wizStep2" style="display:none">
+                <div class="field">
+                    <label>Выберите шаблон</label>
+                    <div class="tpl-pick-grid" id="wizTemplates"></div>
+                </div>
+            </div>
+
+            <!-- Step 3: title -->
+            <div id="wizStep3" style="display:none">
+                <div class="field">
+                    <label>Заголовок статьи</label>
+                    <input type="text" id="wizTitleInput" placeholder="Напр. Как выбрать кроссовки для бега">
+                </div>
+                <div class="field">
+                    <label>Slug (URL)</label>
+                    <div style="display:flex;gap:6px;align-items:stretch">
+                        <input type="text" id="wizSlugInput" placeholder="kak-vybrat-krossovki" style="flex:1">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="regenWizSlug()" title="Сгенерировать slug из заголовка">
+                            ⚡ Сгенерировать
+                        </button>
+                    </div>
+                    <div class="field-hint">Авто-генерация из заголовка. Можно редактировать вручную.</div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" id="wizBack" onclick="wizBack()" style="display:none">Назад</button>
+            <button class="btn btn-primary" id="wizNext" onclick="wizNext()" disabled>Далее</button>
+        </div>
+    </div>
+</div>
+
+<!-- ─── Publish modal ─── -->
+<div class="modal-backdrop" id="fullPreviewModal">
+    <div class="modal" style="max-width:1100px;width:95vw;height:90vh;display:flex;flex-direction:column">
+        <div class="modal-head">
+            <span class="modal-title">Предпросмотр статьи</span>
+            <button class="modal-close" onclick="closeFullPreview()">×</button>
+        </div>
+        <div class="modal-body" style="flex:1;padding:0;overflow:hidden">
+            <iframe id="fullPreviewFrame" style="width:100%;height:100%;border:0;background:#fff" sandbox="allow-scripts allow-same-origin"></iframe>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="pubModal">
+    <div class="modal">
+        <div class="modal-head">
+            <span class="modal-title">Публикация</span>
+            <button class="modal-close" onclick="closePublishModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="field">
+                <label>URL опубликованной страницы</label>
+                <input type="url" id="pubUrl" placeholder="https://example.com/article">
+                <div class="field-hint">После сохранения статус станет «Опубликовано».</div>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closePublishModal()">Отмена</button>
+            <button class="btn btn-secondary" id="btnUnpublish" onclick="doUnpublish()" style="display:none">Снять с публикации</button>
+            <button class="btn btn-primary" onclick="doPublish()">
+                <span id="pubSpin"></span> Опубликовать
+            </button>
+        </div>
     </div>
 </div>
 
@@ -268,7 +414,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
             <div class="ed-meta" id="edMeta">—</div>
         </div>
         <div class="ed-actions">
-            <button class="btn btn-secondary btn-sm" onclick="openPublicPage()" id="btnViewPage">👁 Открыть</button>
+            <span class="save-state saved" id="saveState"><span class="save-state-dot"></span><span id="saveStateText">Сохранено</span></span>
+            <span class="status-pill draft" id="statusPill"><span class="status-pill-dot"></span><span id="statusPillText">Черновик</span></span>
+            <button class="btn btn-secondary btn-sm" onclick="openFullPreview()" id="btnFullPreview" title="Предпросмотр всей статьи">👁 Превью</button>
+            <button class="btn btn-primary btn-sm" onclick="openPublishModal()" id="btnPublish">📤 Опубликовать</button>
+            <button class="btn btn-secondary btn-sm" onclick="openPublicPage()" id="btnViewPage" style="display:none">👁 Открыть</button>
+            <div class="adv-toggle" id="advToggle" onclick="toggleAdvanced()">
+                <span>Расширенный режим</span>
+                <span class="adv-switch"></span>
+            </div>
         </div>
     </div>
 
@@ -279,14 +433,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
             <div class="form-row">
                 <div class="field">
                     <label>Заголовок</label>
-                    <input type="text" id="fTitle" placeholder="Заголовок статьи">
+                    <input type="text" id="fTitle" placeholder="Заголовок статьи" data-autosave="main">
                 </div>
                 <div class="field">
                     <label>Slug (URL)</label>
-                    <input type="text" id="fSlug" placeholder="url-slug">
+                    <input type="text" id="fSlug" placeholder="url-slug" data-autosave="main">
                 </div>
             </div>
-            <div class="form-row">
+            <div class="form-row adv-only">
                 <div class="field">
                     <label>Профиль</label>
                     <input type="text" id="fProfile" disabled>
@@ -297,11 +451,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
                 </div>
             </div>
         </div>
-        <div class="section-foot">
-            <button class="btn btn-primary btn-sm" onclick="saveMain()">
-                <span id="saveMainSpin"></span> Сохранить
-            </button>
-        </div>
     </div>
 
     <!-- SEO Meta -->
@@ -310,17 +459,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         <div class="section-body">
             <div class="field">
                 <label>Meta Title</label>
-                <input type="text" id="fMetaTitle" placeholder="SEO title для &lt;title&gt; и OG">
+                <input type="text" id="fMetaTitle" placeholder="SEO title для &lt;title&gt; и OG" data-autosave="meta">
             </div>
             <div class="field">
                 <label>Meta Description</label>
-                <textarea id="fMetaDesc" rows="3" placeholder="Описание для поисковиков (до ~160 символов)"></textarea>
+                <textarea id="fMetaDesc" rows="3" placeholder="Описание для поисковиков (до ~160 символов)" data-autosave="meta"></textarea>
             </div>
-        </div>
-        <div class="section-foot">
-            <button class="btn btn-primary btn-sm" onclick="saveMeta()">
-                <span id="saveMetaSpin"></span> Сохранить Meta
-            </button>
         </div>
     </div>
 
@@ -351,24 +495,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
         </div>
     </div>
 
-    <!-- Article settings -->
-    <div class="section">
-        <div class="section-head"><span class="section-head-title">Настройки статьи</span></div>
+    <!-- Article settings (advanced only) -->
+    <div class="section adv-only">
+        <div class="section-head"><span class="section-head-title">Детали статьи</span></div>
         <div class="section-body">
-            <div class="field">
-                <label>Опубликованный URL</label>
-                <input type="url" id="fPublishedUrl" placeholder="https://...">
-            </div>
-            <div style="margin-top:6px">
-                <div class="meta-pair"><span class="k">Версия</span><span class="v" id="metaVersion">—</span></div>
-                <div class="meta-pair"><span class="k">Токенов потрачено</span><span class="v" id="metaTokens">—</span></div>
-                <div class="meta-pair"><span class="k">GPT модель</span><span class="v" id="metaModel">—</span></div>
-            </div>
-        </div>
-        <div class="section-foot">
-            <button class="btn btn-primary btn-sm" onclick="saveUrl()">
-                <span id="saveUrlSpin"></span> Сохранить URL
-            </button>
+            <div class="meta-pair"><span class="k">Опубликованный URL</span><span class="v" id="metaPubUrl">—</span></div>
+            <div class="meta-pair"><span class="k">Версия</span><span class="v" id="metaVersion">—</span></div>
+            <div class="meta-pair"><span class="k">Токенов потрачено</span><span class="v" id="metaTokens">—</span></div>
+            <div class="meta-pair"><span class="k">GPT модель</span><span class="v" id="metaModel">—</span></div>
         </div>
     </div>
 </div>
@@ -383,6 +517,15 @@ const S = {
     blockTypes: [],
     openBlockId: null,
     blockTabs: {},
+    advanced: false,
+    // wizard
+    wizStep: 1,
+    wizProfile: null,
+    wizTemplate: null,
+    wizTemplates: [],
+    // autosave
+    autosaveTimers: {},
+    saveInFlight: 0,
 };
 
 const IMAGE_MODEL = 'gemini-2.5-flash-image';
@@ -437,8 +580,21 @@ async function loadProfiles() {
         const res = await api('profiles');
         S.profiles = res.data || [];
         const sel = el('filterProfile');
-        sel.innerHTML = '<option value="">Все профили</option>' +
+        sel.innerHTML = '<option value="">— выберите профиль —</option>' +
             S.profiles.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+
+        // Pre-select: ?profile=<id> query → localStorage → first active profile
+        const urlParam = new URLSearchParams(window.location.search).get('profile');
+        let preselect = '';
+        if (urlParam && S.profiles.some(p => String(p.id) === String(urlParam))) preselect = urlParam;
+        if (!preselect) {
+            try {
+                const saved = localStorage.getItem('seo_simple_profile');
+                if (saved && S.profiles.some(p => String(p.id) === String(saved))) preselect = saved;
+            } catch(e) {}
+        }
+        if (!preselect && S.profiles.length === 1) preselect = String(S.profiles[0].id);
+        if (preselect) sel.value = preselect;
     } catch(e) { /* ignore */ }
 }
 
@@ -454,19 +610,26 @@ function blockTypeMeta(code) {
 }
 
 async function loadArticles() {
+    const pid = el('filterProfile').value;
+    if (!pid) {
+        el('listSubtitle').textContent = 'Выберите профиль';
+        el('listContainer').innerHTML = '<div class="empty"><div class="empty-icon">📁</div><div class="empty-title">Выберите профиль</div><div class="empty-sub">Статьи показываются по одному профилю за раз</div></div>';
+        S.articles = [];
+        return;
+    }
     el('listContainer').innerHTML = '<div class="empty"><div class="spin"></div></div>';
     const params = new URLSearchParams();
     const q = el('filterSearch').value.trim();
-    const pid = el('filterProfile').value;
     const sort = el('filterSort').value;
     if (q) params.set('q', q);
-    if (pid) params.set('profile_id', pid);
+    params.set('profile_id', pid);
     if (sort) params.set('sort', sort);
     params.set('per_page', '100');
     try {
         const res = await api('articles?' + params.toString());
         S.articles = res.data || [];
         renderList(res.meta && res.meta.total);
+        try { localStorage.setItem('seo_simple_profile', pid); } catch(e) {}
     } catch(e) {
         el('listContainer').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Ошибка</div><div class="empty-sub">' + esc(e.message) + '</div></div>';
     }
@@ -483,12 +646,10 @@ function renderList(total) {
             ? '<span class="badge badge-success">Опубликовано</span>'
             : (a.status === 'draft' ? '<span class="badge badge-muted">Черновик</span>'
                : '<span class="badge badge-info">' + esc(a.status || '—') + '</span>');
-        const profile = (S.profiles.find(p => p.id === a.profile_id) || {}).name || '—';
         const updated = a.updated_at ? a.updated_at.substring(0, 10) : '—';
         return `
         <tr onclick="openArticle(${a.id})">
             <td><div class="a-title">${esc(a.title || '—')}</div><div class="a-slug">${esc(a.slug || '')}</div></td>
-            <td>${esc(profile)}</td>
             <td>${esc(a.template_name || '—')}</td>
             <td>${statusBadge}</td>
             <td>${updated}</td>
@@ -498,7 +659,7 @@ function renderList(total) {
     <div class="articles-table-wrap">
         <table class="articles-table">
             <thead><tr>
-                <th>Заголовок</th><th>Профиль</th><th>Шаблон</th><th>Статус</th><th>Обновлено</th>
+                <th>Заголовок</th><th>Шаблон</th><th>Статус</th><th>Обновлено</th>
             </tr></thead>
             <tbody>${rows}</tbody>
         </table>
@@ -514,10 +675,22 @@ function debounce(fn, ms) {
 }
 
 // ─── Open article ───
+function normalizeArticle(a) {
+    if (a && Array.isArray(a.blocks)) {
+        a.blocks.forEach(b => {
+            if (typeof b.content === 'string') {
+                try { b.content = JSON.parse(b.content); } catch(_) { b.content = {}; }
+            }
+            if (!b.content || typeof b.content !== 'object') b.content = {};
+        });
+    }
+    return a;
+}
+
 async function openArticle(id) {
     try {
         const res = await api('articles/' + id);
-        S.article = res.data;
+        S.article = normalizeArticle(res.data);
         renderEditor();
         showEditor();
     } catch(e) {
@@ -542,10 +715,17 @@ function renderEditor() {
     el('fMetaTitle').value = a.meta_title || '';
     el('fMetaDesc').value = a.meta_description || '';
 
-    el('fPublishedUrl').value = a.published_url || '';
+    el('metaPubUrl').textContent = a.published_url || '—';
     el('metaVersion').textContent = a.version || 1;
     el('metaModel').textContent = a.gpt_model || '—';
     el('metaTokens').textContent = sumTokens(a.generation_log);
+
+    // Status pill + publish button
+    const published = a.status === 'published' && a.published_url;
+    const pill = el('statusPill');
+    pill.className = 'status-pill ' + (published ? 'published' : 'draft');
+    el('statusPillText').textContent = published ? 'Опубликовано' : 'Черновик';
+    el('btnPublish').textContent = published ? '🔄 Изменить публикацию' : '📤 Опубликовать';
 
     const btn = el('btnViewPage');
     if (a.published_url) {
@@ -555,7 +735,302 @@ function renderEditor() {
         btn.style.display = 'none';
     }
 
+    setSaveState('saved');
     renderBlocks(a.blocks || []);
+}
+
+// ─── Autosave ───
+function setSaveState(state, msg) {
+    const el_ = el('saveState');
+    const txt = el('saveStateText');
+    el_.className = 'save-state ' + state;
+    if (state === 'saving') txt.textContent = 'Сохранение…';
+    else if (state === 'saved') txt.textContent = 'Сохранено';
+    else if (state === 'err') txt.textContent = msg || 'Ошибка';
+}
+
+function scheduleAutosave(group) {
+    if (!S.article) return;
+    clearTimeout(S.autosaveTimers[group]);
+    setSaveState('saving');
+    S.autosaveTimers[group] = setTimeout(() => doAutosave(group), 800);
+}
+
+async function doAutosave(group) {
+    if (!S.article) return;
+    const payload = {};
+    if (group === 'main') {
+        payload.title = el('fTitle').value.trim();
+        payload.slug = el('fSlug').value.trim();
+    } else if (group === 'meta') {
+        payload.meta_title = el('fMetaTitle').value.trim() || null;
+        payload.meta_description = el('fMetaDesc').value.trim() || null;
+    }
+    S.saveInFlight++;
+    try {
+        const res = await api('articles/' + S.article.id, 'PUT', payload);
+        Object.assign(S.article, res.data);
+        if (group === 'main') {
+            el('edTitle').textContent = S.article.title || '—';
+            el('topbarPage').textContent = S.article.title || 'Статья';
+        }
+        S.saveInFlight--;
+        if (S.saveInFlight === 0) setSaveState('saved');
+    } catch(e) {
+        S.saveInFlight--;
+        setSaveState('err', e.message);
+        toast(e.message, 'err');
+    }
+}
+
+document.addEventListener('input', (ev) => {
+    const t = ev.target;
+    if (t && t.dataset && t.dataset.autosave) scheduleAutosave(t.dataset.autosave);
+});
+
+// ─── Advanced mode ───
+function toggleAdvanced() {
+    S.advanced = !S.advanced;
+    document.body.classList.toggle('advanced', S.advanced);
+    el('advToggle').classList.toggle('on', S.advanced);
+    try { localStorage.setItem('seo_simple_adv', S.advanced ? '1' : '0'); } catch(e) {}
+    // Re-render blocks (simple/advanced field visibility)
+    if (S.article) renderBlocks(S.article.blocks || []);
+    if (S.openBlockId) {
+        const card = el('block-' + S.openBlockId);
+        if (card) card.classList.add('open');
+    }
+}
+
+// ─── Wizard ───
+async function openCreateModal() {
+    S.wizStep = 1;
+    // Prefill from current filter if set
+    const currentPid = el('filterProfile').value;
+    S.wizProfile = currentPid ? parseInt(currentPid, 10) : null;
+    S.wizTemplate = null;
+    S.wizTemplates = [];
+    el('wizTitleInput').value = '';
+    el('wizSlugInput').value = '';
+    el('wizSlugInput').dataset.touched = '';
+    el('wizModal').classList.add('show');
+    // Skip step 1 if profile already selected
+    if (S.wizProfile) {
+        S.wizStep = 2;
+        renderWizStep();
+        await loadWizTemplates();
+    } else {
+        renderWizStep();
+        renderWizProfiles();
+    }
+}
+
+function closeCreateModal() {
+    el('wizModal').classList.remove('show');
+}
+
+function renderWizStep() {
+    ['wizStep1','wizStep2','wizStep3'].forEach((id, i) => {
+        el(id).style.display = (i + 1 === S.wizStep) ? '' : 'none';
+    });
+    document.querySelectorAll('.wiz-step-pill').forEach(p => {
+        const n = parseInt(p.dataset.step, 10);
+        p.className = 'wiz-step-pill' + (n < S.wizStep ? ' done' : (n === S.wizStep ? ' active' : ''));
+    });
+    el('wizBack').style.display = S.wizStep > 1 ? '' : 'none';
+    el('wizNext').textContent = S.wizStep === 3 ? 'Создать' : 'Далее';
+    updateWizNext();
+}
+
+function updateWizNext() {
+    let ok = false;
+    if (S.wizStep === 1) ok = !!S.wizProfile;
+    else if (S.wizStep === 2) ok = !!S.wizTemplate;
+    else if (S.wizStep === 3) ok = el('wizTitleInput').value.trim().length > 0 && el('wizSlugInput').value.trim().length > 0;
+    el('wizNext').disabled = !ok;
+}
+
+function renderWizProfiles() {
+    const grid = el('wizProfiles');
+    if (!S.profiles.length) {
+        grid.innerHTML = '<div class="empty" style="padding:20px"><div class="empty-sub">Нет активных профилей</div></div>';
+        return;
+    }
+    grid.innerHTML = S.profiles.map(p => `
+        <div class="tpl-pick-card ${S.wizProfile === p.id ? 'selected' : ''}" onclick="pickWizProfile(${p.id})">
+            <div class="tpl-pick-name">${esc(p.name)}</div>
+            <div class="tpl-pick-meta">${esc(p.niche || p.slug || '')}</div>
+        </div>`).join('');
+}
+
+function pickWizProfile(id) {
+    S.wizProfile = id;
+    renderWizProfiles();
+    updateWizNext();
+}
+
+async function loadWizTemplates() {
+    const grid = el('wizTemplates');
+    grid.innerHTML = '<div class="empty" style="padding:20px"><div class="spin"></div></div>';
+    try {
+        const res = await api('templates?profile_id=' + S.wizProfile);
+        S.wizTemplates = res.data || [];
+        if (!S.wizTemplates.length) {
+            grid.innerHTML = '<div class="empty" style="padding:20px"><div class="empty-sub">У профиля нет шаблонов. Создайте в расширенной панели.</div></div>';
+            return;
+        }
+        grid.innerHTML = S.wizTemplates.map(t => `
+            <div class="tpl-pick-card ${S.wizTemplate === t.id ? 'selected' : ''}" onclick="pickWizTemplate(${t.id})">
+                <div class="tpl-pick-name">${esc(t.name)}</div>
+                <div class="tpl-pick-meta">${(t.blocks || []).length} блоков</div>
+            </div>`).join('');
+    } catch(e) {
+        grid.innerHTML = '<div class="empty" style="padding:20px"><div class="empty-sub">' + esc(e.message) + '</div></div>';
+    }
+}
+
+function pickWizTemplate(id) {
+    S.wizTemplate = id;
+    loadWizTemplates();
+    updateWizNext();
+}
+
+function wizBack() {
+    if (S.wizStep > 1) { S.wizStep--; renderWizStep(); }
+}
+
+async function wizNext() {
+    if (S.wizStep === 1) {
+        S.wizStep = 2;
+        renderWizStep();
+        await loadWizTemplates();
+    } else if (S.wizStep === 2) {
+        S.wizStep = 3;
+        renderWizStep();
+        el('wizTitleInput').focus();
+    } else {
+        await createArticleFromWiz();
+    }
+}
+
+function slugify(s) {
+    const map = {'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'e','ж':'zh','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'h','ц':'ts','ч':'ch','ш':'sh','щ':'sch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya'};
+    return s.toLowerCase().split('').map(c => map[c] != null ? map[c] : c).join('')
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+}
+
+function regenWizSlug() {
+    const title = el('wizTitleInput').value.trim();
+    if (!title) { toast('Сначала введите заголовок', 'err'); return; }
+    const slug = el('wizSlugInput');
+    slug.value = slugify(title);
+    slug.dataset.touched = '';
+    updateWizNext();
+}
+
+async function createArticleFromWiz() {
+    const btn = el('wizNext');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin spin-white"></span> Создание...';
+    try {
+        const res = await api('articles', 'POST', {
+            title: el('wizTitleInput').value.trim(),
+            slug: el('wizSlugInput').value.trim(),
+            template_id: S.wizTemplate,
+            profile_id: S.wizProfile,
+        });
+        closeCreateModal();
+        toast('Статья создана', 'ok');
+        await openArticle(res.data.id);
+    } catch(e) {
+        toast(e.message, 'err');
+    }
+    btn.disabled = false;
+    btn.textContent = 'Создать';
+}
+
+// Auto-slug on title input
+document.addEventListener('input', (ev) => {
+    if (ev.target && ev.target.id === 'wizTitleInput') {
+        const slug = el('wizSlugInput');
+        if (!slug.dataset.touched) slug.value = slugify(ev.target.value);
+        updateWizNext();
+    } else if (ev.target && ev.target.id === 'wizSlugInput') {
+        ev.target.dataset.touched = '1';
+        updateWizNext();
+    }
+});
+
+// ─── Publish modal ───
+function openPublishModal() {
+    if (!S.article) return;
+    el('pubUrl').value = S.article.published_url || '';
+    el('btnUnpublish').style.display = (S.article.status === 'published') ? '' : 'none';
+    el('pubModal').classList.add('show');
+}
+
+function closePublishModal() {
+    el('pubModal').classList.remove('show');
+}
+
+async function doPublish() {
+    if (!S.article) return;
+    const url = el('pubUrl').value.trim();
+    if (!url) { toast('Укажите URL', 'err'); return; }
+    const sp = el('pubSpin');
+    sp.innerHTML = '<span class="spin spin-white"></span>';
+    try {
+        // Save URL
+        await api('articles/' + S.article.id, 'PUT', { published_url: url });
+        // Set status published
+        await api('articles/' + S.article.id + '/status', 'PUT', { status: 'published' });
+        const art = await api('articles/' + S.article.id);
+        S.article = normalizeArticle(art.data);
+        renderEditor();
+        closePublishModal();
+        toast('Опубликовано', 'ok');
+    } catch(e) { toast(e.message, 'err'); }
+    sp.innerHTML = '';
+}
+
+async function doUnpublish() {
+    if (!S.article) return;
+    if (!confirm('Снять статью с публикации?')) return;
+    try {
+        await api('publish/' + S.article.id + '/unpublish', 'POST', {});
+        const art = await api('articles/' + S.article.id);
+        S.article = normalizeArticle(art.data);
+        renderEditor();
+        closePublishModal();
+        toast('Снято с публикации', 'ok');
+    } catch(e) { toast(e.message, 'err'); }
+}
+
+async function openFullPreview() {
+    if (!S.article) return;
+    const modal = el('fullPreviewModal');
+    const frame = el('fullPreviewFrame');
+    frame.srcdoc = '<!doctype html><html><body style="font-family:sans-serif;padding:40px;text-align:center;color:#666">Загрузка…</body></html>';
+    modal.classList.add('show');
+    try {
+        for (const g of Object.keys(S.autosaveTimers)) {
+            if (S.autosaveTimers[g]) { clearTimeout(S.autosaveTimers[g]); S.autosaveTimers[g] = null; await doAutosave(g); }
+        }
+        const res = await fetch(API + 'publish/' + S.article.id + '/preview', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
+        });
+        const html = await res.text();
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        frame.srcdoc = html;
+    } catch(e) {
+        frame.srcdoc = '<!doctype html><html><body style="font-family:sans-serif;padding:40px;color:#c00">Ошибка: ' + esc(e.message) + '</body></html>';
+        toast(e.message, 'err');
+    }
+}
+
+function closeFullPreview() {
+    el('fullPreviewModal').classList.remove('show');
+    el('fullPreviewFrame').srcdoc = '';
 }
 
 function sumTokens(log) {
@@ -579,53 +1054,6 @@ function sumTokens(log) {
     };
     collect(usage);
     return total ? total.toLocaleString('ru-RU') + ' токенов' : '—';
-}
-
-// ─── Main save ───
-async function saveMain() {
-    if (!S.article) return;
-    const sp = el('saveMainSpin');
-    sp.innerHTML = '<span class="spin spin-white"></span>';
-    try {
-        const res = await api('articles/' + S.article.id, 'PUT', {
-            title: el('fTitle').value.trim(),
-            slug: el('fSlug').value.trim(),
-        });
-        Object.assign(S.article, res.data);
-        el('edTitle').textContent = S.article.title;
-        toast('Сохранено', 'ok');
-    } catch(e) { toast(e.message, 'err'); }
-    sp.innerHTML = '';
-}
-
-async function saveMeta() {
-    if (!S.article) return;
-    const sp = el('saveMetaSpin');
-    sp.innerHTML = '<span class="spin spin-white"></span>';
-    try {
-        const res = await api('articles/' + S.article.id, 'PUT', {
-            meta_title: el('fMetaTitle').value.trim() || null,
-            meta_description: el('fMetaDesc').value.trim() || null,
-        });
-        Object.assign(S.article, res.data);
-        toast('Meta сохранены', 'ok');
-    } catch(e) { toast(e.message, 'err'); }
-    sp.innerHTML = '';
-}
-
-async function saveUrl() {
-    if (!S.article) return;
-    const sp = el('saveUrlSpin');
-    sp.innerHTML = '<span class="spin spin-white"></span>';
-    try {
-        const res = await api('articles/' + S.article.id, 'PUT', {
-            published_url: el('fPublishedUrl').value.trim() || null,
-        });
-        Object.assign(S.article, res.data);
-        toast('URL сохранён', 'ok');
-        renderEditor();
-    } catch(e) { toast(e.message, 'err'); }
-    sp.innerHTML = '';
 }
 
 function openPublicPage() {
@@ -693,7 +1121,7 @@ async function generateAll() {
 
         // Reload
         const art = await api('articles/' + S.article.id);
-        S.article = art.data;
+        S.article = normalizeArticle(art.data);
         renderEditor();
         toast('Генерация завершена', 'ok');
     } catch(e) {
@@ -784,16 +1212,30 @@ function renderBlockPane(b, tab) {
 
 function renderFormFields(b) {
     const content = b.content || {};
-    const keys = Object.keys(content).filter(k => k !== 'image_id' && k !== 'image_layout' && k !== 'gpt_prompt');
-    if (!keys.length) {
-        return '<div class="field-hint">Блок не содержит редактируемых полей.</div>' +
-               renderNameField(b);
-    }
+    const allKeys = Object.keys(content).filter(k => k !== 'image_id' && k !== 'image_layout' && k !== 'gpt_prompt');
+    // In simple mode, hide object/array (JSON) fields — they're for developers
+    const keys = S.advanced
+        ? allKeys
+        : allKeys.filter(k => {
+            const v = content[k];
+            return v === null || v === undefined || typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean';
+          });
+    const hiddenCount = allKeys.length - keys.length;
+
     let html = renderNameField(b);
-    keys.forEach(k => {
-        const v = content[k];
-        html += renderFieldForValue(b.id, k, v);
-    });
+    if (!allKeys.length) {
+        html += '<div class="field-hint">Блок не содержит дополнительных полей для редактирования.</div>';
+    } else {
+        keys.forEach(k => {
+            const v = content[k];
+            html += renderFieldForValue(b.id, k, v);
+        });
+        if (hiddenCount > 0 && !S.advanced) {
+            html += '<div class="field-hint" style="padding:8px 10px;background:var(--bg);border:1px dashed var(--border);border-radius:var(--radius-sm);margin-bottom:10px">' +
+                    '🔧 ' + hiddenCount + ' сложных полей скрыто. Включите «Расширенный режим» для редактирования.' +
+                    '</div>';
+        }
+    }
     html += '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">' +
             '<button class="btn btn-primary btn-sm" onclick="saveBlockFields(' + b.id + ')"><span id="saveBlkSpin-' + b.id + '"></span> Сохранить блок</button>' +
             '</div>';
@@ -837,17 +1279,29 @@ async function saveBlockFields(blockId) {
 
     const content = Object.assign({}, b.content || {});
     const pane = el('blockPane-' + blockId);
-    pane.querySelectorAll('[data-key]').forEach(input => {
+    let invalid = null;
+    const inputs = pane.querySelectorAll('[data-key]');
+    for (const input of inputs) {
         const k = input.getAttribute('data-key');
         const t = input.getAttribute('data-type');
         let v = input.value;
-        if (t === 'number') v = parseFloat(v);
-        else if (t === 'boolean') v = (v === 'true' || v === '1');
-        else if (t === 'json') {
-            try { v = JSON.parse(v); } catch(e) { toast('Некорректный JSON в поле ' + k, 'err'); return; }
+        if (t === 'number') {
+            if (v === '' || v === null) { invalid = 'Пустое число в поле ' + k; break; }
+            const n = parseFloat(v);
+            if (isNaN(n)) { invalid = 'Не число в поле ' + k; break; }
+            v = n;
+        } else if (t === 'boolean') {
+            v = (v === 'true' || v === '1');
+        } else if (t === 'json') {
+            try { v = JSON.parse(v); } catch(e) { invalid = 'Некорректный JSON в поле ' + k; break; }
         }
         content[k] = v;
-    });
+    }
+    if (invalid) {
+        toast(invalid, 'err');
+        if (sp) sp.innerHTML = '';
+        return;
+    }
     const name = el('blkName-' + blockId).value;
 
     try {
@@ -856,7 +1310,7 @@ async function saveBlockFields(blockId) {
         });
         // Refresh article
         const res = await api('articles/' + S.article.id);
-        S.article = res.data;
+        S.article = normalizeArticle(res.data);
         const nb = (S.article.blocks || []).find(x => x.id === blockId);
         if (nb) {
             const card = el('block-' + blockId);
@@ -871,6 +1325,15 @@ async function saveBlockFields(blockId) {
 // ─── Chat regenerate ───
 function renderChatRegen(b) {
     const prompt = b.gpt_prompt || '';
+    if (!S.advanced) {
+        return `
+        <div style="display:flex;justify-content:flex-end;margin-top:10px">
+            <button class="btn btn-secondary btn-sm" onclick="regenBlock(${b.id})" id="blkRegenBtn-${b.id}">
+                <span id="blkRegenSpin-${b.id}"></span> ✨ Перегенерировать блок
+            </button>
+            <input type="hidden" id="blkPrompt-${b.id}" value="${esc(prompt)}">
+        </div>`;
+    }
     return `
     <div class="regen-chat">
         <div class="regen-chat-label">GPT-промпт · перегенерация</div>
@@ -891,6 +1354,7 @@ async function regenBlock(blockId) {
     if (!b) return;
     const prompt = el('blkPrompt-' + blockId).value.trim();
     const btn = el('blkRegenBtn-' + blockId);
+    const prevHtml = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<span class="spin spin-white"></span>';
 
@@ -907,7 +1371,7 @@ async function regenBlock(blockId) {
         });
         // Refresh article
         const art = await api('articles/' + S.article.id);
-        S.article = art.data;
+        S.article = normalizeArticle(art.data);
         renderEditor();
         // Keep this block open
         S.openBlockId = blockId;
@@ -917,7 +1381,7 @@ async function regenBlock(blockId) {
     } catch(e) { toast(e.message, 'err'); }
 
     btn.disabled = false;
-    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
+    btn.innerHTML = prevHtml;
 }
 
 // ─── Preview ───
@@ -933,7 +1397,26 @@ async function loadPreview(blockId) {
             body: JSON.stringify({ type: b.type, content: b.content || {} })
         });
         const html = await res.text();
-        pane.innerHTML = html || '<div class="preview-empty">Нет контента</div>';
+        if (!html) {
+            pane.innerHTML = '<div class="preview-empty">Нет контента</div>';
+            return;
+        }
+        const iframe = document.createElement('iframe');
+        iframe.sandbox = 'allow-scripts allow-same-origin';
+        iframe.onload = () => {
+            try {
+                const doc = iframe.contentDocument;
+                if (doc) {
+                    doc.querySelectorAll('.reveal').forEach(e => e.classList.add('vis'));
+                    // Auto-resize to content
+                    const h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 320);
+                    iframe.style.height = (h + 20) + 'px';
+                }
+            } catch(_) {}
+        };
+        iframe.srcdoc = html;
+        pane.innerHTML = '';
+        pane.appendChild(iframe);
     } catch(e) {
         pane.innerHTML = '<div class="preview-empty" style="color:var(--danger)">Ошибка: ' + esc(e.message) + '</div>';
     }
@@ -989,7 +1472,7 @@ async function genImage(blockId) {
         }
         // Refresh article
         const art = await api('articles/' + S.article.id);
-        S.article = art.data;
+        S.article = normalizeArticle(art.data);
         // re-render block
         const card = el('block-' + blockId);
         if (card) {
@@ -1016,6 +1499,16 @@ async function genImage(blockId) {
 }
 
 // ─── Init ───
+(function initAdvanced() {
+    let on = false;
+    try { on = localStorage.getItem('seo_simple_adv') === '1'; } catch(e) {}
+    S.advanced = on;
+    if (on) {
+        document.body.classList.add('advanced');
+        el('advToggle').classList.add('on');
+    }
+})();
+
 (async function init() {
     await Promise.all([loadProfiles(), loadBlockTypes()]);
     loadArticles();

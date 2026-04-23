@@ -291,6 +291,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 
 /* ─── Color dot ─── */
 .color-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(0,0,0,.08); display: inline-block; vertical-align: middle; margin-right: 6px; }
+
+/* ─── Advanced toggle ─── */
+.adv-toggle { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border: 1px solid var(--border); border-radius: 100px; background: var(--surface); cursor: pointer; font-size: 12px; color: var(--text-2); transition: .15s; user-select: none; }
+.adv-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.adv-toggle.on { background: var(--accent-light); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.adv-switch { width: 28px; height: 16px; border-radius: 100px; background: var(--border); position: relative; transition: .15s; flex-shrink: 0; }
+.adv-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: .15s; }
+.adv-toggle.on .adv-switch { background: var(--accent); }
+.adv-toggle.on .adv-switch::after { left: 14px; }
+.adv-only { display: none; }
+body.advanced .adv-only { display: revert; }
+body.advanced .adv-only.form-row { display: grid; }
+body.advanced .adv-only.section { display: block; }
+body.advanced .adv-only.inline-flex { display: inline-flex; }
 </style>
 </head>
 <body>
@@ -309,7 +323,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
     </div>
     <div class="topbar-right">
         <a href="articles.php" class="topbar-nav-link">Статьи</a>
-        <a href="../admin_advanced/seo_profile_page.php" class="topbar-nav-link" style="color:var(--accent);font-weight:600">⚡ Расширенная версия</a>
+        <a href="../admin_advanced/seo_profile_page.php" class="topbar-nav-link" style="color:var(--accent);font-weight:600">⚡ Advanced</a>
         <a href="../logout.php" class="topbar-nav-link btn-logout">Выйти</a>
     </div>
 </div>
@@ -346,6 +360,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
         </div>
         <div class="ws-actions">
             <span class="badge" id="wsStatusBadge"></span>
+            <div class="adv-toggle" id="advToggle" onclick="toggleAdvanced()" title="Показать расширенные настройки">
+                <span>Расширенный</span>
+                <span class="adv-switch"></span>
+            </div>
         </div>
     </div>
 
@@ -354,6 +372,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
         <div class="tab active" data-tab="overview">Обзор</div>
         <div class="tab" data-tab="settings">Настройки</div>
         <div class="tab" data-tab="branding">Брендинг</div>
+        <div class="tab" data-tab="brief">AI Бриф</div>
         <div class="tab" data-tab="templates">Шаблоны</div>
         <div class="tab" data-tab="telegram">Telegram</div>
     </div>
@@ -427,7 +446,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
             </div>
         </div>
 
-        <div class="section">
+        <div class="section adv-only">
             <div class="section-head">
                 <span class="section-head-title">GPT-настройки</span>
                 <button class="btn btn-secondary btn-sm" id="btnRegenGpt" onclick="regenGpt()">
@@ -499,6 +518,30 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
                 <button class="btn btn-primary" onclick="saveBranding()">
                     <span id="saveBrandingSpinner"></span> Сохранить
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Tab: Brief ─── -->
+    <div id="tab-brief" style="display:none">
+        <div class="section">
+            <div class="section-head">
+                <span class="section-head-title">AI Бриф (мастер)</span>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-ghost btn-sm" onclick="sbReset()">Сбросить</button>
+                    <button class="btn btn-primary btn-sm" onclick="sbSave()">Сохранить</button>
+                </div>
+            </div>
+            <div class="section-body">
+                <div style="font-size:12.5px;color:var(--text-2);margin-bottom:12px">
+                    Клик-мастер: AI предлагает варианты, вы выбираете карточки. Из брифа автоматически собираются persona и правила для генерации статей.
+                </div>
+                <div id="sbProgress" style="font-size:12px;color:var(--text-3);margin-bottom:12px"></div>
+                <div id="sbStep"></div>
+                <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
+                    <button class="btn btn-ghost btn-sm" id="sbBtnBack" onclick="sbPrev()">&larr; Назад</button>
+                    <button class="btn btn-primary btn-sm" id="sbBtnNext" onclick="sbNext()">Далее &rarr;</button>
+                </div>
             </div>
         </div>
     </div>
@@ -613,19 +656,24 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
             <div class="tpl-detail-meta" id="tplDetailMeta">—</div>
         </div>
         <div style="margin-left:auto;display:flex;gap:8px">
-            <button class="btn btn-secondary btn-sm" id="btnTplReview" onclick="tplAiReview()">
+            <button class="btn btn-secondary btn-sm adv-only" id="btnTplReview" onclick="tplAiReview()">
                 🔍 Ревью
             </button>
-            <button class="btn btn-secondary btn-sm" id="btnTplRegen" onclick="tplAiRegen()">
+            <button class="btn btn-secondary btn-sm adv-only" id="btnTplRegen" onclick="tplAiRegen()">
                 ✨ Перегенерировать
             </button>
         </div>
     </div>
 
-    <div class="section" style="margin-bottom:16px">
+    <div class="section adv-only" style="margin-bottom:16px">
         <div class="section-head"><span class="section-head-title">Описание</span></div>
         <div class="section-body">
             <div class="field">
+                <div style="display:flex;gap:8px;margin-bottom:8px">
+                    <button class="btn btn-secondary btn-sm" onclick="spLoadPurposes()" id="btnSpPurpose">✨ AI: варианты из брифа</button>
+                    <button class="btn btn-ghost btn-sm" onclick="spClearPurposes()" id="btnSpClear" style="display:none">Скрыть варианты</button>
+                </div>
+                <div id="spPurposes" style="display:none;margin-bottom:8px"></div>
                 <textarea id="tplDescription" rows="3" placeholder="Опишите назначение шаблона..."></textarea>
             </div>
         </div>
@@ -731,7 +779,7 @@ function toast(msg, type='') {
 
 async function api(path, method='GET', body=null) {
     const opts = { method, headers: {} };
-    if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+    if (body !== null && body !== undefined) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
     const res = await fetch(API + path, opts);
     const data = await res.json();
     if (!data.success) throw new Error(data.error || 'Ошибка API');
@@ -794,12 +842,13 @@ function switchTab(tab) {
     document.querySelectorAll('.tab').forEach(t => {
         t.classList.toggle('active', t.dataset.tab === tab);
     });
-    ['overview','settings','branding','templates','telegram'].forEach(t => {
+    ['overview','settings','branding','brief','templates','telegram'].forEach(t => {
         el('tab-' + t).style.display = t === tab ? '' : 'none';
     });
 
     if (tab === 'settings') fillSettings();
     if (tab === 'branding') fillBranding();
+    if (tab === 'brief') sbInit();
     if (tab === 'templates') loadTemplates();
     if (tab === 'telegram') fillTelegram();
 }
@@ -1416,6 +1465,281 @@ async function saveTelegram() {
 function esc(s) {
     if (s === null || s === undefined) return '';
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Advanced mode ───
+function toggleAdvanced() {
+    const on = !document.body.classList.contains('advanced');
+    document.body.classList.toggle('advanced', on);
+    el('advToggle').classList.toggle('on', on);
+    try { localStorage.setItem('seo_simple_adv', on ? '1' : '0'); } catch(e) {}
+}
+
+(function initAdvanced() {
+    let on = false;
+    try { on = localStorage.getItem('seo_simple_adv') === '1'; } catch(e) {}
+    if (on) {
+        document.body.classList.add('advanced');
+        el('advToggle').classList.add('on');
+    }
+})();
+
+// ═══════════════════ TEMPLATE PURPOSE SUGGESTIONS ═══════════════════
+
+async function spLoadPurposes() {
+    if (!S.profile) return;
+    const btn = el('btnSpPurpose');
+    const box = el('spPurposes');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin"></span> Загрузка...';
+    box.style.display = '';
+    box.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:8px"><span class="spin"></span> AI подбирает варианты из брифа...</div>';
+    try {
+        const data = await api('profiles/' + S.profile.id + '/suggest-template-purposes', 'POST', {});
+        const options = data.options || [];
+        if (!options.length) { box.innerHTML = '<div style="color:var(--text-3);font-size:12px">Нет вариантов. Заполните бриф подробнее.</div>'; return; }
+        box.innerHTML = options.map((o, i) => `
+            <div class="profile-card" style="padding:12px;margin-bottom:6px;cursor:pointer" onclick="spPickPurpose(${i})" id="spCard_${i}">
+                <div style="display:flex;gap:8px;align-items:flex-start">
+                    <div style="font-size:10px;background:var(--accent-light);color:var(--accent);padding:2px 6px;border-radius:4px;margin-top:2px">${escHtml(o.format || '')}</div>
+                    <div style="flex:1">
+                        <div style="font-weight:600;font-size:13px">${escHtml(o.title || '')}</div>
+                        <div style="color:var(--text-2);font-size:12px;margin-top:4px">${escHtml(o.purpose || '')}</div>
+                        ${o.target_icp ? `<div style="color:var(--text-3);font-size:11px;margin-top:4px">Для: ${escHtml(o.target_icp)}</div>` : ''}
+                        ${o.suggested_blocks_hint ? `<div style="color:var(--text-3);font-size:11px;margin-top:2px">Блоки: ${escHtml(o.suggested_blocks_hint)}</div>` : ''}
+                    </div>
+                </div>
+            </div>`).join('');
+        el('btnSpClear').style.display = '';
+        window.__spOptions = options;
+    } catch(e) { toast(e.message, 'error'); box.style.display = 'none'; }
+    finally { btn.disabled = false; btn.innerHTML = '✨ AI: варианты из брифа'; }
+}
+
+function spPickPurpose(i) {
+    const o = (window.__spOptions || [])[i];
+    if (!o) return;
+    el('tplDescription').value = o.purpose || o.title || '';
+    document.querySelectorAll('[id^="spCard_"]').forEach((card, j) => {
+        card.style.borderColor = j === i ? 'var(--accent)' : '';
+        card.style.background = j === i ? 'var(--accent-light)' : '';
+    });
+}
+
+function spClearPurposes() {
+    el('spPurposes').style.display = 'none';
+    el('spPurposes').innerHTML = '';
+    el('btnSpClear').style.display = 'none';
+    window.__spOptions = null;
+}
+
+// ═══════════════════ SIMPLE BRIEF WIZARD ═══════════════════
+// Click-driven cards, minimal manual input. Shares endpoints with advanced wizard.
+
+const SB_STEPS = [
+    { key: 'classify',    title: 'Нишевые параметры' },
+    { key: 'audience',    title: 'Кто аудитория?' },
+    { key: 'usp',         title: 'Что в вас уникального?' },
+    { key: 'competitors', title: 'Конкуренты и отстройка' },
+    { key: 'voice',       title: 'Как звучит бренд?' },
+    { key: 'rules',       title: 'Что можно и нельзя' },
+    { key: 'compliance',  title: 'Compliance', regulatedOnly: true },
+    { key: 'phrases',     title: 'Проба голоса' },
+];
+
+let sbState = null;
+let sbIdx = 0;
+let sbCur = {};
+
+function sbInit() {
+    sbState = (S.profile && S.profile.content_brief) ? JSON.parse(JSON.stringify(S.profile.content_brief)) : {};
+    sbCur = {};
+    sbIdx = 0;
+    sbRender();
+}
+
+function sbReset() {
+    if (!confirm('Сбросить бриф?')) return;
+    sbState = {};
+    sbCur = {};
+    sbIdx = 0;
+    sbRender();
+}
+
+function sbVisible() {
+    const reg = !!(sbState && sbState.classify && sbState.classify.regulated);
+    return SB_STEPS.filter(s => !s.regulatedOnly || reg);
+}
+
+async function sbRender() {
+    const steps = sbVisible();
+    const step = steps[sbIdx];
+    el('sbProgress').textContent = `Шаг ${sbIdx + 1} из ${steps.length} — ${step.title}`;
+    el('sbBtnBack').disabled = sbIdx === 0;
+    el('sbBtnNext').textContent = sbIdx === steps.length - 1 ? 'Готово ✓' : 'Далее →';
+
+    const body = el('sbStep');
+    body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-3)"><div class="spin"></div> AI подбирает варианты...</div>';
+
+    // Auto-generate if not loaded yet
+    if (!sbCur[step.key]) {
+        try {
+            const data = await api('profiles/brief', 'POST', {
+                step: step.key,
+                description: S.profile.description || '',
+                brief: sbState || {},
+            });
+            sbCur[step.key] = data.data || {};
+        } catch(e) {
+            body.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Ошибка AI</div><div class="empty-sub">${escHtml(e.message)}</div><button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="sbRender()">Повторить</button></div>`;
+            return;
+        }
+    }
+    body.innerHTML = sbStepHtml(step, sbCur[step.key]);
+}
+
+function sbStepHtml(step, data) {
+    if (step.key === 'classify') {
+        return `<div style="display:grid;gap:12px">
+            <div><div class="profile-stat" style="margin-bottom:4px">Ниша</div><input type="text" id="sb_niche" value="${escHtml(data.niche || '')}" class="input" style="width:100%"></div>
+            <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="sb_reg" ${data.regulated ? 'checked' : ''}> Регулируемая ниша (финансы / медицина / юр / крипто)</label>
+            <div><div class="profile-stat" style="margin-bottom:4px">Тип регулирования</div><input type="text" id="sb_regdom" value="${escHtml(data.regulatory_domain || 'none')}" class="input" style="width:100%"></div>
+        </div>`;
+    }
+    if (step.key === 'rules') {
+        const doL = data.do || [], dontL = data.dont || [];
+        const rules = (list, cls) => list.map((r, i) => `
+            <label style="display:flex;gap:8px;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;background:var(--surface)">
+                <input type="checkbox" class="${cls}" data-idx="${i}" checked>
+                <span style="font-size:12.5px"><b>${escHtml(r.rule || '')}</b>${r.check ? '<div style="color:var(--text-3);font-size:11.5px;margin-top:2px">' + escHtml(r.check) + '</div>' : ''}</span>
+            </label>`).join('');
+        return `<div><b style="color:var(--success)">Делать:</b>${rules(doL, 'sb_do')}</div><div style="margin-top:12px"><b style="color:var(--danger)">НЕ делать:</b>${rules(dontL, 'sb_dont')}</div>`;
+    }
+    if (step.key === 'compliance') {
+        return `<div style="font-size:12px;color:var(--text-2);margin-bottom:8px">AI подобрал compliance-ограничения. Проверьте и редактируйте JSON при необходимости (расширенный режим).</div>
+            <pre id="sb_compliance_raw" style="background:var(--bg);padding:12px;border-radius:var(--radius-sm);font-size:11.5px;max-height:300px;overflow:auto;white-space:pre-wrap">${escHtml(JSON.stringify(data, null, 2))}</pre>`;
+    }
+    if (step.key === 'voice') {
+        return (data.options || []).map((o, i) => `
+            <label class="profile-card" style="display:block;padding:14px;cursor:pointer;margin-bottom:8px">
+                <div style="display:flex;gap:10px;align-items:flex-start">
+                    <input type="radio" name="sb_voice" value="${i}" ${i === 0 ? 'checked' : ''} style="margin-top:4px">
+                    <div style="flex:1">
+                        <div><b>${escHtml(o.label || o.archetype)}</b> <span style="color:var(--text-3);font-size:11px">[${escHtml(o.archetype)}]</span></div>
+                        <div style="margin-top:6px;font-size:12.5px;color:var(--text-2)">«${escHtml(o.sample_explanation || '')}»</div>
+                        <div style="margin-top:4px;font-size:12px;color:var(--accent)">CTA: «${escHtml(o.sample_cta || '')}»</div>
+                    </div>
+                </div>
+            </label>`).join('');
+    }
+    if (step.key === 'phrases') {
+        return (data.options || []).map((o, i) => `
+            <label class="profile-card" style="display:block;padding:14px;cursor:pointer;margin-bottom:8px">
+                <div style="display:flex;gap:10px;align-items:flex-start">
+                    <input type="checkbox" class="sb_phrase" value="${i}" checked style="margin-top:4px">
+                    <div style="flex:1;font-size:12.5px">
+                        <div style="color:var(--text-3);font-size:11px">${escHtml(o.context || '')}</div>
+                        <div style="margin-top:4px">${escHtml(o.text || '')}</div>
+                    </div>
+                </div>
+            </label>`).join('');
+    }
+    return (data.options || []).map((o, i) => {
+        const primary = o.label || o.headline || o.name || ('Вариант ' + (i + 1));
+        const lines = [];
+        if (o.demographics)   lines.push(`<div>👥 ${escHtml(o.demographics)}</div>`);
+        if (o.pains)          lines.push(`<div>🔥 ${escHtml((o.pains || []).join('; '))}</div>`);
+        if (o.goals)          lines.push(`<div>🎯 ${escHtml((o.goals || []).join('; '))}</div>`);
+        if (o.proof)          lines.push(`<div>📊 ${escHtml(o.proof)}</div>`);
+        if (o.differentiator) lines.push(`<div>✨ ${escHtml(o.differentiator)}</div>`);
+        if (o.weaknesses)     lines.push(`<div>⚠️ ${escHtml((o.weaknesses || []).join(', '))}</div>`);
+        if (o.angle)          lines.push(`<div>🎯 ${escHtml(o.angle)}</div>`);
+        return `<label class="profile-card" style="display:block;padding:14px;cursor:pointer;margin-bottom:8px">
+                <div style="display:flex;gap:10px;align-items:flex-start">
+                    <input type="checkbox" class="sb_pick" value="${i}" ${i < 2 ? 'checked' : ''} style="margin-top:4px">
+                    <div style="flex:1;font-size:12.5px">
+                        <div><b>${escHtml(primary)}</b></div>
+                        <div style="margin-top:6px;display:grid;gap:4px;color:var(--text-2)">${lines.join('')}</div>
+                    </div>
+                </div>
+            </label>`;
+    }).join('');
+}
+
+function escHtml(s) {
+    if (s === null || s === undefined) return '';
+    const d = document.createElement('div');
+    d.textContent = String(s);
+    return d.innerHTML;
+}
+
+function sbCollect(stepKey) {
+    const data = sbCur[stepKey];
+    if (!data) return null;
+    if (stepKey === 'classify') {
+        return {
+            niche: el('sb_niche').value,
+            regulated: el('sb_reg').checked,
+            regulatory_domain: el('sb_regdom').value,
+            language: data.language || 'ru',
+            detected_entities: data.detected_entities || {},
+            clarifying_questions: data.clarifying_questions || [],
+        };
+    }
+    if (stepKey === 'rules') {
+        const doList = [...document.querySelectorAll('.sb_do')].filter(c => c.checked).map(c => data.do[+c.dataset.idx]);
+        const dontList = [...document.querySelectorAll('.sb_dont')].filter(c => c.checked).map(c => data.dont[+c.dataset.idx]);
+        return { do: doList, dont: dontList };
+    }
+    if (stepKey === 'compliance') {
+        try { return JSON.parse(el('sb_compliance_raw').textContent); } catch(e) { return data; }
+    }
+    if (stepKey === 'voice') {
+        const pick = document.querySelector('input[name="sb_voice"]:checked');
+        return pick ? (data.options[+pick.value] || null) : (data.options && data.options[0]) || null;
+    }
+    if (stepKey === 'phrases') {
+        return [...document.querySelectorAll('.sb_phrase')].filter(c => c.checked).map(c => data.options[+c.value]);
+    }
+    const picks = [...document.querySelectorAll('.sb_pick')].filter(c => c.checked).map(c => data.options[+c.value]);
+    if (stepKey === 'audience') return picks[0] || null;
+    if (stepKey === 'usp') return { usps: picks };
+    if (stepKey === 'competitors') return picks;
+    return picks;
+}
+
+function sbCommit() {
+    const steps = sbVisible();
+    const step = steps[sbIdx];
+    if (!sbCur[step.key]) return true;
+    const val = sbCollect(step.key);
+    if (val === null) return false;
+    if (step.key === 'usp') sbState.usps = val.usps;
+    else sbState[step.key] = val;
+    return true;
+}
+
+function sbPrev() {
+    sbCommit();
+    if (sbIdx > 0) { sbIdx--; sbRender(); }
+}
+
+function sbNext() {
+    if (!sbCommit()) { toast('Выберите вариант', 'error'); return; }
+    const steps = sbVisible();
+    if (sbIdx < steps.length - 1) { sbIdx++; sbRender(); return; }
+    sbSave();
+}
+
+async function sbSave() {
+    try {
+        sbCommit();
+        const updated = await api('profiles/' + S.profile.id + '/brief', 'POST', { brief: sbState });
+        S.profile = updated;
+        toast('Бриф сохранён — persona и правила обновлены');
+    } catch(e) {
+        toast('Ошибка: ' + e.message, 'error');
+    }
 }
 
 // ─── Init ───

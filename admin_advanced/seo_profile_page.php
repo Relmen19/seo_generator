@@ -300,6 +300,7 @@ requireAuth();
         <div class="ws-tab active" data-tab="overview" onclick="switchWsTab('overview')">Обзор</div>
         <div class="ws-tab" data-tab="settings" onclick="switchWsTab('settings')">Настройки</div>
         <div class="ws-tab" data-tab="branding" onclick="switchWsTab('branding')">Брендинг</div>
+        <div class="ws-tab" data-tab="brief" onclick="switchWsTab('brief')">AI Бриф</div>
         <div class="ws-tab" data-tab="templates" onclick="switchWsTab('templates')">Шаблоны</div>
         <div class="ws-tab" data-tab="intents" onclick="switchWsTab('intents')">Интенты</div>
         <div class="ws-tab" data-tab="telegram" onclick="switchWsTab('telegram')">Telegram</div>
@@ -406,6 +407,22 @@ requireAuth();
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
             <button class="btn btn-primary" onclick="saveBranding()">Сохранить брендинг</button>
         </div>
+    </div>
+
+    <!-- Tab: Brief -->
+    <div class="ws-content" id="tabBrief" style="display:none">
+        <div class="section-title">
+            <span>AI Бриф проекта</span>
+            <div style="display:flex;gap:8px">
+                <button class="btn btn-ghost btn-sm" onclick="briefReset()">Сбросить</button>
+                <button class="btn btn-primary btn-sm" onclick="briefSave()">Сохранить бриф</button>
+            </div>
+        </div>
+        <div style="font-size:.82rem;color:#94a3b8;margin-bottom:12px">
+            Пошаговый мастер строит детальный бриф: аудитория, УТП, конкуренты, голос бренда, правила, compliance.
+            На каждом шаге AI предлагает 3-5 вариантов — выбираешь/редактируешь. Бриф затем используется для генерации шаблонов и статей.
+        </div>
+        <div id="briefWizard"></div>
     </div>
 
     <!-- Tab: Templates -->
@@ -597,6 +614,11 @@ requireAuth();
             <div id="genForm">
                 <div class="form-row">
                     <label>Назначение шаблона — тип статьи</label>
+                    <div style="display:flex;gap:8px;margin-bottom:8px">
+                        <button class="ai-badge" onclick="loadPurposeSuggestions()" id="btnPurposeAi">AI: предложить 5 вариантов из брифа</button>
+                        <button class="btn btn-ghost btn-sm" onclick="clearPurposeSuggestions()" id="btnPurposeClear" style="display:none">Очистить варианты</button>
+                    </div>
+                    <div id="purposeSuggestions" style="display:none;margin-bottom:8px"></div>
                     <textarea id="genPurpose" rows="3" placeholder="Опишите для чего будет этот шаблон. Например: Обзорная статья товара с таблицей характеристик и сравнением с аналогами. Информационная статья о симптомах и лечении заболевания."></textarea>
                     <div class="form-hint">Подробное описание поможет AI правильно подобрать блоки и написать подсказки</div>
                 </div>
@@ -927,13 +949,14 @@ function renderWsHeader() {
 
 function switchWsTab(tab) {
     document.querySelectorAll('.ws-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-    ['Overview','Settings','Branding','Templates','Intents','Telegram'].forEach(t => {
+    ['Overview','Settings','Branding','Brief','Templates','Intents','Telegram'].forEach(t => {
         $('tab' + t).style.display = t.toLowerCase() === tab ? '' : 'none';
     });
 
     if (tab === 'overview') loadOverview();
     else if (tab === 'settings') fillSettings();
     else if (tab === 'branding') fillBranding();
+    else if (tab === 'brief') briefInit();
     else if (tab === 'templates') loadTemplates();
     else if (tab === 'intents') loadIntents();
     else if (tab === 'telegram') fillTelegram();
@@ -2312,6 +2335,353 @@ $('wizColor').oninput = () => $('wizColorText').value = $('wizColor').value;
 $('wizColorText').oninput = () => { if (/^#[0-9a-f]{6}$/i.test($('wizColorText').value)) $('wizColor').value = $('wizColorText').value; };
 $('wizName').oninput = () => { if (!$('wizSlug').dataset.manual) $('wizSlug').value = slugify($('wizName').value); };
 $('wizSlug').oninput = () => { $('wizSlug').dataset.manual = '1'; };
+
+// ═══════════════════ TEMPLATE PURPOSE SUGGESTIONS ═══════════════════
+
+async function loadPurposeSuggestions() {
+    if (!currentProfile) return;
+    const btn = $('btnPurposeAi');
+    const box = $('purposeSuggestions');
+    btn.disabled = true;
+    btn.textContent = 'Загрузка...';
+    box.style.display = '';
+    box.innerHTML = '<div style="color:#a78bfa;font-size:.82rem"><span class="spinner"></span> AI подбирает варианты из брифа...</div>';
+    try {
+        const res = await api(`profiles/${currentProfile.id}/suggest-template-purposes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        if (!res.success) { toast(res.error || 'Ошибка AI', true); box.style.display = 'none'; return; }
+        const options = res.data.options || [];
+        if (!options.length) { box.innerHTML = '<div style="color:#64748b;font-size:.82rem">AI не вернул вариантов. Заполни бриф полнее.</div>'; return; }
+        box.innerHTML = options.map((o, i) => `
+            <div class="preview-card" style="padding:10px;margin-bottom:6px;cursor:pointer" onclick="pickPurpose(${i})" id="purposeCard_${i}">
+                <div style="display:flex;gap:8px;align-items:flex-start">
+                    <div style="font-size:.68rem;background:#334155;color:#e2e8f0;padding:2px 6px;border-radius:4px;margin-top:2px">${esc(o.format || '')}</div>
+                    <div style="flex:1">
+                        <div style="font-weight:600;font-size:.86rem">${esc(o.title || '')}</div>
+                        <div style="color:#cbd5e1;font-size:.78rem;margin-top:4px">${esc(o.purpose || '')}</div>
+                        ${o.target_icp ? `<div style="color:#94a3b8;font-size:.72rem;margin-top:4px">Для: ${esc(o.target_icp)}</div>` : ''}
+                        ${o.suggested_blocks_hint ? `<div style="color:#64748b;font-size:.72rem;margin-top:2px">Блоки: ${esc(o.suggested_blocks_hint)}</div>` : ''}
+                    </div>
+                </div>
+            </div>`).join('');
+        $('btnPurposeClear').style.display = '';
+        window.__purposeOptions = options;
+    } catch(e) { toast('Ошибка сети', true); box.style.display = 'none'; }
+    finally { btn.disabled = false; btn.textContent = 'AI: предложить 5 вариантов из брифа'; }
+}
+
+function pickPurpose(i) {
+    const o = (window.__purposeOptions || [])[i];
+    if (!o) return;
+    $('genPurpose').value = o.purpose || o.title || '';
+    document.querySelectorAll('[id^="purposeCard_"]').forEach((el, j) => {
+        el.style.borderColor = j === i ? '#6366f1' : '';
+        el.style.background = j === i ? '#1e1b4b' : '';
+    });
+}
+
+function clearPurposeSuggestions() {
+    $('purposeSuggestions').style.display = 'none';
+    $('purposeSuggestions').innerHTML = '';
+    $('btnPurposeClear').style.display = 'none';
+    window.__purposeOptions = null;
+}
+
+// ═══════════════════ BRIEF WIZARD ═══════════════════
+
+const BRIEF_STEPS = [
+    { key: 'classify',    title: 'Классификация',      multi: false },
+    { key: 'audience',    title: 'Аудитория (ICP)',    multi: true  },
+    { key: 'usp',         title: 'УТП',                multi: true  },
+    { key: 'competitors', title: 'Конкуренты',         multi: true  },
+    { key: 'voice',       title: 'Голос бренда',       multi: false },
+    { key: 'rules',       title: 'Правила do/dont',    multi: false },
+    { key: 'compliance',  title: 'Compliance',         multi: false, regulatedOnly: true },
+    { key: 'phrases',     title: 'Пробы текста',       multi: true  },
+    { key: 'review',      title: 'Ревью брифа',        multi: false },
+];
+
+let briefState = null;
+let briefStepIdx = 0;
+let briefStepData = {};
+
+function briefInit() {
+    briefState = (currentProfile && currentProfile.content_brief) ? JSON.parse(JSON.stringify(currentProfile.content_brief)) : {};
+    briefStepData = {};
+    briefStepIdx = 0;
+    briefRender();
+}
+
+function briefReset() {
+    if (!confirm('Сбросить весь бриф?')) return;
+    briefState = {};
+    briefStepData = {};
+    briefStepIdx = 0;
+    briefRender();
+}
+
+function briefVisibleSteps() {
+    const regulated = !!(briefState && briefState.classify && briefState.classify.regulated);
+    return BRIEF_STEPS.filter(s => !s.regulatedOnly || regulated);
+}
+
+function briefRender() {
+    const steps = briefVisibleSteps();
+    const stepper = steps.map((s, i) => {
+        const done = briefState && briefState[s.key] !== undefined;
+        const cls = i === briefStepIdx ? 'active' : (done ? 'done' : '');
+        return `<div class="wizard-step ${cls}" onclick="briefGoto(${i})" style="cursor:pointer">
+            <div class="wizard-step-line"></div>
+            <div class="wizard-step-dot">${i + 1}</div>
+            <div class="wizard-step-label">${esc(s.title)}</div>
+        </div>`;
+    }).join('');
+
+    const cur = steps[briefStepIdx];
+    const body = cur.key === 'review' ? briefRenderReview() : briefRenderStep(cur);
+
+    $('briefWizard').innerHTML = `
+        <div class="wizard-steps" style="padding:12px 0 20px">${stepper}</div>
+        <div class="settings-section">${body}</div>
+    `;
+}
+
+function briefGoto(idx) {
+    const steps = briefVisibleSteps();
+    if (idx < 0 || idx >= steps.length) return;
+    briefStepIdx = idx;
+    briefRender();
+}
+
+function briefRenderStep(step) {
+    const options = (briefStepData[step.key] && briefStepData[step.key].options) || [];
+    const raw = briefStepData[step.key] && briefStepData[step.key].raw;
+    const hasData = briefStepData[step.key] !== undefined;
+    const saved = briefState && briefState[step.key];
+
+    const optionsHtml = hasData
+        ? briefRenderOptions(step, options, raw)
+        : (saved
+            ? `<div style="color:#94a3b8;font-size:.82rem;margin-bottom:12px">Уже сохранено. Нажмите «Сгенерировать варианты» для перезаписи.</div><pre style="background:#0f172a;padding:12px;border-radius:6px;font-size:.75rem;color:#cbd5e1;max-height:200px;overflow:auto">${esc(JSON.stringify(saved, null, 2))}</pre>`
+            : '<div style="color:#94a3b8;font-size:.85rem">Нажмите «Сгенерировать варианты» — AI предложит 3-5 опций на основе описания и текущего брифа.</div>');
+
+    return `
+        <h3>${esc(step.title)}</h3>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+            <button class="ai-badge" onclick="briefGenerate('${step.key}')" id="briefGenBtn">Сгенерировать варианты</button>
+            <button class="btn btn-ghost btn-sm" onclick="briefPrev()" ${briefStepIdx === 0 ? 'disabled' : ''}>&larr; Назад</button>
+            <button class="btn btn-primary btn-sm" onclick="briefNext()">Далее &rarr;</button>
+        </div>
+        <div id="briefGenStatus" style="display:none;font-size:.78rem;color:#a78bfa;margin-bottom:12px"><span class="spinner"></span> Генерация...</div>
+        <div id="briefStepBody">${optionsHtml}</div>
+    `;
+}
+
+function briefRenderOptions(step, options, raw) {
+    // classify / rules / compliance — single object, not list
+    if (step.key === 'classify') {
+        return `<div style="display:grid;gap:8px;font-size:.88rem">
+            <div><b>Ниша:</b> <input type="text" id="bf_classify_niche" value="${esc(raw.niche || '')}" style="width:100%"></div>
+            <div><b>Язык:</b> <input type="text" id="bf_classify_lang" value="${esc(raw.language || 'ru')}" style="width:120px"></div>
+            <div><b>Регулируемая ниша?</b>
+                <label style="margin-left:8px"><input type="checkbox" id="bf_classify_reg" ${raw.regulated ? 'checked' : ''}> да</label>
+                <input type="text" id="bf_classify_regdom" value="${esc(raw.regulatory_domain || 'none')}" style="width:140px;margin-left:8px" placeholder="finance|medical|legal|...">
+            </div>
+            ${raw.clarifying_questions ? `<div style="margin-top:8px"><b>Уточнить:</b><ul style="margin:4px 0 0 20px">${raw.clarifying_questions.map(q => `<li style="font-size:.82rem">${esc(q)}</li>`).join('')}</ul></div>` : ''}
+        </div>`;
+    }
+    if (step.key === 'rules') {
+        const doList = raw.do || [];
+        const dontList = raw.dont || [];
+        return `<div style="display:grid;gap:12px;font-size:.85rem">
+            <div><b>DO (делай):</b><div style="margin-top:4px">${doList.map((r, i) => `
+                <label style="display:flex;gap:6px;align-items:flex-start;margin-bottom:4px">
+                    <input type="checkbox" class="bf_do_check" data-idx="${i}" checked>
+                    <span><b>${esc(r.rule || '')}</b>${r.check ? ` <span style="color:#64748b">— ${esc(r.check)}</span>` : ''}</span>
+                </label>`).join('')}</div></div>
+            <div><b>DON'T (не делай):</b><div style="margin-top:4px">${dontList.map((r, i) => `
+                <label style="display:flex;gap:6px;align-items:flex-start;margin-bottom:4px">
+                    <input type="checkbox" class="bf_dont_check" data-idx="${i}" checked>
+                    <span><b>${esc(r.rule || '')}</b>${r.check ? ` <span style="color:#64748b">— ${esc(r.check)}</span>` : ''}</span>
+                </label>`).join('')}</div></div>
+        </div>`;
+    }
+    if (step.key === 'compliance') {
+        return `<pre style="background:#0f172a;padding:12px;border-radius:6px;font-size:.78rem;color:#cbd5e1;max-height:400px;overflow:auto" id="bf_compliance_raw">${esc(JSON.stringify(raw, null, 2))}</pre>
+        <div style="color:#94a3b8;font-size:.78rem;margin-top:8px">Редактировать JSON напрямую, потом «Далее».</div>`;
+    }
+    if (step.key === 'voice') {
+        // Single-pick radio
+        return (options || []).map((o, i) => `
+            <label class="preview-card" style="display:block;cursor:pointer;margin-bottom:8px;padding:12px">
+                <div style="display:flex;gap:8px;align-items:flex-start">
+                    <input type="radio" name="bf_voice_pick" value="${i}" ${i === 0 ? 'checked' : ''} style="margin-top:4px">
+                    <div style="flex:1">
+                        <div><b>${esc(o.label || o.archetype)}</b> <span style="color:#64748b;font-size:.78rem">[${esc(o.archetype)}]</span></div>
+                        <div style="margin-top:6px;font-size:.82rem;color:#cbd5e1">«${esc(o.sample_explanation || '')}»</div>
+                        <div style="margin-top:4px;font-size:.8rem;color:#a78bfa">CTA: «${esc(o.sample_cta || '')}»</div>
+                        ${o.vocabulary_hints ? `<div style="margin-top:4px;font-size:.76rem;color:#64748b">Обороты: ${esc((o.vocabulary_hints || []).join(', '))}</div>` : ''}
+                    </div>
+                </div>
+            </label>`).join('');
+    }
+    if (step.key === 'phrases') {
+        return (options || []).map((o, i) => `
+            <label class="preview-card" style="display:block;cursor:pointer;margin-bottom:8px;padding:12px">
+                <div style="display:flex;gap:8px;align-items:flex-start">
+                    <input type="checkbox" class="bf_phrase_check" value="${i}" checked style="margin-top:4px">
+                    <div style="flex:1">
+                        <div style="color:#64748b;font-size:.76rem">${esc(o.context || '')}</div>
+                        <div style="margin-top:4px;font-size:.86rem">${esc(o.text || '')}</div>
+                    </div>
+                </div>
+            </label>`).join('');
+    }
+    // Default: multi-select cards (audience, usp, competitors)
+    return (options || []).map((o, i) => {
+        const primary = o.label || o.headline || o.name || ('Вариант ' + (i + 1));
+        const details = [];
+        if (o.demographics) details.push(`<div><b>Демография:</b> ${esc(o.demographics)}</div>`);
+        if (o.pains)        details.push(`<div><b>Боли:</b> ${esc((o.pains || []).join('; '))}</div>`);
+        if (o.goals)        details.push(`<div><b>Цели:</b> ${esc((o.goals || []).join('; '))}</div>`);
+        if (o.triggers)     details.push(`<div><b>Триггер:</b> ${esc(o.triggers)}</div>`);
+        if (o.proof)        details.push(`<div><b>Подтверждение:</b> ${esc(o.proof)}</div>`);
+        if (o.differentiator) details.push(`<div><b>Отличие:</b> ${esc(o.differentiator)}</div>`);
+        if (o.weaknesses)   details.push(`<div><b>Слабости:</b> ${esc((o.weaknesses || []).join(', '))}</div>`);
+        if (o.angle)        details.push(`<div><b>Угол:</b> ${esc(o.angle)}</div>`);
+        return `
+            <label class="preview-card" style="display:block;cursor:pointer;margin-bottom:8px;padding:12px">
+                <div style="display:flex;gap:8px;align-items:flex-start">
+                    <input type="checkbox" class="bf_pick" value="${i}" ${i < 2 ? 'checked' : ''} style="margin-top:4px">
+                    <div style="flex:1;font-size:.84rem">
+                        <div><b>${esc(primary)}</b></div>
+                        <div style="margin-top:6px;display:grid;gap:4px;color:#cbd5e1">${details.join('')}</div>
+                    </div>
+                </div>
+            </label>`;
+    }).join('');
+}
+
+async function briefGenerate(stepKey) {
+    if (!currentProfile || !currentProfile.description) {
+        toast('Заполните описание проекта в Настройках', true);
+        return;
+    }
+    $('briefGenBtn').disabled = true;
+    $('briefGenStatus').style.display = '';
+    try {
+        const res = await api('profiles/brief', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                step: stepKey,
+                description: currentProfile.description,
+                brief: briefState || {},
+            }),
+        });
+        if (!res.success) { toast(res.error || 'Ошибка AI', true); return; }
+        const data = res.data.data || {};
+        briefStepData[stepKey] = { options: data.options || [], raw: data };
+        briefRender();
+    } catch(e) {
+        toast('Ошибка сети', true);
+    } finally {
+        if ($('briefGenBtn')) $('briefGenBtn').disabled = false;
+        if ($('briefGenStatus')) $('briefGenStatus').style.display = 'none';
+    }
+}
+
+function briefCollectStep(stepKey) {
+    const data = briefStepData[stepKey];
+    if (!data) return null;
+    if (stepKey === 'classify') {
+        return {
+            niche: $('bf_classify_niche').value,
+            language: $('bf_classify_lang').value,
+            regulated: $('bf_classify_reg').checked,
+            regulatory_domain: $('bf_classify_regdom').value,
+            detected_entities: data.raw.detected_entities || {},
+            clarifying_questions: data.raw.clarifying_questions || [],
+        };
+    }
+    if (stepKey === 'rules') {
+        const doChecked = [...document.querySelectorAll('.bf_do_check')].filter(c => c.checked).map(c => data.raw.do[+c.dataset.idx]);
+        const dontChecked = [...document.querySelectorAll('.bf_dont_check')].filter(c => c.checked).map(c => data.raw.dont[+c.dataset.idx]);
+        return { do: doChecked, dont: dontChecked };
+    }
+    if (stepKey === 'compliance') {
+        try { return JSON.parse($('bf_compliance_raw').textContent); } catch(e) { return data.raw; }
+    }
+    if (stepKey === 'voice') {
+        const pick = document.querySelector('input[name="bf_voice_pick"]:checked');
+        return pick ? (data.options[+pick.value] || null) : (data.options[0] || null);
+    }
+    if (stepKey === 'phrases') {
+        return [...document.querySelectorAll('.bf_phrase_check')].filter(c => c.checked).map(c => data.options[+c.value]);
+    }
+    // Multi-pick
+    const picks = [...document.querySelectorAll('.bf_pick')].filter(c => c.checked).map(c => data.options[+c.value]);
+    if (stepKey === 'audience') return picks[0] || null; // audience = single primary ICP
+    if (stepKey === 'usp') return { usps: picks };       // container
+    if (stepKey === 'competitors') return picks;
+    return picks;
+}
+
+function briefCommitStep() {
+    const steps = briefVisibleSteps();
+    const cur = steps[briefStepIdx];
+    if (cur.key === 'review') return true;
+    if (!briefStepData[cur.key]) return true; // user skipped generation — keep existing state
+    const val = briefCollectStep(cur.key);
+    if (val === null || val === undefined) return false;
+    if (cur.key === 'usp') {
+        briefState.usps = val.usps;
+    } else {
+        briefState[cur.key] = val;
+    }
+    return true;
+}
+
+function briefPrev() {
+    briefCommitStep();
+    if (briefStepIdx > 0) { briefStepIdx--; briefRender(); }
+}
+
+function briefNext() {
+    if (!briefCommitStep()) { toast('Выберите вариант', true); return; }
+    const steps = briefVisibleSteps();
+    if (briefStepIdx < steps.length - 1) { briefStepIdx++; briefRender(); }
+}
+
+function briefRenderReview() {
+    return `
+        <h3>Ревью брифа перед сохранением</h3>
+        <div style="color:#94a3b8;font-size:.82rem;margin-bottom:8px">Проверь финальный JSON. После сохранения из него детерминированно собираются gpt_persona и gpt_rules профиля.</div>
+        <textarea id="bf_review_json" rows="20" style="width:100%;font-family:monospace;font-size:.78rem">${esc(JSON.stringify(briefState, null, 2))}</textarea>
+        <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn btn-ghost btn-sm" onclick="briefPrev()">&larr; Назад</button>
+            <button class="btn btn-primary btn-sm" onclick="briefSave()">Сохранить бриф</button>
+        </div>
+    `;
+}
+
+async function briefSave() {
+    try {
+        const ta = $('bf_review_json');
+        if (ta) {
+            try { briefState = JSON.parse(ta.value); } catch(e) { toast('JSON невалиден: ' + e.message, true); return; }
+        } else {
+            briefCommitStep();
+        }
+        const res = await api(`profiles/${currentProfile.id}/brief`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ brief: briefState }),
+        });
+        if (!res.success) { toast(res.error || 'Ошибка сохранения', true); return; }
+        currentProfile = res.data;
+        toast('Бриф сохранён, persona/rules обновлены');
+    } catch(e) { toast('Ошибка сети', true); }
+}
 
 // ── Init ──
 loadProfiles();

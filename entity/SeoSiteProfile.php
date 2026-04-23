@@ -20,6 +20,7 @@ class SeoSiteProfile extends AbstractEntity {
     protected ?string $baseUrl = null;
     protected ?string $gptPersona = null;
     protected ?string $gptRules = null;
+    protected ?array $contentBrief = null;
     protected string $tone = 'professional';
     protected string $colorScheme = '#6366f1';
     protected string $theme = 'default';
@@ -68,6 +69,11 @@ class SeoSiteProfile extends AbstractEntity {
         if (array_key_exists('gpt_rules', $data)) {
             $this->gptRules = $this->toNullableString($data['gpt_rules']);
         }
+        if (array_key_exists('content_brief', $data)) {
+            $this->contentBrief = is_array($data['content_brief'])
+                ? $data['content_brief']
+                : $this->decodeJson($data['content_brief']);
+        }
         if (array_key_exists('tone', $data)) {
             $this->tone = (string)$data['tone'];
         }
@@ -114,6 +120,7 @@ class SeoSiteProfile extends AbstractEntity {
             'base_url'      => $this->baseUrl,
             'gpt_persona'   => $this->gptPersona,
             'gpt_rules'     => $this->gptRules,
+            'content_brief' => $this->encodeJson($this->contentBrief),
             'tone'          => $this->tone,
             'color_scheme'  => $this->colorScheme,
             'theme'             => $this->theme,
@@ -162,6 +169,15 @@ class SeoSiteProfile extends AbstractEntity {
 
     public function getGptRules(): ?string { return $this->gptRules; }
     public function setGptRules(?string $gptRules): self { $this->gptRules = $gptRules; return $this; }
+
+    public function getContentBrief(): ?array { return $this->contentBrief; }
+    public function setContentBrief(?array $brief): self { $this->contentBrief = $brief; return $this; }
+
+    public function toFullArray(): array {
+        $arr = parent::toFullArray();
+        $arr['content_brief'] = $this->contentBrief;
+        return $arr;
+    }
 
     public function getTone(): string { return $this->tone; }
     public function setTone(string $tone): self { $this->tone = $tone; return $this; }
