@@ -53,7 +53,7 @@ const BASE_URL = APP_URL;
 define('UPLOADS_DIR', rtrim(getenv('APP_ROOT') ?: __DIR__, '/') . '/' . ltrim(getenv('UPLOADS_DIR') ?: 'uploads', '/') . '/');
 
 define('SEO_BASE_ART_URL', APP_URL . '/' . ltrim(getenv('SEO_ARTICLES_PATH') ?: 'articles', '/') . '/');
-const SEO_SEARCH_SCRIPT = 'search.php';
+const SEO_SEARCH_SCRIPT = '/search.php';
 
 const SEO_TRACK_SCRIPT = APP_URL . '/admin/seo_generator/controllers/track.php';
 define('SEO_DEFAULT_LOGO_URL', getenv('SEO_LOGO_URL') ?: (APP_URL . '/api/logo.png'));

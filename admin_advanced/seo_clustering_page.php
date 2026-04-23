@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/../auth.php';
 requireAuth();
 ?>
 <!DOCTYPE html>
@@ -472,7 +472,7 @@ requireAuth();
 <body>
 <div class="topbar">
     <div class="topbar-left">
-        <a href="/seo_profile_page.php" class="topbar-back" title="К профилям">&larr;</a>
+        <a href="/admin_advanced/seo_profile_page.php" class="topbar-back" title="К профилям">&larr;</a>
         <div class="topbar-profile" id="topbarProfileInfo">
             <div class="topbar-profile-icon" id="topbarProfileIcon"></div>
             <div>
@@ -482,9 +482,10 @@ requireAuth();
         </div>
     </div>
     <nav>
-        <a href="/seo_page.php">SEO</a>
-        <a href="/seo_clustering_page.php" class="active">Семантика</a>
-        <a href="/seo_profile_page.php">Профили</a>
+        <a href="/admin_advanced/seo_page.php">SEO</a>
+        <a href="/admin_advanced/seo_clustering_page.php" class="active">Семантика</a>
+        <a href="/admin_advanced/seo_profile_page.php">Профили</a>
+        <a href="/admin_simple/articles.php" title="Упрощённая версия" style="color:#fbbf24">◐ Simple</a>
         <a href="/logout.php" class="btn-logout">Выйти</a>
     </nav>
 </div>
@@ -805,7 +806,7 @@ requireAuth();
 <div class="toast" id="toast"></div>
 
 <script>
-    const API = '<?= htmlspecialchars(dirname($_SERVER['PHP_SELF'])) ?>/controllers/router.php';
+    const API = '../controllers/router.php';
     let currentJobId = null, currentJob = null, kwPage = 1, allClusters = [];
     let searchTimer = null;
     let clusterView = { status: '', group: '', sort: 'priority_desc', layout: 'grid' };
@@ -1613,18 +1614,18 @@ requireAuth();
 
     async function loadProfileHeader() {
         if (!currentProfileId) {
-            window.location.href = '/seo_profile_page.php';
+            window.location.href = '/admin_advanced/seo_profile_page.php';
             return;
         }
         try {
             const res = await api('profiles/' + currentProfileId);
-            if (!res.success) { window.location.href = '/seo_profile_page.php'; return; }
+            if (!res.success) { window.location.href = '/admin_advanced/seo_profile_page.php'; return; }
             const p = res.data;
             $('topbarProfileName').textContent = p.name;
             $('topbarProfileMeta').textContent = (p.slug || '') + (p.domain ? ' \u00b7 ' + p.domain : '');
             const iconEl = $('topbarProfileIcon');
             if (p.icon_path) {
-                iconEl.innerHTML = '<img src="controllers/router.php?r=profiles/' + p.id + '/icon" style="width:100%;height:100%;object-fit:cover;border-radius:8px">';
+                iconEl.innerHTML = '<img src="../controllers/router.php?r=profiles/' + p.id + '/icon" style="width:100%;height:100%;object-fit:cover;border-radius:8px">';
             } else {
                 iconEl.textContent = (p.name || '?')[0].toUpperCase();
                 iconEl.style.color = p.color_scheme || '#6366f1';
@@ -1633,7 +1634,7 @@ requireAuth();
     }
 
     (async function init() {
-        if (!currentProfileId) { window.location.href = '/seo_profile_page.php'; return; }
+        if (!currentProfileId) { window.location.href = '/admin_advanced/seo_profile_page.php'; return; }
         loadProfileHeader();
         await loadIntentTypes();
         loadJobs();

@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/../auth.php';
 requireAuth();
 ?>
 <!DOCTYPE html>
@@ -878,7 +878,7 @@ requireAuth();
 <body>
 <div class="topbar">
     <div class="topbar-left">
-        <a href="/seo_profile_page.php" class="topbar-back" title="К профилям">&larr;</a>
+        <a href="/admin_advanced/seo_profile_page.php" class="topbar-back" title="К профилям">&larr;</a>
         <div class="topbar-profile" id="topbarProfileInfo">
             <div class="topbar-profile-icon" id="topbarProfileIcon"></div>
             <div>
@@ -888,9 +888,10 @@ requireAuth();
         </div>
     </div>
     <nav>
-        <a href="/seo_page.php" class="active">SEO</a>
-        <a href="/seo_clustering_page.php" id="navSemLink">Семантика</a>
-        <a href="/seo_profile_page.php">Профили</a>
+        <a href="/admin_advanced/seo_page.php" class="active">SEO</a>
+        <a href="/admin_advanced/seo_clustering_page.php" id="navSemLink">Семантика</a>
+        <a href="/admin_advanced/seo_profile_page.php">Профили</a>
+        <a href="/admin_simple/articles.php" title="Упрощённая версия" style="color:#fbbf24">◐ Simple</a>
         <a href="/logout.php" class="btn-logout">Выйти</a>
     </nav>
 </div>
@@ -957,7 +958,7 @@ requireAuth();
             <div class="list-toolbar">
                 <div class="search-row">
                     <input type="text" id="searchTemplate" placeholder="Поиск шаблонов...">
-                    <a href="/seo_profile_page.php" class="btn btn-ghost btn-sm" title="Создание шаблонов — в разделе Профиля" style="white-space:nowrap;font-size:.72rem">&#8599; Профиль</a>
+                    <a href="/admin_advanced/seo_profile_page.php" class="btn btn-ghost btn-sm" title="Создание шаблонов — в разделе Профиля" style="white-space:nowrap;font-size:.72rem">&#8599; Профиль</a>
                 </div>
             </div>
             <div class="item-list" id="templateList"></div>
@@ -1732,7 +1733,7 @@ requireAuth();
 <div class="toast" id="toast"></div>
 
 <script>
-    const API = 'controllers/router.php';
+    const API = '../controllers/router.php';
     let activeTab = 'articles';
     let activeEditor = null;
     let dirty = false;
@@ -1882,13 +1883,13 @@ requireAuth();
 
     async function loadProfileHeader() {
         if (!currentProfileId) {
-            window.location.href = '/seo_profile_page.php';
+            window.location.href = '/admin_advanced/seo_profile_page.php';
             return;
         }
         try {
             const res = await fetch(`${API}?r=profiles/${currentProfileId}`);
             const json = await res.json();
-            if (!json.success) { window.location.href = '/seo_profile_page.php'; return; }
+            if (!json.success) { window.location.href = '/admin_advanced/seo_profile_page.php'; return; }
             const p = json.data;
             currentProfile = p;
             $('topbarProfileName').textContent = p.name;
@@ -1904,7 +1905,7 @@ requireAuth();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        if (!currentProfileId) { window.location.href = '/seo_profile_page.php'; return; }
+        if (!currentProfileId) { window.location.href = '/admin_advanced/seo_profile_page.php'; return; }
         loadProfileHeader();
         loadBlockTypeSchemas();
         loadCatalogsList();

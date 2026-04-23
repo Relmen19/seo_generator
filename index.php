@@ -7,4 +7,4 @@ if (!isAuthenticated()) {
     exit;
 }
 
-header('Location: /seo_page.php');
+header('Location: /admin_simple/articles.php');

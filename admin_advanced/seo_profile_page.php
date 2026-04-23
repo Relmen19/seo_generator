@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/../auth.php';
 requireAuth();
 ?>
 <!DOCTYPE html>
@@ -247,7 +247,8 @@ requireAuth();
 <div class="topbar" id="topbarList">
     <h1>SEO Generator</h1>
     <nav>
-        <a href="/seo_profile_page.php" class="active">Профили</a>
+        <a href="/admin_advanced/seo_profile_page.php" class="active">Профили</a>
+        <a href="/admin_simple/profiles.php" title="Упрощённая версия" style="color:#fbbf24">◐ Simple</a>
         <a href="/logout.php" class="btn-logout">Выйти</a>
     </nav>
 </div>
@@ -263,9 +264,10 @@ requireAuth();
         </div>
     </div>
     <nav>
-        <a href="/seo_page.php" id="navSeoLink">SEO</a>
-        <a href="/seo_clustering_page.php" id="navSemLink">Семантика</a>
-        <a href="/seo_profile_page.php" class="active">Профили</a>
+        <a href="/admin_advanced/seo_page.php" id="navSeoLink">SEO</a>
+        <a href="/admin_advanced/seo_clustering_page.php" id="navSemLink">Семантика</a>
+        <a href="/admin_advanced/seo_profile_page.php" class="active">Профили</a>
+        <a href="/admin_simple/profiles.php" title="Упрощённая версия" style="color:#fbbf24">◐ Simple</a>
         <a href="/logout.php" class="btn-logout">Выйти</a>
     </nav>
 </div>
@@ -307,7 +309,7 @@ requireAuth();
     <div class="ws-content" id="tabOverview">
         <!-- Quick actions: go to SEO / Semantics -->
         <div class="quick-actions-grid">
-            <a href="/seo_page.php" class="settings-section quick-action" style="margin-bottom:0">
+            <a href="/admin_advanced/seo_page.php" class="settings-section quick-action" style="margin-bottom:0">
                 <div class="quick-action-icon seo">&#9998;</div>
                 <div>
                     <div class="quick-action-title">SEO &amp; Контент</div>
@@ -315,7 +317,7 @@ requireAuth();
                 </div>
                 <div class="quick-action-arrow">&rarr;</div>
             </a>
-            <a href="/seo_clustering_page.php" class="settings-section quick-action" style="margin-bottom:0">
+            <a href="/admin_advanced/seo_clustering_page.php" class="settings-section quick-action" style="margin-bottom:0">
                 <div class="quick-action-icon sem">&#128270;</div>
                 <div>
                     <div class="quick-action-title">Семантика</div>
@@ -703,7 +705,7 @@ requireAuth();
 <div class="toast" id="toast"></div>
 
 <script>
-const API = 'controllers/router.php';
+const API = '../controllers/router.php';
 let profiles = [];
 let currentProfile = null;
 let wizardStep = 1;

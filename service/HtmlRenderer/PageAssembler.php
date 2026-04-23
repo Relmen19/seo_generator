@@ -133,7 +133,10 @@ class PageAssembler
         $tocHtml = $toc->renderHtml($tocContext);
 
         // Build navbar search
-        $navSearchHtml = $navSearch->renderHtml(['articleId' => (int)$article['id']]);
+        $navSearchHtml = $navSearch->renderHtml([
+            'articleId' => (int)$article['id'],
+            'profileId' => (int)($article['profile_id'] ?? 0),
+        ]);
 
         // Build navbar
         $navbarContext = [
@@ -257,6 +260,7 @@ class PageAssembler
     {
         $articleId = (int)$article['id'];
         $catalogId = (int)($article['catalog_id'] ?? 0);
+        $profileId = (int)($article['profile_id'] ?? 0);
         $searchUrl = json_encode(SEO_SEARCH_SCRIPT);
         $trackUrl  = json_encode(SEO_TRACK_SCRIPT);
         $baseUrl   = json_encode(SEO_BASE_ART_URL);
@@ -278,7 +282,8 @@ class PageAssembler
         $html .= 'TRACK=' . $trackUrl . ',';
         $html .= 'BASE=' . $baseUrl . ',';
         $html .= 'AID=' . $articleId . ',';
-        $html .= 'CID=' . $catalogId . ';';
+        $html .= 'CID=' . $catalogId . ',';
+        $html .= 'PID=' . $profileId . ';';
         $html .= 'function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}';
         $html .= 'function buildUrl(u){return u;}';
         $html .= 'function renderCards(items){';
@@ -301,7 +306,7 @@ class PageAssembler
         $html .=     '});';
         $html .=   '});';
         $html .= '}';
-        $html .= 'var url=SEARCH+"?related=1&exclude="+AID+"&limit=4"+(CID?"&catalog_id="+CID:"");';
+        $html .= 'var url=SEARCH+"?related=1&exclude="+AID+"&limit=4"+(CID?"&catalog_id="+CID:"")+(PID?"&profile_id="+PID:"");';
         $html .= 'fetch(url)';
         $html .=   '.then(function(r){return r.json();})';
         $html .=   '.then(function(d){renderCards(d.results||[]);})';

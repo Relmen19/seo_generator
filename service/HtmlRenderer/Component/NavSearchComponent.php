@@ -9,6 +9,7 @@ class NavSearchComponent implements ComponentInterface
     public function renderHtml(array $context): string
     {
         $articleId = (int)($context['articleId'] ?? 0);
+        $profileId = (int)($context['profileId'] ?? 0);
         $apiUrl    = json_encode(SEO_SEARCH_SCRIPT);
         $excludeId = $articleId;
 
@@ -28,7 +29,7 @@ class NavSearchComponent implements ComponentInterface
             '</div>' .
             '<script>' .
             '(function(){' .
-            'var API=' . $apiUrl . ', EXCL=' . $excludeId . ', DEB=280;' .
+            'var API=' . $apiUrl . ', EXCL=' . $excludeId . ', PID=' . $profileId . ', DEB=280;' .
             'var toggle=document.getElementById(\'navSearchToggle\');' .
             'var box=document.getElementById(\'navSearchBox\');' .
             'var input=document.getElementById(\'navSearchInput\');' .
@@ -76,7 +77,7 @@ class NavSearchComponent implements ComponentInterface
             'function fetch_results(q){' .
             'last=q;' .
             'results.innerHTML=\'<div class="ns-loading">Поиск…</div>\';' .
-            'fetch(API+\'?q=\'+encodeURIComponent(q)+\'&exclude=\'+EXCL+\'&limit=8\')' .
+            'fetch(API+\'?q=\'+encodeURIComponent(q)+\'&exclude=\'+EXCL+\'&limit=8\'+(PID?\'&profile_id=\'+PID:\'\'))' .
             '.then(function(r){return r.json();})' .
             '.then(function(d){render(d.results||[]);})' .
             '.catch(function(){results.innerHTML=\'<div class="ns-error">Ошибка поиска</div>\';});' .

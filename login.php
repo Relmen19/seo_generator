@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/auth.php';
 
 if (isAuthenticated()) {
-    header('Location: /seo_page.php');
+    header('Location: /admin_simple/articles.php');
     exit;
 }
 
@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pass = $_POST['password'] ?? '';
 
     if (attemptLogin($user, $pass)) {
-        header('Location: /seo_page.php');
+        header('Location: /admin_simple/articles.php');
         exit;
     }
     $error = 'Неверный логин или пароль';

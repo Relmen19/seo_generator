@@ -3,7 +3,7 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 
-require_once __DIR__ . '/../../admin/seo_generator/config.php';
+require_once __DIR__ . '/config.php';
 
 use Seo\Database;
 
@@ -50,21 +50,24 @@ if (isset($_GET['related'])) {
     header('Content-Type: application/json; charset=utf-8');
     $catalogId = (int)($_GET['catalog_id'] ?? 0);
     $exclude   = (int)($_GET['exclude'] ?? 0);
+    $profileId = (int)($_GET['profile_id'] ?? 0);
     $limit     = min(8, max(1, (int)($_GET['limit'] ?? 4)));
 
     $related = [];
+    $pidSql  = $profileId ? 'AND a.profile_id = :pid' : '';
 
     if ($catalogId) {
         try {
             $params = [':cid' => $catalogId, ':lim' => $limit];
             $exclSql = $exclude ? 'AND a.id != :excl' : '';
             if ($exclude) $params[':excl'] = $exclude;
+            if ($profileId) $params[':pid'] = $profileId;
 
             $related = $db->fetchAll(
                 "SELECT a.id, a.title, a.meta_description AS description, a.published_url AS url
                  FROM seo_articles a
                  WHERE a.status = 'published' AND a.is_active = 1 AND a.published_url IS NOT NULL
-                   AND a.catalog_id = :cid $exclSql
+                   AND a.catalog_id = :cid $pidSql $exclSql
                  ORDER BY a.published_at DESC LIMIT :lim",
                 $params
             );
@@ -79,13 +82,14 @@ if (isset($_GET['related'])) {
         );
         try {
             $notIn = implode(',', array_map('intval', $exclude_ids)) ?: '0';
+            $params2 = $profileId ? [':pid' => $profileId] : [];
             $extra = $db->fetchAll(
                 "SELECT a.id, a.title, a.meta_description AS description, a.published_url AS url
                  FROM seo_articles a
                  WHERE a.status = 'published' AND a.is_active = 1 AND a.published_url IS NOT NULL
-                   AND a.id NOT IN ($notIn)
+                   $pidSql AND a.id NOT IN ($notIn)
                  ORDER BY a.published_at DESC LIMIT " . (int)$need,
-                []
+                $params2
             );
             $related = array_merge($related, $extra);
         } catch (Exception $e) {}
@@ -100,8 +104,9 @@ if (isset($_GET['related'])) {
 
 
 $q = trim((string)($_GET['q'] ?? ''));
-$limit = min(20, max(1, (int)($_GET['limit'] ?? 8)));
-$exclude = (int)($_GET['exclude'] ?? 0);
+$limit     = min(20, max(1, (int)($_GET['limit'] ?? 8)));
+$exclude   = (int)($_GET['exclude'] ?? 0);
+$profileId = (int)($_GET['profile_id'] ?? 0);
 
 if (mb_strlen($q) < 2) {
     echo json_encode(['results' => [], 'query' => $q, 'count' => 0]);
@@ -111,23 +116,22 @@ if (mb_strlen($q) < 2) {
 
 $results = [];
 $words   = array_values(array_filter(explode(' ', preg_replace('/\s+/', ' ', $q))));
-
+$pidSql  = $profileId ? 'AND a.profile_id = :pid' : '';
 
 try {
     $ftQuery = implode(' ', array_map(fn($w) => '+' . $w . '*', $words));
     $exclSql = $exclude ? 'AND a.id != :excl' : '';
 
-    $params = [':ft' => $ftQuery,
-        ':ft2' => $ftQuery,
-        ':lim' => $limit];
+    $params = [':ft' => $ftQuery, ':ft2' => $ftQuery, ':lim' => $limit];
     if ($exclude) $params[':excl'] = $exclude;
+    if ($profileId) $params[':pid'] = $profileId;
 
     $results = $db->fetchAll(
         "SELECT a.id, a.title, a.meta_description, a.published_url,
                 MATCH(a.title, a.keywords, a.meta_description) AGAINST (:ft IN BOOLEAN MODE) AS relevance
          FROM seo_articles a
          WHERE a.status = 'published' AND a.is_active = 1 AND a.published_url IS NOT NULL
-           $exclSql
+           $pidSql $exclSql
            AND MATCH(a.title, a.keywords, a.meta_description) AGAINST (:ft2 IN BOOLEAN MODE)
          ORDER BY relevance DESC LIMIT :lim",
         $params);
@@ -150,13 +154,14 @@ if (empty($results)) {
         $params[$k] = '%' . $word . '%';
     }
     $params[':lim'] = $limit;
+    if ($profileId) $params[':pid'] = $profileId;
     $exclSql = $exclude ? 'AND a.id != ' . (int)$exclude : '';
     $orSql = implode(' OR ', $likes);
 
     $results = $db->fetchAll(
         "SELECT a.id, a.title, a.meta_description, a.published_url, 0 AS relevance FROM seo_articles a
          WHERE a.status = 'published' AND a.is_active = 1 AND a.published_url IS NOT NULL
-         $exclSql AND ($orSql) ORDER BY a.title ASC LIMIT :lim",
+         $pidSql $exclSql AND ($orSql) ORDER BY a.title ASC LIMIT :lim",
         $params);
 }
 
