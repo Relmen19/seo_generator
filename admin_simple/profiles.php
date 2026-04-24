@@ -272,6 +272,147 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .overview-desc { font-size: 14px; color: var(--text-2); line-height: 1.7; padding: 14px 0; }
 .divider { height: 1px; background: var(--border-light); margin: 4px 0 16px; }
 
+/* ─── Brief wizard ─── */
+.sb-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 16px 18px; background: linear-gradient(135deg, var(--accent-light) 0%, #fff 100%); border: 1px solid var(--border); border-radius: var(--radius); }
+.sb-step-num { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(91,91,214,.25); }
+.sb-head-text { flex: 1; min-width: 0; }
+.sb-head-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.sb-head-sub { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+.sb-progress-bar { height: 4px; background: var(--border-light); border-radius: 2px; overflow: hidden; margin: 12px 0 20px; }
+.sb-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #8b5cf6); border-radius: 2px; transition: width .3s ease; }
+
+.sb-steps-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+.sb-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); transition: .2s; cursor: pointer; }
+.sb-dot.done { background: var(--success); }
+.sb-dot.active { background: var(--accent); transform: scale(1.3); box-shadow: 0 0 0 3px var(--accent-light); }
+
+.sb-options { display: grid; gap: 10px; }
+.sb-card { position: relative; background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); padding: 14px 16px; cursor: pointer; transition: .15s; display: flex; gap: 12px; align-items: flex-start; }
+.sb-card:hover { border-color: rgba(91,91,214,.4); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.sb-card.selected { border-color: var(--accent); background: linear-gradient(135deg, var(--accent-light) 0%, #fff 80%); box-shadow: 0 4px 12px rgba(91,91,214,.12); }
+.sb-card input[type=checkbox], .sb-card input[type=radio] { position: absolute; opacity: 0; pointer-events: none; }
+.sb-card-tick { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: .15s; background: var(--surface); font-size: 12px; color: transparent; font-weight: 700; margin-top: 2px; }
+.sb-card.selected .sb-card-tick { border-color: var(--accent); background: var(--accent); color: #fff; }
+.sb-card-body { flex: 1; min-width: 0; }
+.sb-card-title { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3; }
+.sb-card-meta { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+.sb-card-facts { display: grid; gap: 4px; margin-top: 8px; font-size: 12px; color: var(--text-2); line-height: 1.45; }
+.sb-fact { display: flex; gap: 6px; align-items: flex-start; }
+.sb-fact-icon { flex-shrink: 0; width: 18px; text-align: center; opacity: .7; }
+.sb-card-tag { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; padding: 2px 7px; border-radius: 100px; background: var(--accent-light); color: var(--accent); margin-right: 6px; }
+.sb-card-quote { margin-top: 8px; padding: 8px 12px; background: var(--bg); border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0; font-size: 12.5px; color: var(--text-2); font-style: italic; line-height: 1.5; }
+.sb-card-cta { margin-top: 6px; font-size: 12px; color: var(--accent); font-weight: 600; }
+.sb-card-vocab { margin-top: 6px; font-size: 11px; color: var(--text-3); font-family: 'SF Mono', monospace; }
+
+.sb-group { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+.sb-group-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.sb-group.do .sb-group-title { color: var(--success); }
+.sb-group.dont .sb-group-title { color: var(--danger); }
+.sb-rule { display: flex; gap: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius-sm); margin-bottom: 6px; cursor: pointer; transition: .15s; align-items: flex-start; }
+.sb-rule:hover { border-color: rgba(91,91,214,.3); }
+.sb-rule.on { border-color: var(--accent); background: var(--accent-light); }
+.sb-rule input { position: absolute; opacity: 0; pointer-events: none; }
+.sb-rule-tick { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; color: transparent; font-weight: 700; margin-top: 2px; transition: .15s; }
+.sb-rule.on .sb-rule-tick { border-color: var(--accent); background: var(--accent); color: #fff; }
+.sb-group.do .sb-rule.on .sb-rule-tick { border-color: var(--success); background: var(--success); }
+.sb-group.dont .sb-rule.on .sb-rule-tick { border-color: var(--danger); background: var(--danger); }
+.sb-rule-body { flex: 1; font-size: 13px; color: var(--text); line-height: 1.4; }
+.sb-rule-check { color: var(--text-3); font-size: 11.5px; margin-top: 3px; }
+
+.sb-classify-grid { display: grid; gap: 14px; }
+.sb-switch { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; user-select: none; }
+.sb-switch-toggle { width: 42px; height: 24px; background: var(--border); border-radius: 100px; position: relative; flex-shrink: 0; transition: .2s; }
+.sb-switch-toggle::after { content: ''; position: absolute; width: 18px; height: 18px; background: #fff; border-radius: 50%; top: 3px; left: 3px; transition: .2s; box-shadow: 0 2px 4px rgba(0,0,0,.15); }
+.sb-switch.on .sb-switch-toggle { background: var(--accent); }
+.sb-switch.on .sb-switch-toggle::after { left: 21px; }
+.sb-switch-text { flex: 1; font-size: 13px; color: var(--text); font-weight: 600; }
+.sb-switch-sub { font-size: 11.5px; color: var(--text-3); font-weight: 400; margin-top: 2px; }
+.sb-switch input { display: none; }
+
+.sb-nav { display: flex; gap: 8px; justify-content: space-between; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-light); }
+.sb-nav-primary { display: flex; gap: 8px; }
+.sb-empty { text-align: center; padding: 36px 20px; color: var(--text-3); }
+.sb-empty-icon { font-size: 32px; margin-bottom: 10px; opacity: .6; }
+.sb-loading { text-align: center; padding: 40px 20px; color: var(--text-2); font-size: 13px; }
+.sb-loading .spin { width: 24px; height: 24px; border-width: 3px; margin-bottom: 10px; display: block; margin-left: auto; margin-right: auto; }
+
+.sb-json { background: #0f172a; color: #cbd5e1; padding: 14px; border-radius: var(--radius-sm); font-size: 11.5px; font-family: 'SF Mono', monospace; max-height: 320px; overflow: auto; white-space: pre-wrap; line-height: 1.5; }
+
+/* Phrase quote — brighter */
+.sb-card-phrase { background: #fff; border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: 14px; color: var(--text); line-height: 1.6; box-shadow: inset 0 0 0 1px var(--border-light); margin-top: 8px; }
+.sb-card-phrase-ctx { font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+
+/* Manual-add row — styled block, matches option cards */
+.sb-add-row { display: none; margin-top: 14px; padding: 14px; background: linear-gradient(135deg, #fafbff 0%, #fff 100%); border: 1.5px dashed var(--border); border-radius: var(--radius); gap: 8px; grid-template-columns: 1fr 1fr auto; align-items: start; transition: .15s; position: relative; }
+body.advanced .sb-add-row { display: grid; }
+.sb-add-row:hover { border-color: rgba(91,91,214,.5); background: linear-gradient(135deg, var(--accent-light) 0%, #fff 100%); }
+.sb-add-row:focus-within { border-color: var(--accent); border-style: solid; box-shadow: 0 0 0 3px rgba(91,91,214,.12); }
+.sb-add-row.single { grid-template-columns: 1fr auto; }
+.sb-add-row::before { content: '+'; position: absolute; top: -10px; left: 14px; background: var(--accent); color: #fff; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; box-shadow: 0 2px 6px rgba(91,91,214,.3); }
+.sb-add-row input, .sb-add-row textarea { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; background: #fff; color: var(--text); transition: .15s; }
+.sb-add-row input:focus, .sb-add-row textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,91,214,.1); }
+.sb-add-row input::placeholder, .sb-add-row textarea::placeholder { color: var(--text-3); }
+.sb-add-row textarea { resize: vertical; min-height: 40px; line-height: 1.5; }
+.sb-add-row button { align-self: stretch; min-width: 110px; justify-content: center; }
+
+/* Voice advanced-edit block inside card */
+.sb-voice-edit { display: none; margin-top: 10px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border-light); border-radius: var(--radius-sm); gap: 4px; }
+body.advanced .sb-voice-edit { display: grid; }
+.sb-voice-lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: var(--text-3); margin-top: 6px; }
+.sb-voice-edit input, .sb-voice-edit textarea { border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; font-size: 12.5px; font-family: inherit; color: var(--text); background: #fff; }
+.sb-voice-edit input:focus, .sb-voice-edit textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(91,91,214,.12); }
+.sb-voice-edit textarea { resize: vertical; min-height: 40px; line-height: 1.4; }
+
+/* Compliance form */
+.sb-cmp { display: grid; gap: 14px; }
+.sb-cmp-group { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow-sm); }
+.sb-cmp-group-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-2); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.sb-cmp-item { background: var(--bg); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px; display: grid; gap: 6px; transition: .15s; }
+.sb-cmp-item:focus-within { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(91,91,214,.08); }
+.sb-cmp-item input, .sb-cmp-item textarea { border: 1px solid transparent; background: #fff; border-radius: 5px; padding: 7px 10px; font-size: 13px; font-family: inherit; width: 100%; color: var(--text); transition: .15s; }
+.sb-cmp-item input:hover { border-color: var(--border); }
+.sb-cmp-item input:focus, .sb-cmp-item textarea:focus { outline: none; border-color: var(--accent); }
+.sb-cmp-item input::placeholder { color: var(--text-3); font-size: 12.5px; }
+.sb-cmp-item-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; }
+.sb-cmp-del { background: transparent; border: 0; color: var(--text-3); cursor: pointer; font-size: 14px; padding: 6px 10px; border-radius: 6px; transition: .15s; }
+.sb-cmp-del:hover { background: var(--danger-light); color: var(--danger); }
+
+/* Brief summary inside generator modal */
+.gen-brief-box { margin-top: 12px; padding: 12px 14px; background: linear-gradient(135deg, var(--accent-light) 0%, #fff 100%); border: 1px solid rgba(91,91,214,.25); border-radius: var(--radius); font-size: 12.5px; color: var(--text-2); line-height: 1.6; }
+.gen-brief-box-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: var(--accent); margin-bottom: 6px; }
+.gen-brief-box-item { margin-bottom: 4px; }
+.gen-brief-box-item b { color: var(--text); font-weight: 600; }
+.gen-brief-missing { color: var(--warn); font-size: 12px; padding: 6px 0; }
+
+/* Review cards */
+.review-hero { display: flex; align-items: center; gap: 16px; padding: 18px 20px; background: linear-gradient(135deg, var(--accent-light) 0%, #fff 100%); border: 1px solid rgba(91,91,214,.25); border-radius: var(--radius-lg); margin-bottom: 14px; }
+.review-score-ring { width: 68px; height: 68px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 22px; font-weight: 700; color: #fff; position: relative; }
+.review-score-ring.high { background: linear-gradient(135deg, #16a34a, #22c55e); }
+.review-score-ring.mid { background: linear-gradient(135deg, #d97706, #f59e0b); }
+.review-score-ring.low { background: linear-gradient(135deg, #dc2626, #ef4444); }
+.review-score-ring-sub { font-size: 10px; font-weight: 600; opacity: .85; letter-spacing: .3px; }
+.review-hero-text { flex: 1; }
+.review-hero-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.review-hero-sub { font-size: 12.5px; color: var(--text-2); margin-top: 2px; line-height: 1.5; }
+.review-cards { display: grid; gap: 10px; }
+.review-card { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: var(--radius); padding: 12px 14px; display: flex; gap: 12px; align-items: flex-start; box-shadow: var(--shadow-sm); }
+.review-card-icon { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+.review-card-body { flex: 1; font-size: 13.5px; color: var(--text); line-height: 1.55; }
+.review-card-idx { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: var(--text-3); margin-bottom: 3px; }
+.review-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-light); }
+.review-empty { background: var(--bg); border: 1px dashed var(--border); border-radius: var(--radius); padding: 18px; text-align: center; color: var(--text-3); font-size: 13px; }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.5); display: none; align-items: center; justify-content: center; z-index: 600; padding: 20px; }
+.modal-overlay.show { display: flex; }
+.modal { background: var(--surface); border-radius: var(--radius-lg); box-shadow: 0 20px 60px rgba(0,0,0,.25); width: 100%; max-width: 480px; max-height: 90vh; display: flex; flex-direction: column; }
+.modal-header { padding: 18px 22px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between; }
+.modal-title { font-size: 16px; font-weight: 700; }
+.modal-body { padding: 20px 22px; overflow: auto; }
+.modal-footer { padding: 14px 22px; border-top: 1px solid var(--border-light); display: flex; gap: 8px; justify-content: flex-end; }
+.modal-close { background: transparent; border: 0; font-size: 20px; color: var(--text-3); cursor: pointer; padding: 4px 8px; border-radius: 4px; }
+.modal-close:hover { background: var(--bg); color: var(--text); }
+
 /* ─── Collapsible GPT ─── */
 .gpt-toggle { display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; padding-bottom: 10px; border-bottom: 1px solid var(--border-light); margin-bottom: 14px; }
 .gpt-toggle-title { font-size: 13px; font-weight: 700; color: var(--text); }
@@ -302,6 +443,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .adv-toggle.on .adv-switch::after { left: 14px; }
 .adv-only { display: none; }
 body.advanced .adv-only { display: revert; }
+body.advanced .adv-hide { display: none !important; }
 body.advanced .adv-only.form-row { display: grid; }
 body.advanced .adv-only.section { display: block; }
 body.advanced .adv-only.inline-flex { display: inline-flex; }
@@ -331,6 +473,80 @@ body.advanced .adv-only.inline-flex { display: inline-flex; }
 <!-- Toast container -->
 <div class="toast-wrap" id="toastWrap"></div>
 
+<!-- Create template modal (AI SSE) -->
+<div class="modal-overlay" id="genTplModal" onclick="if(event.target===this)closeCreateTpl()">
+    <div class="modal" style="max-width:640px">
+        <div class="modal-header">
+            <div class="modal-title">AI: создать шаблон</div>
+            <button class="modal-close" onclick="closeCreateTpl()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div id="genTplForm">
+                <div class="field">
+                    <label>Назначение шаблона — тип статьи *</label>
+                    <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+                        <button class="btn btn-secondary btn-sm" onclick="gtLoadPurposes()" id="gtBtnPurpose">✨ AI: варианты из брифа</button>
+                        <button class="btn btn-ghost btn-sm" onclick="gtClearPurposes()" id="gtBtnPurposeClear" style="display:none">Скрыть варианты</button>
+                    </div>
+                    <div id="gtPurposes" style="display:none;margin-bottom:10px"></div>
+                    <textarea id="genTplPurpose" rows="3" placeholder="Например: обзор товара с таблицей характеристик и сравнением с аналогами"></textarea>
+                    <div class="field-hint">Чем подробнее — тем лучше AI подберёт блоки.</div>
+                </div>
+                <div class="field">
+                    <label>Подсказки для AI (опц.)</label>
+                    <textarea id="genTplHints" rows="2" placeholder="Нужны таблицы сравнения, обязателен FAQ..."></textarea>
+                </div>
+                <div id="genTplBriefBox" class="gen-brief-box" style="display:none"></div>
+            </div>
+            <div id="genTplProgress" style="display:none">
+                <div class="ai-progress">
+                    <div class="ai-step" id="gtStep1"><div class="ai-step-dot"></div>AI подбирает блоки шаблона...</div>
+                    <div class="ai-step" id="gtStep2"><div class="ai-step-dot"></div>Ревью качества...</div>
+                    <div class="ai-step" id="gtStep3"><div class="ai-step-dot"></div>Сохранение...</div>
+                </div>
+                <div id="genTplPreview" style="display:none;margin-top:12px"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeCreateTpl()" id="genTplCloseBtn">Отмена</button>
+            <button class="btn btn-primary" id="genTplStartBtn" onclick="startCreateTpl()">Сгенерировать</button>
+        </div>
+    </div>
+</div>
+
+<!-- Create profile modal -->
+<div class="modal-overlay" id="createModal" onclick="if(event.target===this)closeCreateProfile()">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Новый профиль</div>
+            <button class="modal-close" onclick="closeCreateProfile()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="field">
+                <label>Название *</label>
+                <input type="text" id="cpName" placeholder="Например: Aurum" oninput="cpAutoSlug()">
+            </div>
+            <div class="field">
+                <label>Slug *</label>
+                <input type="text" id="cpSlug" placeholder="aurum">
+                <div class="field-hint">Латиница, цифры, «-» и «_». Используется в URL.</div>
+            </div>
+            <div class="field">
+                <label>Ниша</label>
+                <input type="text" id="cpNiche" placeholder="Медицина, e-commerce...">
+            </div>
+            <div class="field">
+                <label>Описание</label>
+                <textarea id="cpDescription" rows="3" placeholder="Коротко о проекте..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeCreateProfile()">Отмена</button>
+            <button class="btn btn-primary" id="cpSubmitBtn" onclick="submitCreateProfile()">Создать</button>
+        </div>
+    </div>
+</div>
+
 <!-- ─── Profile list view ─── -->
 <div class="page" id="listView">
     <div class="page-header">
@@ -338,6 +554,7 @@ body.advanced .adv-only.inline-flex { display: inline-flex; }
             <div class="page-header-title">Профили</div>
             <div class="page-header-sub" id="listSubtitle">Загрузка...</div>
         </div>
+        <button class="btn btn-primary" onclick="openCreateProfile()">+ Создать профиль</button>
     </div>
     <div class="profile-grid" id="profileGrid">
         <div class="empty"><div class="spin"></div></div>
@@ -526,21 +743,23 @@ body.advanced .adv-only.inline-flex { display: inline-flex; }
     <div id="tab-brief" style="display:none">
         <div class="section">
             <div class="section-head">
-                <span class="section-head-title">AI Бриф (мастер)</span>
+                <span class="section-head-title">AI Бриф проекта</span>
                 <div style="display:flex;gap:8px">
                     <button class="btn btn-ghost btn-sm" onclick="sbReset()">Сбросить</button>
-                    <button class="btn btn-primary btn-sm" onclick="sbSave()">Сохранить</button>
+                    <button class="btn btn-primary btn-sm" onclick="sbSave()">Сохранить бриф</button>
                 </div>
             </div>
             <div class="section-body">
-                <div style="font-size:12.5px;color:var(--text-2);margin-bottom:12px">
-                    Клик-мастер: AI предлагает варианты, вы выбираете карточки. Из брифа автоматически собираются persona и правила для генерации статей.
-                </div>
-                <div id="sbProgress" style="font-size:12px;color:var(--text-3);margin-bottom:12px"></div>
+                <div id="sbHeader"></div>
+                <div class="sb-progress-bar"><div class="sb-progress-fill" id="sbProgressFill"></div></div>
+                <div class="sb-steps-dots" id="sbDots"></div>
                 <div id="sbStep"></div>
-                <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
-                    <button class="btn btn-ghost btn-sm" id="sbBtnBack" onclick="sbPrev()">&larr; Назад</button>
-                    <button class="btn btn-primary btn-sm" id="sbBtnNext" onclick="sbNext()">Далее &rarr;</button>
+                <div class="sb-nav">
+                    <button class="btn btn-secondary btn-sm" id="sbBtnBack" onclick="sbPrev()">&larr; Назад</button>
+                    <div class="sb-nav-primary">
+                        <button class="btn btn-ghost btn-sm" id="sbBtnRegen" onclick="sbRegen()" style="display:none">Другие варианты</button>
+                        <button class="btn btn-primary btn-sm" id="sbBtnNext" onclick="sbNext()">Далее &rarr;</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -550,6 +769,7 @@ body.advanced .adv-only.inline-flex { display: inline-flex; }
     <div id="tab-templates" style="display:none">
         <div class="tpl-toolbar">
             <span style="font-size:13px;color:var(--text-2)" id="tplCount">Загрузка...</span>
+            <button class="btn btn-primary btn-sm adv-only inline-flex" onclick="openCreateTpl()" style="margin-left:auto">✨ AI: создать шаблон</button>
             <div class="tpl-view-toggle">
                 <button class="tpl-view-btn active" id="btnTileView" onclick="setTplView('tiles')" title="Плитки">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
@@ -669,11 +889,6 @@ body.advanced .adv-only.inline-flex { display: inline-flex; }
         <div class="section-head"><span class="section-head-title">Описание</span></div>
         <div class="section-body">
             <div class="field">
-                <div style="display:flex;gap:8px;margin-bottom:8px">
-                    <button class="btn btn-secondary btn-sm" onclick="spLoadPurposes()" id="btnSpPurpose">✨ AI: варианты из брифа</button>
-                    <button class="btn btn-ghost btn-sm" onclick="spClearPurposes()" id="btnSpClear" style="display:none">Скрыть варианты</button>
-                </div>
-                <div id="spPurposes" style="display:none;margin-bottom:8px"></div>
                 <textarea id="tplDescription" rows="3" placeholder="Опишите назначение шаблона..."></textarea>
             </div>
         </div>
@@ -690,14 +905,10 @@ body.advanced .adv-only.inline-flex { display: inline-flex; }
     </div>
 
     <!-- AI review result -->
-    <div id="tplReviewResult" style="display:none" class="section" style="margin-top:16px">
-        <div class="section-head"><span class="section-head-title">AI Ревью</span></div>
-        <div class="section-body">
-            <div class="review-box">
-                <div class="review-score" id="reviewScore"></div>
-                <div class="review-suggestions" id="reviewSuggestions"></div>
-            </div>
-        </div>
+    <div id="tplReviewResult" style="display:none;margin-top:16px">
+        <div class="review-hero" id="reviewHero"></div>
+        <div class="review-cards" id="reviewCards"></div>
+        <div class="review-actions" id="reviewActions" style="display:none"></div>
     </div>
 
     <!-- AI regen progress -->
@@ -896,11 +1107,225 @@ function renderProfileGrid() {
             </div>
             <div class="profile-desc">${esc(p.description || p.niche || '—')}</div>
             <div class="profile-stats">
-                <div class="profile-stat"><b>${p.templates_count || '—'}</b> шаблонов</div>
-                <div class="profile-stat"><b>${p.articles_count || '—'}</b> статей</div>
+                <div class="profile-stat"><b>${p.templates_count != null ? p.templates_count : '—'}</b> шаблонов</div>
+                <div class="profile-stat"><b>${p.articles_count != null ? p.articles_count : '—'}</b> статей</div>
             </div>
         </div>`;
     }).join('');
+}
+
+// ─── Create template modal ───
+function briefSummaryHtml(profile) {
+    const brief = profile && profile.content_brief || null;
+    if (!brief || Object.keys(brief).length === 0) {
+        return '<div class="gen-brief-missing">⚠️ Бриф не заполнен. AI сгенерирует шаблон по описанию и нише профиля.</div>';
+    }
+    const parts = [];
+    if (brief.classify && brief.classify.niche) {
+        parts.push(`<div class="gen-brief-box-item"><b>Ниша:</b> ${esc(brief.classify.niche)}${brief.classify.regulated ? ' · <span style="color:var(--warn)">регулируемая</span>' : ''}</div>`);
+    }
+    if (brief.audience && brief.audience.label) {
+        parts.push(`<div class="gen-brief-box-item"><b>ICP:</b> ${esc(brief.audience.label)}</div>`);
+    }
+    if (Array.isArray(brief.usps) && brief.usps.length) {
+        const h = brief.usps.map(u => esc(u.headline || u.label || '')).filter(Boolean).slice(0, 3).join(' · ');
+        if (h) parts.push(`<div class="gen-brief-box-item"><b>УТП:</b> ${h}</div>`);
+    }
+    if (brief.voice && (brief.voice.label || brief.voice.archetype)) {
+        parts.push(`<div class="gen-brief-box-item"><b>Голос:</b> ${esc(brief.voice.label || brief.voice.archetype)}</div>`);
+    }
+    if (Array.isArray(brief.competitors) && brief.competitors.length) {
+        const names = brief.competitors.map(c => esc(c.name || c.label || '')).filter(Boolean).slice(0, 3).join(', ');
+        if (names) parts.push(`<div class="gen-brief-box-item"><b>Конкуренты:</b> ${names}</div>`);
+    }
+    if (!parts.length) return '<div class="gen-brief-missing">Бриф пуст. Заполните в вкладке «AI Бриф».</div>';
+    return `<div class="gen-brief-box-title">📋 Бриф, который использует AI</div>${parts.join('')}`;
+}
+
+async function gtLoadPurposes() {
+    if (!S.profile) return;
+    const btn = el('gtBtnPurpose');
+    const box = el('gtPurposes');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin"></span> Загрузка...';
+    box.style.display = '';
+    box.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:8px"><span class="spin"></span> AI подбирает варианты из брифа...</div>';
+    try {
+        const data = await api('profiles/' + S.profile.id + '/suggest-template-purposes', 'POST', {});
+        const options = data.options || [];
+        if (!options.length) { box.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:8px">Нет вариантов. Заполните бриф подробнее.</div>'; return; }
+        window.__gtOptions = options;
+        box.innerHTML = options.map((o, i) => `
+            <div class="sb-card" onclick="gtPickPurpose(${i})" id="gtCard_${i}" style="padding:10px 12px;margin-bottom:6px">
+                <div class="sb-card-body">
+                    <div style="display:flex;gap:6px;align-items:center;margin-bottom:2px">
+                        <span class="sb-card-tag">${esc(o.format || '')}</span>
+                        <div style="font-weight:700;font-size:13px">${esc(o.title || '')}</div>
+                    </div>
+                    <div style="font-size:12px;color:var(--text-2)">${esc(o.purpose || '')}</div>
+                    ${o.target_icp ? `<div style="font-size:11px;color:var(--text-3);margin-top:3px">Для: ${esc(o.target_icp)}</div>` : ''}
+                    ${o.suggested_blocks_hint ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px">Блоки: ${esc(o.suggested_blocks_hint)}</div>` : ''}
+                </div>
+            </div>`).join('');
+        el('gtBtnPurposeClear').style.display = '';
+    } catch(e) { toast(e.message, 'err'); box.style.display = 'none'; }
+    finally { btn.disabled = false; btn.innerHTML = '✨ AI: варианты из брифа'; }
+}
+function gtPickPurpose(i) {
+    const o = (window.__gtOptions || [])[i];
+    if (!o) return;
+    el('genTplPurpose').value = o.purpose || o.title || '';
+    document.querySelectorAll('[id^="gtCard_"]').forEach((c, j) => c.classList.toggle('selected', j === i));
+}
+function gtClearPurposes() {
+    el('gtPurposes').style.display = 'none';
+    el('gtPurposes').innerHTML = '';
+    el('gtBtnPurposeClear').style.display = 'none';
+    window.__gtOptions = null;
+}
+
+function openCreateTpl() {
+    if (!S.profile) return;
+    el('genTplPurpose').value = '';
+    el('genTplHints').value = '';
+    gtClearPurposes();
+    el('genTplForm').style.display = '';
+    el('genTplProgress').style.display = 'none';
+    el('genTplPreview').style.display = 'none';
+    el('genTplPreview').innerHTML = '';
+    ['gtStep1','gtStep2','gtStep3'].forEach(id => { const n = el(id); if (n) n.className = 'ai-step'; });
+    const box = el('genTplBriefBox');
+    box.innerHTML = briefSummaryHtml(S.profile);
+    box.style.display = '';
+    el('genTplStartBtn').disabled = false;
+    el('genTplStartBtn').textContent = 'Сгенерировать';
+    el('genTplCloseBtn').textContent = 'Отмена';
+    el('genTplModal').classList.add('show');
+}
+function closeCreateTpl() { el('genTplModal').classList.remove('show'); }
+
+async function startCreateTpl() {
+    const purpose = el('genTplPurpose').value.trim();
+    if (!purpose) { toast('Опишите назначение шаблона', 'err'); return; }
+    const hints = el('genTplHints').value.trim() || null;
+    const btn = el('genTplStartBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin spin-white"></span> Генерация...';
+    el('genTplForm').style.display = 'none';
+    el('genTplProgress').style.display = '';
+    el('gtStep1').className = 'ai-step active';
+
+    try {
+        const resp = await fetch(API + 'profiles/' + S.profile.id + '/generate-template-sse', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ purpose, hints }),
+        });
+        const reader = resp.body.getReader();
+        const dec = new TextDecoder();
+        let buf = '', evt = '';
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buf += dec.decode(value, { stream: true });
+            const lines = buf.split('\n');
+            buf = lines.pop();
+            for (const ln of lines) {
+                if (ln.startsWith('event: ')) evt = ln.substring(7).trim();
+                else if (ln.startsWith('data: ') && evt) {
+                    try { handleTplSse(evt, JSON.parse(ln.substring(6))); } catch(e) {}
+                    evt = '';
+                }
+            }
+        }
+    } catch(e) {
+        toast('Ошибка: ' + e.message, 'err');
+    } finally {
+        el('genTplCloseBtn').textContent = 'Закрыть';
+        btn.style.display = 'none';
+    }
+}
+
+function handleTplSse(evt, data) {
+    if (evt === 'generation_start') el('gtStep1').className = 'ai-step active';
+    else if (evt === 'generation_done') {
+        el('gtStep1').className = 'ai-step done';
+        if (data.template) {
+            const blocks = data.template.blocks || [];
+            const box = el('genTplPreview');
+            box.style.display = '';
+            box.innerHTML = `<div style="font-weight:700;font-size:14px">${esc(data.template.name || '')}</div>
+                <div style="font-size:12px;color:var(--text-2);margin-top:4px">${esc(data.template.description || '')}</div>
+                <div style="font-size:11px;color:var(--text-3);margin-top:8px">Блоки (${blocks.length}):</div>
+                <div style="margin-top:6px;display:grid;gap:4px">${blocks.map(b => `<div style="padding:6px 10px;background:var(--bg);border-radius:4px;font-size:12px"><b>${esc(b.type)}</b> — ${esc(b.name || '')}</div>`).join('')}</div>`;
+        }
+    }
+    else if (evt === 'review_start') el('gtStep2').className = 'ai-step active';
+    else if (evt === 'review_done') el('gtStep2').className = 'ai-step done';
+    else if (evt === 'save_start') el('gtStep3').className = 'ai-step active';
+    else if (evt === 'save_done') {
+        el('gtStep3').className = 'ai-step done';
+        toast('Шаблон создан', 'ok');
+        loadTemplates();
+    }
+    else if (evt === 'error') {
+        const active = document.querySelector('#genTplProgress .ai-step.active');
+        if (active) active.className = 'ai-step err';
+        toast('Ошибка: ' + (data.message || 'unknown'), 'err');
+    }
+}
+
+function openCreateProfile() {
+    el('cpName').value = '';
+    el('cpSlug').value = '';
+    el('cpNiche').value = '';
+    el('cpDescription').value = '';
+    el('createModal').classList.add('show');
+    setTimeout(() => el('cpName').focus(), 50);
+}
+function closeCreateProfile() { el('createModal').classList.remove('show'); }
+
+function cpAutoSlug() {
+    const slugEl = el('cpSlug');
+    if (slugEl.dataset.touched === '1') return;
+    const v = el('cpName').value || '';
+    const map = {а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'c',ч:'ch',ш:'sh',щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya'};
+    let out = '';
+    for (const ch of v.toLowerCase()) {
+        if (map[ch] !== undefined) out += map[ch];
+        else if (/[a-z0-9]/.test(ch)) out += ch;
+        else if (/[\s_-]/.test(ch)) out += '-';
+    }
+    slugEl.value = out.replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 100);
+}
+(function(){ const s = document.getElementById('cpSlug'); if (s) s.addEventListener('input', () => s.dataset.touched = '1'); })();
+
+async function submitCreateProfile() {
+    const name = el('cpName').value.trim();
+    const slug = el('cpSlug').value.trim();
+    if (!name) { toast('Укажите название', 'err'); return; }
+    if (!/^[a-z0-9_-]{1,100}$/.test(slug)) { toast('Slug: a-z, 0-9, «-», «_»', 'err'); return; }
+    const btn = el('cpSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin spin-white"></span> Создание...';
+    try {
+        const created = await api('profiles', 'POST', {
+            name, slug,
+            niche: el('cpNiche').value.trim() || null,
+            description: el('cpDescription').value.trim() || null,
+            language: 'ru',
+            is_active: 1,
+        });
+        toast('Профиль создан', 'ok');
+        closeCreateProfile();
+        await loadProfiles();
+        if (created && created.id) openProfile(created.id);
+    } catch(e) {
+        toast(e.message, 'err');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Создать';
+    }
 }
 
 async function openProfile(id) {
@@ -1248,22 +1673,85 @@ async function tplAiReview() {
     if (!S.template) return;
     el('btnTplReview').disabled = true;
     el('btnTplReview').innerHTML = '<span class="spin"></span> Ревью...';
-    el('tplReviewResult').style.display = 'none';
+    el('tplReviewResult').style.display = '';
+    el('reviewHero').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-3);font-size:13px;width:100%"><span class="spin"></span> AI анализирует шаблон и сравнивает с брифом...</div>';
+    el('reviewCards').innerHTML = '';
+    el('reviewActions').style.display = 'none';
+    el('reviewActions').innerHTML = '';
     try {
         const result = await api('templates/' + S.template.id + '/ai-review', 'POST', {});
-        const score   = result.score ?? '';
-        const suggestions = Array.isArray(result.suggestions)
-            ? result.suggestions.map(s => '• ' + s).join('\n')
-            : (result.summary || JSON.stringify(result));
-
-        el('reviewScore').textContent = score ? 'Оценка: ' + score + '/10' : '';
-        el('reviewSuggestions').textContent = suggestions;
-        el('tplReviewResult').style.display = '';
+        renderTplReview(result);
     } catch(e) {
-        toast(e.message, 'err');
+        el('reviewHero').innerHTML = '<div style="color:var(--danger);font-size:13px">Ошибка: ' + esc(e.message) + '</div>';
     }
     el('btnTplReview').disabled = false;
     el('btnTplReview').innerHTML = '🔍 Ревью';
+}
+
+function renderTplReview(result) {
+    const score = Number(result.score || 0);
+    const suggestions = Array.isArray(result.suggestions) ? result.suggestions.filter(Boolean) : [];
+    const cls = score >= 8 ? 'high' : score >= 5 ? 'mid' : 'low';
+    const verdict = score >= 8 ? 'Шаблон качественный' : score >= 5 ? 'Есть что улучшить' : 'Рекомендуется доработка';
+    const summary = suggestions.length
+        ? `AI нашёл ${suggestions.length} ${suggestions.length === 1 ? 'рекомендацию' : 'рекомендаций'} по улучшению. Просмотрите и примените правки.`
+        : 'AI не нашёл значимых проблем. Шаблон готов к использованию.';
+
+    el('reviewHero').innerHTML = `
+        <div class="review-score-ring ${cls}">
+            ${score || '—'}<span class="review-score-ring-sub" style="position:absolute;bottom:8px">/10</span>
+        </div>
+        <div class="review-hero-text">
+            <div class="review-hero-title">${esc(verdict)}</div>
+            <div class="review-hero-sub">${esc(summary)}</div>
+        </div>`;
+
+    if (!suggestions.length) {
+        el('reviewCards').innerHTML = '<div class="review-empty">✓ Замечаний нет</div>';
+    } else {
+        el('reviewCards').innerHTML = suggestions.map((s, i) => `
+            <div class="review-card">
+                <div class="review-card-icon">${i + 1}</div>
+                <div class="review-card-body">
+                    <div class="review-card-idx">Правка ${i + 1}</div>
+                    ${esc(s)}
+                </div>
+            </div>`).join('');
+    }
+
+    const improved = result.improved_template;
+    if (improved && Array.isArray(improved.blocks) && improved.blocks.length) {
+        window.__tplImproved = improved;
+        el('reviewActions').style.display = '';
+        el('reviewActions').innerHTML = `
+            <div style="flex:1;font-size:12px;color:var(--text-2);align-self:center">AI подготовил улучшенную версию шаблона (${improved.blocks.length} блоков).</div>
+            <button class="btn btn-secondary btn-sm" onclick="tplReviewDiscard()">Оставить как есть</button>
+            <button class="btn btn-primary btn-sm" onclick="tplReviewApplyImproved()">✨ Применить улучшения</button>`;
+    }
+}
+
+function tplReviewDiscard() {
+    window.__tplImproved = null;
+    el('reviewActions').style.display = 'none';
+}
+
+async function tplReviewApplyImproved() {
+    const improved = window.__tplImproved;
+    if (!improved || !S.template) return;
+    if (!confirm('Перезаписать блоки шаблона улучшенной AI-версией?')) return;
+    const btn = document.querySelector('#reviewActions .btn-primary');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin spin-white"></span> Применение...'; }
+    try {
+        await api('templates/' + S.template.id + '/ai-apply', 'POST', { template: improved });
+        toast('Улучшения применены', 'ok');
+        window.__tplImproved = null;
+        el('reviewActions').style.display = 'none';
+        el('tplReviewResult').style.display = 'none';
+        await openTemplate(S.template.id);
+    } catch(e) {
+        toast('Ошибка: ' + e.message, 'err');
+        if (btn) { btn.disabled = false; btn.innerHTML = '✨ Применить улучшения'; }
+    }
 }
 
 function tplAiRegen() {
@@ -1537,14 +2025,14 @@ function spClearPurposes() {
 // Click-driven cards, minimal manual input. Shares endpoints with advanced wizard.
 
 const SB_STEPS = [
-    { key: 'classify',    title: 'Нишевые параметры' },
-    { key: 'audience',    title: 'Кто аудитория?' },
-    { key: 'usp',         title: 'Что в вас уникального?' },
-    { key: 'competitors', title: 'Конкуренты и отстройка' },
-    { key: 'voice',       title: 'Как звучит бренд?' },
-    { key: 'rules',       title: 'Что можно и нельзя' },
-    { key: 'compliance',  title: 'Compliance', regulatedOnly: true },
-    { key: 'phrases',     title: 'Проба голоса' },
+    { key: 'classify',    title: 'Нишевые параметры',     sub: 'AI определит нишу, язык и регулирование' },
+    { key: 'audience',    title: 'Кто ваша аудитория?',   sub: 'Выберите 1-2 ICP с болями и целями' },
+    { key: 'usp',         title: 'В чём ваша уникальность?', sub: 'Отметьте сильнейшие УТП' },
+    { key: 'competitors', title: 'Конкуренты и отстройка', sub: 'Кого обыгрывать в контенте' },
+    { key: 'voice',       title: 'Как звучит бренд?',     sub: 'Выберите один архетип голоса' },
+    { key: 'rules',       title: 'Что можно и нельзя',    sub: 'Редакционные do и don\'t' },
+    { key: 'compliance',  title: 'Compliance',            sub: 'Запреты регулятора и оговорки', regulatedOnly: true },
+    { key: 'phrases',     title: 'Пробы голоса',          sub: 'Отметьте лучшие образцы стиля' },
 ];
 
 let sbState = null;
@@ -1571,18 +2059,51 @@ function sbVisible() {
     return SB_STEPS.filter(s => !s.regulatedOnly || reg);
 }
 
-async function sbRender() {
+async function sbRender(forceRegen = false) {
     const steps = sbVisible();
     const step = steps[sbIdx];
-    el('sbProgress').textContent = `Шаг ${sbIdx + 1} из ${steps.length} — ${step.title}`;
+
+    el('sbHeader').innerHTML = `
+        <div class="sb-header">
+            <div class="sb-step-num">${sbIdx + 1}</div>
+            <div class="sb-head-text">
+                <div class="sb-head-title">${escHtml(step.title)}</div>
+                <div class="sb-head-sub">${escHtml(step.sub || '')}</div>
+            </div>
+            <div style="font-size:11.5px;color:var(--text-3);font-weight:600">${sbIdx + 1} / ${steps.length}</div>
+        </div>`;
+    el('sbProgressFill').style.width = ((sbIdx + 1) / steps.length * 100) + '%';
+    el('sbDots').innerHTML = steps.map((s, i) => {
+        const done = s.key === 'usp' ? (sbState.usps != null) : (sbState[s.key] !== undefined);
+        const cls = i === sbIdx ? 'active' : (done ? 'done' : '');
+        return `<div class="sb-dot ${cls}" onclick="sbGoto(${i})" title="${escHtml(s.title)}"></div>`;
+    }).join('');
+
     el('sbBtnBack').disabled = sbIdx === 0;
     el('sbBtnNext').textContent = sbIdx === steps.length - 1 ? 'Готово ✓' : 'Далее →';
 
     const body = el('sbStep');
-    body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-3)"><div class="spin"></div> AI подбирает варианты...</div>';
 
-    // Auto-generate if not loaded yet
-    if (!sbCur[step.key]) {
+    // Hydrate sbCur from saved state (so no auto-GPT call for already-saved steps)
+    if (!sbCur[step.key] && !forceRegen) {
+        const h = sbHydrateFromSaved(step.key);
+        if (h) sbCur[step.key] = h;
+    }
+
+    if (forceRegen || !sbCur[step.key]) {
+        if (!forceRegen) {
+            // Empty state — user must click to generate
+            el('sbBtnRegen').style.display = 'none';
+            const hasSaved = (step.key === 'usp' ? !!sbState.usps : sbState[step.key] != null);
+            body.innerHTML = `<div class="sb-empty">
+                <div class="sb-empty-icon">✨</div>
+                <div class="empty-title">${hasSaved ? 'Уже выбрано' : 'AI подскажет варианты'}</div>
+                <div class="empty-sub">${hasSaved ? 'Этот шаг уже заполнен. Можно оставить как есть или запросить новые варианты.' : 'Нажмите ниже — GPT сгенерирует варианты на основе описания и уже собранного брифа'}</div>
+                <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="sbRender(true)">${hasSaved ? 'Предложить новые варианты' : 'Предложить варианты'}</button>
+            </div>`;
+            return;
+        }
+        body.innerHTML = `<div class="sb-loading"><div class="spin"></div>AI подбирает варианты на основе описания и брифа...</div>`;
         try {
             const data = await api('profiles/brief', 'POST', {
                 step: step.key,
@@ -1591,79 +2112,412 @@ async function sbRender() {
             });
             sbCur[step.key] = data.data || {};
         } catch(e) {
-            body.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Ошибка AI</div><div class="empty-sub">${escHtml(e.message)}</div><button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="sbRender()">Повторить</button></div>`;
+            body.innerHTML = `<div class="sb-empty"><div class="sb-empty-icon">⚠️</div><div class="empty-title">Ошибка AI</div><div class="empty-sub">${escHtml(e.message)}</div><button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="sbRender(true)">Повторить</button></div>`;
             return;
         }
     }
     body.innerHTML = sbStepHtml(step, sbCur[step.key]);
+    sbAttachHandlers();
+    el('sbBtnRegen').style.display = '';
+}
+
+function sbHydrateFromSaved(key) {
+    const s = key === 'usp' ? sbState.usps : sbState[key];
+    if (s == null) return null;
+    if (key === 'audience' || key === 'voice') return { options: [s] };
+    if (key === 'competitors' || key === 'phrases') return { options: Array.isArray(s) ? s : [] };
+    if (key === 'usp') return { options: Array.isArray(s) ? s : [] };
+    return s; // classify / rules / compliance — shape matches AI response
+}
+
+function sbGoto(idx) {
+    sbCommit();
+    sbIdx = idx;
+    sbRender();
+}
+
+function sbRegen() {
+    const steps = sbVisible();
+    const key = steps[sbIdx].key;
+    delete sbCur[key];
+    sbRender(true);
+}
+
+function sbAttachHandlers() {
+    // Card click toggles hidden input + .selected class
+    document.querySelectorAll('.sb-card').forEach(card => {
+        card.onclick = (e) => {
+            if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') return;
+            const input = card.querySelector('input');
+            if (!input) return;
+            if (input.type === 'radio') {
+                document.querySelectorAll('input[name="' + input.name + '"]').forEach(r => {
+                    r.checked = false;
+                    r.closest('.sb-card').classList.remove('selected');
+                });
+                input.checked = true;
+                card.classList.add('selected');
+            } else {
+                input.checked = !input.checked;
+                card.classList.toggle('selected', input.checked);
+            }
+        };
+    });
+    document.querySelectorAll('.sb-rule').forEach(row => {
+        row.onclick = () => {
+            const input = row.querySelector('input');
+            input.checked = !input.checked;
+            row.classList.toggle('on', input.checked);
+        };
+    });
+    document.querySelectorAll('.sb-switch').forEach(sw => {
+        sw.onclick = () => {
+            const input = sw.querySelector('input');
+            input.checked = !input.checked;
+            sw.classList.toggle('on', input.checked);
+        };
+    });
+}
+
+function sbEntitiesToText(e) {
+    if (!e || typeof e !== 'object') return '';
+    const lines = [];
+    for (const k of Object.keys(e)) {
+        const v = e[k];
+        if (Array.isArray(v)) v.forEach(x => lines.push(String(x)));
+        else if (v) lines.push(String(v));
+    }
+    return lines.join('\n');
+}
+
+function sbOptKey(o) {
+    if (!o || typeof o !== 'object') return '';
+    return o.label || o.headline || o.name || o.archetype || o.text || o.rule || JSON.stringify(o);
 }
 
 function sbStepHtml(step, data) {
+    const saved = step.key === 'usp' ? (sbState.usps || null) : (sbState[step.key] || null);
     if (step.key === 'classify') {
-        return `<div style="display:grid;gap:12px">
-            <div><div class="profile-stat" style="margin-bottom:4px">Ниша</div><input type="text" id="sb_niche" value="${escHtml(data.niche || '')}" class="input" style="width:100%"></div>
-            <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="sb_reg" ${data.regulated ? 'checked' : ''}> Регулируемая ниша (финансы / медицина / юр / крипто)</label>
-            <div><div class="profile-stat" style="margin-bottom:4px">Тип регулирования</div><input type="text" id="sb_regdom" value="${escHtml(data.regulatory_domain || 'none')}" class="input" style="width:100%"></div>
+        const c = saved || data;
+        const entities = c.detected_entities || data.detected_entities || {};
+        const questions = (c.clarifying_questions && c.clarifying_questions.length ? c.clarifying_questions : (data.clarifying_questions || []));
+        return `<div class="sb-classify-grid">
+            <div class="field" style="margin:0">
+                <label>Ниша проекта</label>
+                <input type="text" id="sb_niche" value="${escHtml(c.niche || '')}">
+            </div>
+            <div class="sb-switch ${c.regulated ? 'on' : ''}">
+                <input type="checkbox" id="sb_reg" ${c.regulated ? 'checked' : ''}>
+                <div class="sb-switch-toggle"></div>
+                <div class="sb-switch-text">
+                    Регулируемая ниша
+                    <div class="sb-switch-sub">финансы / медицина / юриспруденция / крипто — применяются дополнительные ограничения</div>
+                </div>
+            </div>
+            <div class="field" style="margin:0">
+                <label>Тип регулирования</label>
+                <input type="text" id="sb_regdom" value="${escHtml(c.regulatory_domain || 'none')}" placeholder="finance | medical | legal | crypto | none">
+            </div>
+            <div class="field adv-only" style="margin:0">
+                <label>Язык контента</label>
+                <input type="text" id="sb_lang" value="${escHtml(c.language || 'ru')}" placeholder="ru | en | uk">
+            </div>
+            <div class="field adv-only" style="margin:0">
+                <label>Ключевые сущности (бренды, продукты, регионы — по одному на строку)</label>
+                <textarea id="sb_entities" rows="3" placeholder="Бренд X&#10;Продукт Y&#10;Регион Z">${escHtml(sbEntitiesToText(entities))}</textarea>
+            </div>
+            <div class="field adv-only" style="margin:0">
+                <label>Уточняющие вопросы (по одному на строку)</label>
+                <textarea id="sb_questions" rows="3" placeholder="Какой формат публикаций основной?...">${escHtml((questions || []).join('\n'))}</textarea>
+            </div>
+            ${questions && questions.length ? `
+                <div class="sb-group adv-hide">
+                    <div class="sb-group-title" style="color:var(--accent)">💡 Уточни для лучшего брифа</div>
+                    ${questions.map(q => `<div style="font-size:12.5px;color:var(--text-2);padding:4px 0">• ${escHtml(q)}</div>`).join('')}
+                </div>` : ''}
         </div>`;
     }
     if (step.key === 'rules') {
-        const doL = data.do || [], dontL = data.dont || [];
-        const rules = (list, cls) => list.map((r, i) => `
-            <label style="display:flex;gap:8px;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;background:var(--surface)">
-                <input type="checkbox" class="${cls}" data-idx="${i}" checked>
-                <span style="font-size:12.5px"><b>${escHtml(r.rule || '')}</b>${r.check ? '<div style="color:var(--text-3);font-size:11.5px;margin-top:2px">' + escHtml(r.check) + '</div>' : ''}</span>
-            </label>`).join('');
-        return `<div><b style="color:var(--success)">Делать:</b>${rules(doL, 'sb_do')}</div><div style="margin-top:12px"><b style="color:var(--danger)">НЕ делать:</b>${rules(dontL, 'sb_dont')}</div>`;
+        data.do = data.do || []; data.dont = data.dont || [];
+        const doKeep = saved && saved.do ? new Set(saved.do.map(r => r.rule || '')) : null;
+        const dontKeep = saved && saved.dont ? new Set(saved.dont.map(r => r.rule || '')) : null;
+        const renderRules = (list, cls, keep) => list.map((r, i) => {
+            const on = keep ? keep.has(r.rule || '') : true;
+            return `
+            <div class="sb-rule ${on ? 'on' : ''}">
+                <input type="checkbox" class="${cls}" data-idx="${i}" ${on ? 'checked' : ''}>
+                <div class="sb-rule-tick">✓</div>
+                <div class="sb-rule-body">
+                    ${escHtml(r.rule || '')}
+                    ${r.check ? `<div class="sb-rule-check">${escHtml(r.check)}</div>` : ''}
+                </div>
+            </div>`;
+        }).join('');
+        return `
+            <div class="sb-group do">
+                <div class="sb-group-title">✓ Делать</div>
+                ${renderRules(data.do, 'sb_do', doKeep)}
+                <div class="sb-add-row">
+                    <input type="text" id="sb_add_do_rule" placeholder="Своё правило DO">
+                    <input type="text" id="sb_add_do_check" placeholder="Как проверить (опц.)">
+                    <button class="btn btn-secondary btn-sm" onclick="sbAddRule('do')">+ Добавить</button>
+                </div>
+            </div>
+            <div class="sb-group dont">
+                <div class="sb-group-title">✕ Не делать</div>
+                ${renderRules(data.dont, 'sb_dont', dontKeep)}
+                <div class="sb-add-row">
+                    <input type="text" id="sb_add_dont_rule" placeholder="Своё правило DON'T">
+                    <input type="text" id="sb_add_dont_check" placeholder="Как проверить (опц.)">
+                    <button class="btn btn-secondary btn-sm" onclick="sbAddRule('dont')">+ Добавить</button>
+                </div>
+            </div>`;
     }
     if (step.key === 'compliance') {
-        return `<div style="font-size:12px;color:var(--text-2);margin-bottom:8px">AI подобрал compliance-ограничения. Проверьте и редактируйте JSON при необходимости (расширенный режим).</div>
-            <pre id="sb_compliance_raw" style="background:var(--bg);padding:12px;border-radius:var(--radius-sm);font-size:11.5px;max-height:300px;overflow:auto;white-space:pre-wrap">${escHtml(JSON.stringify(data, null, 2))}</pre>`;
+        const payload = saved || data || {};
+        const fc = Array.isArray(payload.forbidden_claims) ? payload.forbidden_claims : [];
+        const rd = Array.isArray(payload.required_disclaimers) ? payload.required_disclaimers : [];
+        const rw = Array.isArray(payload.risk_warnings) ? payload.risk_warnings : [];
+        const fcRows = fc.map((c, i) => `
+            <div class="sb-cmp-item" data-i="${i}">
+                <input type="text" class="cmp-fc-phrase" value="${escHtml(c.phrase || '')}" placeholder="Запрещённая формулировка">
+                <div class="sb-cmp-item-row">
+                    <input type="text" class="cmp-fc-reason" value="${escHtml(c.reason || '')}" placeholder="Почему нельзя">
+                    <button class="sb-cmp-del" onclick="sbCmpDel(this)" title="Удалить">✕</button>
+                </div>
+            </div>`).join('');
+        const rdRows = rd.map((t, i) => `
+            <div class="sb-cmp-item" data-i="${i}">
+                <div class="sb-cmp-item-row">
+                    <input type="text" class="cmp-rd" value="${escHtml(t)}" placeholder="Обязательная оговорка">
+                    <button class="sb-cmp-del" onclick="sbCmpDel(this)" title="Удалить">✕</button>
+                </div>
+            </div>`).join('');
+        const rwRows = rw.map((t, i) => `
+            <div class="sb-cmp-item" data-i="${i}">
+                <div class="sb-cmp-item-row">
+                    <input type="text" class="cmp-rw" value="${escHtml(t)}" placeholder="Предупреждение о риске">
+                    <button class="sb-cmp-del" onclick="sbCmpDel(this)" title="Удалить">✕</button>
+                </div>
+            </div>`).join('');
+        return `
+            <div style="font-size:12.5px;color:var(--text-2);margin-bottom:12px;line-height:1.5">
+                ⚖️ Compliance-ограничения для регулируемой ниши. Редактируйте, удаляйте и добавляйте свои.
+            </div>
+            <div class="sb-cmp">
+                <div class="sb-cmp-group" id="cmp-fc-group">
+                    <div class="sb-cmp-group-title">🚫 Запрещённые формулировки</div>
+                    <div id="cmp-fc-list">${fcRows}</div>
+                    <button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="sbCmpAdd('fc')">+ Добавить</button>
+                </div>
+                <div class="sb-cmp-group" id="cmp-rd-group">
+                    <div class="sb-cmp-group-title">📋 Обязательные оговорки</div>
+                    <div id="cmp-rd-list">${rdRows}</div>
+                    <button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="sbCmpAdd('rd')">+ Добавить</button>
+                </div>
+                <div class="sb-cmp-group" id="cmp-rw-group">
+                    <div class="sb-cmp-group-title">⚠️ Предупреждения о рисках</div>
+                    <div id="cmp-rw-list">${rwRows}</div>
+                    <button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="sbCmpAdd('rw')">+ Добавить</button>
+                </div>
+            </div>`;
     }
     if (step.key === 'voice') {
-        return (data.options || []).map((o, i) => `
-            <label class="profile-card" style="display:block;padding:14px;cursor:pointer;margin-bottom:8px">
-                <div style="display:flex;gap:10px;align-items:flex-start">
-                    <input type="radio" name="sb_voice" value="${i}" ${i === 0 ? 'checked' : ''} style="margin-top:4px">
-                    <div style="flex:1">
-                        <div><b>${escHtml(o.label || o.archetype)}</b> <span style="color:var(--text-3);font-size:11px">[${escHtml(o.archetype)}]</span></div>
-                        <div style="margin-top:6px;font-size:12.5px;color:var(--text-2)">«${escHtml(o.sample_explanation || '')}»</div>
-                        <div style="margin-top:4px;font-size:12px;color:var(--accent)">CTA: «${escHtml(o.sample_cta || '')}»</div>
+        const opts = data.options || (data.options = []);
+        // Ensure saved voice present as option
+        if (saved && opts.findIndex(o => sbOptKey(o) === sbOptKey(saved)) < 0) opts.unshift(saved);
+        const savedKey = saved ? sbOptKey(saved) : null;
+        let selIdx = savedKey ? opts.findIndex(o => sbOptKey(o) === savedKey) : 0;
+        if (selIdx < 0) selIdx = 0;
+        return `<div class="sb-options">` + opts.map((o, i) => `
+            <div class="sb-card ${i === selIdx ? 'selected' : ''}" data-vi="${i}">
+                <input type="radio" name="sb_voice" value="${i}" ${i === selIdx ? 'checked' : ''}>
+                <div class="sb-card-tick">✓</div>
+                <div class="sb-card-body">
+                    <div class="sb-card-title">
+                        <span class="sb-card-tag">${escHtml(o.archetype || '')}</span>
+                        ${escHtml(o.label || o.archetype || '')}
+                    </div>
+                    ${o.sample_explanation ? `<div class="sb-card-quote adv-hide">${escHtml(o.sample_explanation)}</div>` : ''}
+                    ${o.sample_cta ? `<div class="sb-card-cta adv-hide">↳ CTA: «${escHtml(o.sample_cta)}»</div>` : ''}
+                    ${o.vocabulary_hints && o.vocabulary_hints.length ? `<div class="sb-card-vocab adv-hide">· ${escHtml(o.vocabulary_hints.join(' · '))}</div>` : ''}
+                    <div class="sb-voice-edit adv-only">
+                        <label class="sb-voice-lbl">Архетип</label>
+                        <input type="text" class="sb_voice_archetype" value="${escHtml(o.archetype || '')}">
+                        <label class="sb-voice-lbl">Название</label>
+                        <input type="text" class="sb_voice_label" value="${escHtml(o.label || '')}">
+                        <label class="sb-voice-lbl">Пример фразы</label>
+                        <textarea class="sb_voice_sample" rows="2">${escHtml(o.sample_explanation || '')}</textarea>
+                        <label class="sb-voice-lbl">CTA</label>
+                        <input type="text" class="sb_voice_cta" value="${escHtml(o.sample_cta || '')}">
+                        <label class="sb-voice-lbl">Словарь (через запятую)</label>
+                        <input type="text" class="sb_voice_vocab" value="${escHtml((o.vocabulary_hints || []).join(', '))}">
                     </div>
                 </div>
-            </label>`).join('');
+            </div>`).join('') + `</div>
+            <div class="sb-add-row single">
+                <input type="text" id="sb_add_voice_archetype" placeholder="Свой архетип (например: Ментор)">
+                <button class="btn btn-secondary btn-sm" onclick="sbAddVoice()">+ Добавить архетип</button>
+            </div>`;
     }
     if (step.key === 'phrases') {
-        return (data.options || []).map((o, i) => `
-            <label class="profile-card" style="display:block;padding:14px;cursor:pointer;margin-bottom:8px">
-                <div style="display:flex;gap:10px;align-items:flex-start">
-                    <input type="checkbox" class="sb_phrase" value="${i}" checked style="margin-top:4px">
-                    <div style="flex:1;font-size:12.5px">
-                        <div style="color:var(--text-3);font-size:11px">${escHtml(o.context || '')}</div>
-                        <div style="margin-top:4px">${escHtml(o.text || '')}</div>
+        const opts = data.options || (data.options = []);
+        const savedKeys = Array.isArray(saved) ? new Set(saved.map(sbOptKey)) : null;
+        const cards = opts.map((o, i) => {
+            const on = savedKeys ? savedKeys.has(sbOptKey(o)) : true;
+            return `
+            <div class="sb-card ${on ? 'selected' : ''}">
+                <input type="checkbox" class="sb_phrase" value="${i}" ${on ? 'checked' : ''}>
+                <div class="sb-card-tick">✓</div>
+                <div class="sb-card-body">
+                    <div class="sb-card-phrase">
+                        <div class="sb-card-phrase-ctx">${escHtml(o.context || 'пробный фрагмент')}</div>
+                        ${escHtml(o.text || '')}
                     </div>
                 </div>
-            </label>`).join('');
+            </div>`;
+        }).join('');
+        return `<div class="sb-options">${cards}</div>
+            <div class="sb-add-row">
+                <input type="text" id="sb_add_phrase_ctx" placeholder="Контекст (hero / FAQ / CTA...)">
+                <textarea id="sb_add_phrase_text" placeholder="Ваш текст в голосе бренда..." rows="2"></textarea>
+                <button class="btn btn-secondary btn-sm" onclick="sbAddOption('phrases')">+ Добавить</button>
+            </div>`;
     }
-    return (data.options || []).map((o, i) => {
+    // audience / usp / competitors — multi-pick cards
+    const opts = data.options || (data.options = []);
+    let savedKeys = null;
+    if (saved) {
+        const arr = Array.isArray(saved) ? saved : [saved];
+        savedKeys = new Set(arr.map(sbOptKey));
+    }
+    return `<div class="sb-options">` + opts.map((o, i) => {
         const primary = o.label || o.headline || o.name || ('Вариант ' + (i + 1));
-        const lines = [];
-        if (o.demographics)   lines.push(`<div>👥 ${escHtml(o.demographics)}</div>`);
-        if (o.pains)          lines.push(`<div>🔥 ${escHtml((o.pains || []).join('; '))}</div>`);
-        if (o.goals)          lines.push(`<div>🎯 ${escHtml((o.goals || []).join('; '))}</div>`);
-        if (o.proof)          lines.push(`<div>📊 ${escHtml(o.proof)}</div>`);
-        if (o.differentiator) lines.push(`<div>✨ ${escHtml(o.differentiator)}</div>`);
-        if (o.weaknesses)     lines.push(`<div>⚠️ ${escHtml((o.weaknesses || []).join(', '))}</div>`);
-        if (o.angle)          lines.push(`<div>🎯 ${escHtml(o.angle)}</div>`);
-        return `<label class="profile-card" style="display:block;padding:14px;cursor:pointer;margin-bottom:8px">
-                <div style="display:flex;gap:10px;align-items:flex-start">
-                    <input type="checkbox" class="sb_pick" value="${i}" ${i < 2 ? 'checked' : ''} style="margin-top:4px">
-                    <div style="flex:1;font-size:12.5px">
-                        <div><b>${escHtml(primary)}</b></div>
-                        <div style="margin-top:6px;display:grid;gap:4px;color:var(--text-2)">${lines.join('')}</div>
-                    </div>
+        const tag = o.type ? `<span class="sb-card-tag">${escHtml(o.type)}</span>` : '';
+        const facts = [];
+        if (o.demographics)   facts.push(['👥', 'Демография', o.demographics]);
+        if (o.pains)          facts.push(['🔥', 'Боли', (o.pains || []).join(' · ')]);
+        if (o.goals)          facts.push(['🎯', 'Цели', (o.goals || []).join(' · ')]);
+        if (o.triggers)       facts.push(['⚡', 'Триггер', o.triggers]);
+        if (o.proof)          facts.push(['📊', 'Подтверждение', o.proof]);
+        if (o.differentiator) facts.push(['✨', 'Отличие', o.differentiator]);
+        if (o.weaknesses)     facts.push(['⚠️', 'Слабости', (o.weaknesses || []).join(', ')]);
+        if (o.angle)          facts.push(['🎯', 'Угол атаки', o.angle]);
+        const on = savedKeys ? savedKeys.has(sbOptKey(o)) : (i < 2);
+        return `
+            <div class="sb-card ${on ? 'selected' : ''}">
+                <input type="checkbox" class="sb_pick" value="${i}" ${on ? 'checked' : ''}>
+                <div class="sb-card-tick">✓</div>
+                <div class="sb-card-body">
+                    <div class="sb-card-title">${tag}${escHtml(primary)}</div>
+                    ${facts.length ? `<div class="sb-card-facts">${facts.map(f => `
+                        <div class="sb-fact">
+                            <div class="sb-fact-icon">${f[0]}</div>
+                            <div><b style="color:var(--text-2);font-weight:600">${escHtml(f[1])}:</b> ${escHtml(f[2])}</div>
+                        </div>`).join('')}</div>` : ''}
                 </div>
-            </label>`;
-    }).join('');
+            </div>`;
+    }).join('') + `</div>
+        <div class="sb-add-row single">
+            <input type="text" id="sb_add_label" placeholder="${escHtml(step.key === 'competitors' ? 'Название конкурента' : step.key === 'usp' ? 'Своё УТП — заголовок' : 'Своя ICP — название')}">
+            <button class="btn btn-secondary btn-sm" onclick="sbAddOption('${step.key}')">+ Добавить</button>
+        </div>`;
+}
+
+function sbAddOption(stepKey) {
+    const data = sbCur[stepKey];
+    if (!data) return;
+    data.options = data.options || [];
+    let item = null;
+    if (stepKey === 'phrases') {
+        const ctx = el('sb_add_phrase_ctx').value.trim() || 'custom';
+        const text = el('sb_add_phrase_text').value.trim();
+        if (!text) { toast('Введите текст', 'err'); return; }
+        item = { context: ctx, text };
+    } else {
+        const label = el('sb_add_label').value.trim();
+        if (!label) { toast('Введите вариант', 'err'); return; }
+        if (stepKey === 'usp') item = { headline: label, label };
+        else if (stepKey === 'competitors') item = { name: label, label };
+        else item = { label, name: label };
+    }
+    // Persist selection — add to saved set so rerender keeps it checked
+    sbCommitLive(stepKey);
+    data.options.push(item);
+    const key = stepKey === 'usp' ? 'usps' : stepKey;
+    if (stepKey === 'audience') sbState.audience = item;
+    else if (stepKey === 'usp') { sbState.usps = [...(sbState.usps || []), item]; }
+    else { sbState[key] = [...(sbState[key] || []), item]; }
+    sbRenderBody();
+}
+
+function sbAddVoice() {
+    const inp = el('sb_add_voice_archetype');
+    const v = inp ? inp.value.trim() : '';
+    if (!v) { toast('Введите архетип', 'err'); return; }
+    const data = sbCur.voice;
+    if (!data) return;
+    data.options = data.options || [];
+    sbCommitLive('voice');
+    const item = { archetype: v, label: v, sample_explanation: '', sample_cta: '', vocabulary_hints: [] };
+    data.options.push(item);
+    sbState.voice = item;
+    sbRenderBody();
+}
+
+function sbAddRule(group) {
+    const rule = el('sb_add_' + group + '_rule').value.trim();
+    if (!rule) { toast('Введите правило', 'err'); return; }
+    const check = el('sb_add_' + group + '_check').value.trim();
+    const data = sbCur.rules;
+    if (!data) return;
+    data[group] = data[group] || [];
+    // Commit existing checkboxes before adding, so new index doesn't break saved set
+    sbCommitLive('rules');
+    const item = check ? { rule, check } : { rule };
+    data[group].push(item);
+    sbState.rules = sbState.rules || { do: [], dont: [] };
+    sbState.rules[group] = [...(sbState.rules[group] || []), item];
+    sbRenderBody();
+}
+
+function sbCmpAdd(kind) {
+    const list = el('cmp-' + kind + '-list');
+    let html = '';
+    if (kind === 'fc') html = `
+        <div class="sb-cmp-item">
+            <input type="text" class="cmp-fc-phrase" placeholder="Запрещённая формулировка">
+            <div class="sb-cmp-item-row">
+                <input type="text" class="cmp-fc-reason" placeholder="Почему нельзя">
+                <button class="sb-cmp-del" onclick="sbCmpDel(this)" title="Удалить">✕</button>
+            </div>
+        </div>`;
+    else html = `
+        <div class="sb-cmp-item">
+            <div class="sb-cmp-item-row">
+                <input type="text" class="cmp-${kind}" placeholder="${kind === 'rd' ? 'Обязательная оговорка' : 'Предупреждение о риске'}">
+                <button class="sb-cmp-del" onclick="sbCmpDel(this)" title="Удалить">✕</button>
+            </div>
+        </div>`;
+    list.insertAdjacentHTML('beforeend', html);
+}
+function sbCmpDel(btn) { btn.closest('.sb-cmp-item').remove(); }
+
+// Rerender current step body only — preserves current sbCur data (incl. manual additions)
+function sbRenderBody() {
+    const steps = sbVisible();
+    const step = steps[sbIdx];
+    el('sbStep').innerHTML = sbStepHtml(step, sbCur[step.key]);
+    sbAttachHandlers();
+}
+
+// Commit current DOM selections into sbState without navigating away
+function sbCommitLive(stepKey) {
+    if (!sbCur[stepKey]) return;
+    const val = sbCollect(stepKey);
+    if (val === null || val === undefined) return;
+    if (stepKey === 'usp') sbState.usps = val.usps;
+    else sbState[stepKey] = val;
 }
 
 function escHtml(s) {
@@ -1677,13 +2531,22 @@ function sbCollect(stepKey) {
     const data = sbCur[stepKey];
     if (!data) return null;
     if (stepKey === 'classify') {
+        const langEl = el('sb_lang');
+        const entitiesEl = el('sb_entities');
+        const questionsEl = el('sb_questions');
+        const entities = entitiesEl
+            ? { items: entitiesEl.value.split('\n').map(s => s.trim()).filter(Boolean) }
+            : (data.detected_entities || {});
+        const questions = questionsEl
+            ? questionsEl.value.split('\n').map(s => s.trim()).filter(Boolean)
+            : (data.clarifying_questions || []);
         return {
             niche: el('sb_niche').value,
             regulated: el('sb_reg').checked,
             regulatory_domain: el('sb_regdom').value,
-            language: data.language || 'ru',
-            detected_entities: data.detected_entities || {},
-            clarifying_questions: data.clarifying_questions || [],
+            language: langEl ? (langEl.value || 'ru') : (data.language || 'ru'),
+            detected_entities: entities,
+            clarifying_questions: questions,
         };
     }
     if (stepKey === 'rules') {
@@ -1692,11 +2555,30 @@ function sbCollect(stepKey) {
         return { do: doList, dont: dontList };
     }
     if (stepKey === 'compliance') {
-        try { return JSON.parse(el('sb_compliance_raw').textContent); } catch(e) { return data; }
+        const fcList = [...document.querySelectorAll('#cmp-fc-list .sb-cmp-item')].map(row => ({
+            phrase: row.querySelector('.cmp-fc-phrase').value.trim(),
+            reason: row.querySelector('.cmp-fc-reason').value.trim(),
+        })).filter(x => x.phrase);
+        const rdList = [...document.querySelectorAll('#cmp-rd-list .cmp-rd')].map(i => i.value.trim()).filter(Boolean);
+        const rwList = [...document.querySelectorAll('#cmp-rw-list .cmp-rw')].map(i => i.value.trim()).filter(Boolean);
+        return { forbidden_claims: fcList, required_disclaimers: rdList, risk_warnings: rwList };
     }
     if (stepKey === 'voice') {
         const pick = document.querySelector('input[name="sb_voice"]:checked');
-        return pick ? (data.options[+pick.value] || null) : (data.options && data.options[0]) || null;
+        const idx = pick ? +pick.value : 0;
+        const base = data.options[idx] || null;
+        if (!base) return null;
+        const card = document.querySelector('.sb-card[data-vi="' + idx + '"]');
+        if (!card) return base;
+        const getv = sel => { const n = card.querySelector(sel); return n ? n.value.trim() : ''; };
+        return {
+            ...base,
+            archetype: getv('.sb_voice_archetype') || base.archetype || '',
+            label: getv('.sb_voice_label') || base.label || '',
+            sample_explanation: getv('.sb_voice_sample') || base.sample_explanation || '',
+            sample_cta: getv('.sb_voice_cta') || base.sample_cta || '',
+            vocabulary_hints: getv('.sb_voice_vocab').split(',').map(s => s.trim()).filter(Boolean),
+        };
     }
     if (stepKey === 'phrases') {
         return [...document.querySelectorAll('.sb_phrase')].filter(c => c.checked).map(c => data.options[+c.value]);

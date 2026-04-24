@@ -612,6 +612,7 @@ requireAuth();
         <div class="wizard-body">
             <!-- Input form -->
             <div id="genForm">
+                <div id="genBriefBox" style="margin-bottom:14px;padding:12px 14px;background:linear-gradient(135deg,#1e1b4b 0%,#0f172a 100%);border:1px solid #312e81;border-radius:8px;font-size:.8rem;color:#cbd5e1;line-height:1.55;display:none"></div>
                 <div class="form-row">
                     <label>Назначение шаблона — тип статьи</label>
                     <div style="display:flex;gap:8px;margin-bottom:8px">
@@ -1366,11 +1367,42 @@ function clearWizIcon() {
 
 // ═══════════════════ AI TEMPLATE GENERATION (SSE) ═══════════════════
 
+function renderGenBriefBox() {
+    const box = $('genBriefBox');
+    if (!box) return;
+    const brief = currentProfile && currentProfile.content_brief;
+    if (!brief || Object.keys(brief).length === 0) {
+        box.style.display = '';
+        box.innerHTML = '<div style="color:#fcd34d">⚠️ Бриф не заполнен — AI будет работать только по описанию и нише профиля. Заполните вкладку «Бриф» для лучших результатов.</div>';
+        return;
+    }
+    const rows = [];
+    if (brief.classify && brief.classify.niche) rows.push('<div><b style="color:#e2e8f0">Ниша:</b> ' + esc(brief.classify.niche) + (brief.classify.regulated ? ' <span style="color:#fcd34d">· регулируемая</span>' : '') + '</div>');
+    if (brief.audience && brief.audience.label) rows.push('<div><b style="color:#e2e8f0">ICP:</b> ' + esc(brief.audience.label) + '</div>');
+    if (Array.isArray(brief.usps) && brief.usps.length) {
+        const h = brief.usps.map(function(u){return esc(u.headline || u.label || '');}).filter(Boolean).slice(0,3).join(' · ');
+        if (h) rows.push('<div><b style="color:#e2e8f0">УТП:</b> ' + h + '</div>');
+    }
+    if (brief.voice && (brief.voice.label || brief.voice.archetype)) rows.push('<div><b style="color:#e2e8f0">Голос:</b> ' + esc(brief.voice.label || brief.voice.archetype) + '</div>');
+    if (Array.isArray(brief.competitors) && brief.competitors.length) {
+        const n = brief.competitors.map(function(c){return esc(c.name || c.label || '');}).filter(Boolean).slice(0,3).join(', ');
+        if (n) rows.push('<div><b style="color:#e2e8f0">Конкуренты:</b> ' + n + '</div>');
+    }
+    if (brief.compliance) {
+        const fc = (brief.compliance.forbidden_claims || []).length;
+        const rd = (brief.compliance.required_disclaimers || []).length;
+        if (fc || rd) rows.push('<div><b style="color:#e2e8f0">Compliance:</b> ' + fc + ' запретов, ' + rd + ' оговорок</div>');
+    }
+    box.style.display = '';
+    box.innerHTML = '<div style="font-size:.72rem;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">📋 Бриф, который использует AI</div>' + rows.join('');
+}
+
 function openGenModal() {
     $('genPurpose').value = '';
     $('genHints').value = '';
     $('genForm').style.display = '';
     $('genProgress').style.display = 'none';
+    renderGenBriefBox();
     $('genPreview').style.display = 'none';
     $('genPreview').innerHTML = '';
     $('genReview').style.display = 'none';

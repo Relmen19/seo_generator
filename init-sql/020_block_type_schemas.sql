@@ -284,33 +284,27 @@ UPDATE `seo_block_types` SET
   gpt_hint = '{variant:"red_flags"|"caution"|"good_signs", title, subtitle, items:[{text, severity:"urgent"|"emergency"|"warning"}], footer}!'
 WHERE code = 'warning_block';
 
--- comparison_cards: two card objects
+-- comparison_cards: one or many card pairs (accordion when multiple)
 UPDATE `seo_block_types` SET
   json_schema = JSON_OBJECT(
     'fields', JSON_OBJECT(
       'title', JSON_OBJECT('type', 'string', 'required', true),
-      'card_a', JSON_OBJECT(
-        'type', 'object',
-        'required', true,
-        'fields', JSON_OBJECT(
-          'name', 'string', 'badge', 'string', 'color', 'string (hex)',
-          'pros', 'array of strings', 'cons', 'array of strings',
-          'price', 'string', 'verdict', 'string'
+      'comparisons', JSON_OBJECT(
+        'type', 'array',
+        'note', 'Предпочтительный формат. Если > 1 — рендерится как аккордеон с label/description.',
+        'items', JSON_OBJECT(
+          'label', 'string (заголовок аккордеона)',
+          'description', 'string (краткое описание кейса)',
+          'card_a', 'object {name, badge, color, pros[], cons[], price, verdict}',
+          'card_b', 'object {name, badge, color, pros[], cons[], price, verdict}'
         )
       ),
-      'card_b', JSON_OBJECT(
-        'type', 'object',
-        'required', true,
-        'fields', JSON_OBJECT(
-          'name', 'string', 'badge', 'string', 'color', 'string (hex)',
-          'pros', 'array of strings', 'cons', 'array of strings',
-          'price', 'string', 'verdict', 'string'
-        )
-      )
+      'card_a', JSON_OBJECT('type', 'object', 'note', 'Legacy: используется только если comparisons отсутствует'),
+      'card_b', JSON_OBJECT('type', 'object', 'note', 'Legacy: используется только если comparisons отсутствует')
     ),
-    'example', CAST('{"title":"Сравнение вариантов","card_a":{"name":"Вариант A","badge":"Популярный","color":"#3B82F6","pros":["Плюс 1","Плюс 2"],"cons":["Минус 1"],"price":"от 5000 ₽","verdict":"Лучший выбор"},"card_b":{"name":"Вариант B","badge":"Бюджетный","color":"#10B981","pros":["Плюс 1"],"cons":["Минус 1","Минус 2"],"price":"от 3000 ₽","verdict":"Экономия"}}' AS JSON)
+    'example', CAST('{"title":"Сравнение портфелей","comparisons":[{"label":"Портфель Акций","description":"Для долгосрочных инвесторов","card_a":{"name":"Aurum Vector","badge":"Популярный","color":"#FFD700","pros":["Низкие комиссии"],"cons":["Рыночный риск"],"price":"0.5%","verdict":"Лучший для диверсификации"},"card_b":{"name":"Конкурент","badge":"Выбор","color":"#0000FF","pros":["Большой выбор"],"cons":["Дорого"],"price":"1%","verdict":"Удобно, но дорого"}}]}' AS JSON)
   ),
-  gpt_hint = '{title, card_a:{name, badge, color(hex), pros:[], cons:[], price, verdict}, card_b:{...}}. pros/cons — массивы строк!'
+  gpt_hint = '{title, comparisons:[{label, description, card_a:{name, badge, color(hex), pros:[], cons:[], price, verdict}, card_b:{...}}]}. Если одно сравнение — один элемент в массиве. pros/cons — массивы строк!'
 WHERE code = 'comparison_cards';
 
 -- progress_tracker: milestones array

@@ -100,11 +100,19 @@ class SiteProfileController extends AbstractController {
         $where = $activeOnly ? 'WHERE is_active = 1' : '';
 
         $rows = $this->db->fetchAll(
-            "SELECT * FROM " . SeoSiteProfile::TABLE . " {$where} ORDER BY id"
+            "SELECT p.*, "
+            . "(SELECT COUNT(*) FROM seo_templates t WHERE t.profile_id = p.id) AS templates_count, "
+            . "(SELECT COUNT(*) FROM seo_articles a WHERE a.profile_id = p.id) AS articles_count "
+            . "FROM " . SeoSiteProfile::TABLE . " p {$where} ORDER BY p.id"
         );
 
         $items = array_map(
-            static fn(array $row) => (new SeoSiteProfile($row))->toFullArray(),
+            static function(array $row) {
+                $arr = (new SeoSiteProfile($row))->toFullArray();
+                $arr['templates_count'] = (int)($row['templates_count'] ?? 0);
+                $arr['articles_count']  = (int)($row['articles_count'] ?? 0);
+                return $arr;
+            },
             $rows
         );
 

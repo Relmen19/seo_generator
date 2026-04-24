@@ -18,18 +18,88 @@ class ComparisonCardsBlockRenderer extends AbstractBlockRenderer
     {
         $title = $this->e($c['title'] ?? 'Сравнение');
 
-        /* Image support */
         [$imgTop, $imgH, $imgBot, $bgStyle] = $this->resolveBlockImages($c, 'right');
         $bgAttr = $bgStyle ? ' style="' . $bgStyle . '" ' : '';
+
+        $items = $this->normalizeComparisons($c);
 
         $h = '<section id="' . $id . '" class="block-ccards reveal' . ($bgStyle ? ' has-bg-img' : '') . '"' . $bgAttr . ' data-toc="' . $title . '">'
             . '<div class="container">'
             . $imgTop
             . $imgH
-            . '<h2 class="sec-title">' . $title . '</h2>'
-            . '<div class="cc-grid">';
+            . '<h2 class="sec-title">' . $title . '</h2>';
+
+        if (count($items) <= 1) {
+            $entry = $items[0] ?? ['card_a' => [], 'card_b' => []];
+            $h .= $this->renderGrid($entry);
+        } else {
+            $h .= '<div class="cc-accordion">';
+            foreach ($items as $i => $entry) {
+                $label = $this->e($entry['label'] ?? $this->autoLabel($entry, $i));
+                $desc  = $this->e($entry['description'] ?? $this->autoDescription($entry));
+                $open  = $i === 0 ? ' open' : '';
+                $h .= '<details class="cc-acc-item"' . $open . '>'
+                    . '<summary class="cc-acc-sum">'
+                    . '<div class="cc-acc-head">'
+                    . '<div class="cc-acc-title">' . $label . '</div>'
+                    . ($desc ? '<div class="cc-acc-desc">' . $desc . '</div>' : '')
+                    . '</div>'
+                    . '<div class="cc-acc-caret">▾</div>'
+                    . '</summary>'
+                    . '<div class="cc-acc-body">'
+                    . $this->renderGrid($entry)
+                    . '</div>'
+                    . '</details>';
+            }
+            $h .= '</div>';
+        }
+
+        $h .= '<div class="clearfix"></div>'
+            . $imgBot
+            . '</div></section>' . "\n";
+        return $h;
+    }
+
+    private function normalizeComparisons(array $c): array
+    {
+        if (isset($c['comparisons']) && is_array($c['comparisons']) && $c['comparisons']) {
+            $out = [];
+            foreach ($c['comparisons'] as $entry) {
+                if (is_array($entry) && (isset($entry['card_a']) || isset($entry['card_b']))) {
+                    $out[] = $entry;
+                }
+            }
+            if ($out) return $out;
+        }
+        if (isset($c['card_a']) || isset($c['card_b'])) {
+            return [['card_a' => $c['card_a'] ?? [], 'card_b' => $c['card_b'] ?? []]];
+        }
+        return [];
+    }
+
+    private function autoLabel(array $entry, int $i): string
+    {
+        $a = $entry['card_a']['name'] ?? '';
+        $b = $entry['card_b']['name'] ?? '';
+        if ($a && $b) return $a . ' vs ' . $b;
+        if ($a || $b) return $a ?: $b;
+        return 'Сравнение ' . ($i + 1);
+    }
+
+    private function autoDescription(array $entry): string
+    {
+        $va = $entry['card_a']['verdict'] ?? '';
+        $vb = $entry['card_b']['verdict'] ?? '';
+        if ($va && $vb) return mb_substr($va . ' / ' . $vb, 0, 160);
+        return $va ?: $vb ?: '';
+    }
+
+    private function renderGrid(array $entry): string
+    {
+        $h = '<div class="cc-grid">';
         foreach (['card_a', 'card_b'] as $side) {
-            $card = $c[$side] ?? [];
+            $card = $entry[$side] ?? [];
+            if (!is_array($card)) $card = [];
             $color = $this->e($card['color'] ?? 'var(--blue)');
             $name  = $this->e($card['name'] ?? '');
             $badge = $this->e($card['badge'] ?? '');
@@ -53,10 +123,7 @@ class ComparisonCardsBlockRenderer extends AbstractBlockRenderer
             if ($verdict) $h .= '<div class="cc-verdict">' . $verdict . '</div>';
             $h .= '</div>';
         }
-        $h .= '</div>'
-            . '<div class="clearfix"></div>'
-            . $imgBot
-            . '</div></section>' . "\n";
+        $h .= '</div>';
         return $h;
     }
 
@@ -76,6 +143,18 @@ class ComparisonCardsBlockRenderer extends AbstractBlockRenderer
             . "\n" . '.cc-no{color:var(--red)}'
             . "\n" . '.cc-price{font-family:var(--fh);font-size:1.1rem;font-weight:700;color:var(--dark);padding:12px 0;border-top:1px solid var(--border)}'
             . "\n" . '.cc-verdict{font-size:13px;color:var(--muted);font-style:italic;line-height:1.5}'
+            . "\n" . '.cc-accordion{display:flex;flex-direction:column;gap:12px}'
+            . "\n" . '.cc-acc-item{border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.5);overflow:hidden;transition:border-color .2s}'
+            . "\n" . '[data-theme="dark"] .cc-acc-item{background:rgba(255,255,255,.03)}'
+            . "\n" . '.cc-acc-item[open]{border-color:var(--blue)}'
+            . "\n" . '.cc-acc-sum{list-style:none;cursor:pointer;padding:16px 20px;display:flex;align-items:center;gap:16px;user-select:none}'
+            . "\n" . '.cc-acc-sum::-webkit-details-marker{display:none}'
+            . "\n" . '.cc-acc-head{flex:1;min-width:0}'
+            . "\n" . '.cc-acc-title{font-family:var(--fh);font-weight:800;font-size:1.05rem;color:var(--dark);margin-bottom:2px}'
+            . "\n" . '.cc-acc-desc{font-size:13px;color:var(--muted);line-height:1.4}'
+            . "\n" . '.cc-acc-caret{font-size:18px;color:var(--muted);transition:transform .2s;flex-shrink:0}'
+            . "\n" . '.cc-acc-item[open] .cc-acc-caret{transform:rotate(180deg)}'
+            . "\n" . '.cc-acc-body{padding:8px 20px 20px}'
             ;
     }
 
