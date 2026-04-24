@@ -51,6 +51,7 @@ class TemplateGeneratorService {
             'max_tokens' => $options['max_tokens'] ?? SEO_MAX_TOKENS_LARGE,
         ];
 
+        $this->gpt->setLogContext(['category' => TokenUsageLogger::CATEGORY_TEMPLATE_CREATE, 'operation' => 'generate_proposal', 'profile_id' => $profileId]);
         $result = $this->gpt->chatJson($messages, $gptOptions);
 
         $templates = $result['data']['templates'] ?? [];
@@ -204,6 +205,7 @@ class TemplateGeneratorService {
         try {
             $reviewPrompt = $this->buildReviewPrompt($template, $profile, $blockTypes);
 
+            $this->gpt->setLogContext(['category' => TokenUsageLogger::CATEGORY_TEMPLATE_REVIEW, 'operation' => 'review_new_single_sse', 'profile_id' => $profileId]);
             $reviewResult = $this->gpt->chatJson([
                 ['role' => 'system', 'content' => $reviewPrompt],
                 ['role' => 'user', 'content' => TemplatePrompt::USER_DO_REVIEW],
@@ -282,6 +284,7 @@ class TemplateGeneratorService {
         $model = $options['model'] ?? GPT_DEFAULT_MODEL;
         $reviewPrompt = $this->buildReviewPrompt($template, $profile, $blockTypes);
 
+        $this->gpt->setLogContext(['category' => TokenUsageLogger::CATEGORY_TEMPLATE_REVIEW, 'operation' => 'review_existing', 'profile_id' => (int)$profileId, 'entity_type' => 'template', 'entity_id' => $templateId]);
         $reviewResult = $this->gpt->chatJson([
             ['role' => 'system', 'content' => $reviewPrompt],
             ['role' => 'user', 'content' => TemplatePrompt::USER_DO_REVIEW],
@@ -396,6 +399,7 @@ class TemplateGeneratorService {
             $systemPrompt = $this->buildSingleTemplateSystemPrompt($profile, $blockTypes, $purpose);
             $userPrompt = $this->buildSingleTemplateUserPrompt($profile, $purpose, $options['hints'] ?? null);
 
+            $this->gpt->setLogContext(['category' => TokenUsageLogger::CATEGORY_TEMPLATE_CREATE, 'operation' => 'regenerate_single_sse', 'profile_id' => $profileId, 'entity_type' => 'template', 'entity_id' => $templateId]);
             $result = $this->gpt->chatJson([
                 ['role' => 'system', 'content' => $systemPrompt],
                 ['role' => 'user', 'content' => $userPrompt],
@@ -431,6 +435,7 @@ class TemplateGeneratorService {
 
         try {
             $reviewPrompt = $this->buildReviewPrompt($template, $profile, $blockTypes);
+            $this->gpt->setLogContext(['category' => TokenUsageLogger::CATEGORY_TEMPLATE_REVIEW, 'operation' => 'review_regen_sse', 'profile_id' => $profileId, 'entity_type' => 'template', 'entity_id' => $templateId]);
             $reviewResult = $this->gpt->chatJson([
                 ['role' => 'system', 'content' => $reviewPrompt],
                 ['role' => 'user', 'content' => TemplatePrompt::USER_DO_REVIEW],

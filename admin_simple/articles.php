@@ -120,6 +120,68 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 640px) { .form-row { grid-template-columns: 1fr; } }
 
+/* ─── Schema-driven block form ─── */
+.blk-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px 14px; align-items: start; margin-bottom: 14px; }
+.blk-fields > .field, .blk-nested-body > .field { margin-bottom: 0; }
+.blk-fields > .blk-wide,
+.blk-nested-body > .blk-wide,
+.blk-fields > .blk-nested,
+.blk-nested-body > .blk-nested { grid-column: 1 / -1; }
+
+.blk-nested { padding: 12px 14px 14px; background: linear-gradient(180deg,var(--bg) 0%,var(--surface) 100%); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: inset 0 0 0 1px rgba(255,255,255,.4); }
+.blk-nested .blk-nested { background: var(--surface); box-shadow: none; }
+.blk-nested-label { font-size: 11px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.blk-nested-body { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 12px; align-items: start; }
+
+.blk-arr-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; padding: 0 8px; background: var(--accent-light); color: var(--accent); border-radius: 100px; font-size: 10.5px; font-weight: 700; letter-spacing: 0; text-transform: none; }
+
+/* Tag/chip input list (arrayOfStrings) */
+.blk-chip-list { display: flex; flex-wrap: wrap; gap: 6px; min-height: 10px; }
+.blk-chip-input { display: inline-flex; align-items: stretch; background: var(--surface); border: 1px solid var(--border); border-radius: 100px; padding: 2px 2px 2px 10px; transition: border-color .15s; }
+.blk-chip-input:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,91,214,.12); }
+.blk-chip-input input { border: 0 !important; padding: 4px 6px !important; background: transparent !important; font-size: 12.5px !important; min-width: 80px; width: auto !important; }
+.blk-chip-input input:focus { outline: none; }
+.blk-chip-del { border: 0; background: transparent; color: var(--text-3); cursor: pointer; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin: 2px; transition: .15s; }
+.blk-chip-del:hover { background: #fef2f2; color: #dc2626; }
+
+/* Array-of-objects cards */
+.blk-arr-cards { display: flex; flex-direction: column; gap: 8px; }
+.blk-arr-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; transition: border-color .15s, box-shadow .15s; }
+.blk-arr-card[open] { border-color: var(--accent); box-shadow: 0 2px 8px rgba(91,91,214,.08); }
+.blk-arr-card-sum { list-style: none; cursor: pointer; padding: 10px 12px; display: flex; align-items: center; gap: 10px; user-select: none; }
+.blk-arr-card-sum::-webkit-details-marker { display: none; }
+.blk-arr-idx { font-size: 10.5px; font-weight: 700; color: var(--accent); background: var(--accent-light); padding: 2px 8px; border-radius: 100px; flex-shrink: 0; }
+.blk-arr-preview { flex: 1; min-width: 0; font-size: 12.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.blk-arr-caret { font-size: 11px; color: var(--text-3); transition: transform .2s; flex-shrink: 0; }
+.blk-arr-card[open] .blk-arr-caret { transform: rotate(180deg); }
+.blk-arr-card-body { padding: 4px 12px 14px; border-top: 1px solid var(--border-light); }
+
+.blk-del { background: transparent; border: 1px solid var(--border); color: var(--text-3); padding: 3px 9px; border-radius: 100px; font-size: 11px; cursor: pointer; transition: .15s; }
+.blk-del:hover { background: #fef2f2; border-color: #fca5a5; color: #dc2626; }
+.blk-add { margin-top: 10px; }
+
+/* Boolean as switch */
+.blk-switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 500; color: var(--text); }
+.blk-switch input { position: absolute; opacity: 0; pointer-events: none; }
+.blk-switch-track { width: 36px; height: 20px; border-radius: 100px; background: var(--border); position: relative; transition: background .2s; flex-shrink: 0; }
+.blk-switch-dot { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: left .2s; }
+.blk-switch input:checked ~ .blk-switch-track { background: var(--accent); }
+.blk-switch input:checked ~ .blk-switch-track .blk-switch-dot { left: 18px; }
+
+/* Enum chips */
+.blk-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.blk-chip { display: inline-flex; align-items: center; padding: 5px 12px; font-size: 12px; font-weight: 500; color: var(--text-2); background: var(--surface); border: 1px solid var(--border); border-radius: 100px; cursor: pointer; transition: .15s; user-select: none; }
+.blk-chip input { display: none; }
+.blk-chip:hover { border-color: var(--accent); color: var(--text); }
+.blk-chip.on, .blk-chip:has(input:checked) { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* Color picker */
+.blk-color { display: flex; align-items: center; gap: 8px; }
+.blk-color-swatch { width: 38px; height: 34px; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; cursor: pointer; flex-shrink: 0; }
+.blk-color-swatch::-webkit-color-swatch-wrapper { padding: 2px; }
+.blk-color-swatch::-webkit-color-swatch { border: none; border-radius: 4px; }
+.blk-color-hex { flex: 1; font-family: 'SF Mono', ui-monospace, monospace; }
+
 /* ─── Generate card ─── */
 .gen-card { background: linear-gradient(135deg, #faf5ff 0%, #ede9fe 100%); border: 1px solid #d8cff8; border-radius: var(--radius); padding: 18px 22px; display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
 .gen-card-icon { width: 46px; height: 46px; background: var(--accent); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 22px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(91,91,214,.3); }
@@ -1191,6 +1253,8 @@ function toggleBlock(blockId) {
 }
 
 function setBlockTab(blockId, tab) {
+    // Preserve in-progress edits before swapping tabs
+    if ((S.blockTabs[blockId] || 'form') === 'form') blkCollectIntoDraft(blockId);
     S.blockTabs[blockId] = tab;
     const b = (S.article.blocks || []).find(x => x.id === blockId);
     if (!b) return;
@@ -1211,31 +1275,19 @@ function renderBlockPane(b, tab) {
 }
 
 function renderFormFields(b) {
-    const content = b.content || {};
-    const allKeys = Object.keys(content).filter(k => k !== 'image_id' && k !== 'image_layout' && k !== 'gpt_prompt');
-    // In simple mode, hide object/array (JSON) fields — they're for developers
-    const keys = S.advanced
-        ? allKeys
-        : allKeys.filter(k => {
-            const v = content[k];
-            return v === null || v === undefined || typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean';
-          });
-    const hiddenCount = allKeys.length - keys.length;
+    if (!b._draft) b._draft = JSON.parse(JSON.stringify(b.content || {}));
+    const draft = b._draft;
+    const skip = new Set(['image_id', 'image_layout', 'gpt_prompt']);
+    const schemaFields = getSchemaFields(b) || {};
+    const schemaKeys = Object.keys(schemaFields).filter(k => !skip.has(k));
+    const extraKeys = Object.keys(draft).filter(k => !skip.has(k) && !schemaFields.hasOwnProperty(k));
 
     let html = renderNameField(b);
-    if (!allKeys.length) {
-        html += '<div class="field-hint">Блок не содержит дополнительных полей для редактирования.</div>';
-    } else {
-        keys.forEach(k => {
-            const v = content[k];
-            html += renderFieldForValue(b.id, k, v);
-        });
-        if (hiddenCount > 0 && !S.advanced) {
-            html += '<div class="field-hint" style="padding:8px 10px;background:var(--bg);border:1px dashed var(--border);border-radius:var(--radius-sm);margin-bottom:10px">' +
-                    '🔧 ' + hiddenCount + ' сложных полей скрыто. Включите «Расширенный режим» для редактирования.' +
-                    '</div>';
-        }
-    }
+    const parts = [];
+    schemaKeys.forEach(k => parts.push(renderSchemaField(b.id, [k], draft[k], labelFor(k, schemaFields[k]), schemaFields[k])));
+    extraKeys.forEach(k => parts.push(renderInferredField(b.id, [k], draft[k], labelFor(k, null))));
+    if (!parts.length) html += '<div class="field-hint">Блок не содержит полей для редактирования.</div>';
+    else html += '<div class="blk-fields">' + parts.join('') + '</div>';
     html += '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">' +
             '<button class="btn btn-primary btn-sm" onclick="saveBlockFields(' + b.id + ')"><span id="saveBlkSpin-' + b.id + '"></span> Сохранить блок</button>' +
             '</div>';
@@ -1244,31 +1296,398 @@ function renderFormFields(b) {
 
 function renderNameField(b) {
     return `
-    <div class="field">
+    <div class="field blk-wide">
         <label>Название блока</label>
         <input type="text" id="blkName-${b.id}" value="${esc(b.name || '')}" placeholder="Внутреннее название">
     </div>`;
 }
 
-function renderFieldForValue(blockId, key, value) {
-    const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, '');
-    const inputId = 'blkField-' + blockId + '-' + safeKey;
-    if (value === null || value === undefined) {
-        return `<div class="field"><label>${esc(key)}</label><input type="text" id="${inputId}" data-key="${esc(key)}" value=""></div>`;
+function getSchemaFields(b) {
+    const meta = blockTypeMeta(b.type);
+    if (!meta || !meta.json_schema) return null;
+    const s = meta.json_schema;
+    return (s && typeof s === 'object' && s.fields && typeof s.fields === 'object') ? s.fields : null;
+}
+
+function humanKey(k) {
+    return String(k).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function labelFor(key, spec) {
+    return humanKey(key);
+}
+
+function pathAttr(path) { return esc(JSON.stringify(path)); }
+
+function getByPath(root, path) {
+    let cur = root;
+    for (const p of path) { if (cur == null) return undefined; cur = cur[p]; }
+    return cur;
+}
+function setByPath(root, path, value) {
+    let cur = root;
+    for (let i = 0; i < path.length - 1; i++) cur = cur[path[i]];
+    cur[path[path.length - 1]] = value;
+}
+
+// Normalize schema spec → {kind, ...}
+function normSchema(spec) {
+    if (spec == null) return { kind: 'any' };
+    if (typeof spec === 'string') {
+        const s = spec.toLowerCase();
+        if (s.includes('array of string')) return { kind: 'arrayOfStrings', hint: spec };
+        if (s.startsWith('array')) return { kind: 'arrayOfAny', hint: spec };
+        if (s.includes('boolean')) return { kind: 'boolean' };
+        if (s.includes('integer') || s.includes('number')) return { kind: 'number' };
+        if (s.includes('hex')) return { kind: 'color' };
+        const em = spec.match(/(?::|^)\s*([a-z][a-z0-9_-]*(\|[a-z][a-z0-9_-]*)+)/i);
+        if (em) return { kind: 'enum', enum: em[1].split('|').map(x => x.trim()) };
+        return { kind: 'string', hint: spec };
     }
-    if (typeof value === 'string') {
-        const isLong = value.length > 80 || value.includes('\n');
-        if (isLong) {
-            return `<div class="field"><label>${esc(key)}</label><textarea id="${inputId}" data-key="${esc(key)}" rows="4">${esc(value)}</textarea></div>`;
+    if (typeof spec !== 'object') return { kind: 'any' };
+    if (Array.isArray(spec.enum) && spec.enum.length) {
+        return { kind: 'enum', enum: spec.enum.slice(), required: !!spec.required };
+    }
+    const t = spec.type ? String(spec.type).toLowerCase() : '';
+    if (t === 'array' || t.startsWith('array')) {
+        if (typeof spec.items === 'string') return { kind: 'arrayOfPrimitives', itemSchema: normSchema(spec.items), required: !!spec.required };
+        if (spec.items && typeof spec.items === 'object') {
+            const ikeys = Object.keys(spec.items);
+            const scalarOnly = ['type', 'required', 'enum', 'note'];
+            const hasOther = ikeys.some(k => !scalarOnly.includes(k));
+            if (hasOther) return { kind: 'arrayOfObjects', fields: spec.items, required: !!spec.required };
+            return { kind: 'arrayOfPrimitives', itemSchema: normSchema(spec.items), required: !!spec.required };
         }
-        return `<div class="field"><label>${esc(key)}</label><input type="text" id="${inputId}" data-key="${esc(key)}" value="${esc(value)}"></div>`;
+        return { kind: 'arrayOfAny', required: !!spec.required };
     }
-    if (typeof value === 'number' || typeof value === 'boolean') {
-        return `<div class="field"><label>${esc(key)}</label><input type="text" id="${inputId}" data-key="${esc(key)}" data-type="${typeof value}" value="${esc(String(value))}"></div>`;
+    if (t === 'object' || spec.fields) return { kind: 'object', fields: spec.fields || {}, required: !!spec.required };
+    if (t === 'integer' || t === 'number') return { kind: 'number', required: !!spec.required };
+    if (t === 'boolean') return { kind: 'boolean', required: !!spec.required };
+    if (t.includes(':') && t.includes('|')) {
+        const parts = t.split(':')[1].split('|').map(x => x.trim()).filter(Boolean);
+        if (parts.length) return { kind: 'enum', enum: parts, required: !!spec.required };
     }
-    // object/array → json textarea
-    const json = JSON.stringify(value, null, 2);
-    return `<div class="field"><label>${esc(key)} <span style="font-weight:400;text-transform:none;color:var(--text-3)">(JSON)</span></label><textarea id="${inputId}" data-key="${esc(key)}" data-type="json" rows="6" style="font-family:'SF Mono',monospace;font-size:12px">${esc(json)}</textarea></div>`;
+    if (t.includes('hex')) return { kind: 'color', required: !!spec.required };
+    return { kind: 'string', required: !!spec.required, hint: spec.note || '' };
+}
+
+function resolveSchemaAtPath(blockCode, path) {
+    const meta = blockTypeMeta(blockCode);
+    if (!meta || !meta.json_schema || !meta.json_schema.fields) return null;
+    let cur = meta.json_schema.fields;
+    let n = null;
+    for (let i = 0; i < path.length; i++) {
+        const p = path[i];
+        if (typeof p === 'number') {
+            // should have been handled by prior array spec; unreachable with proper traversal
+            return null;
+        }
+        const spec = (cur && typeof cur === 'object') ? cur[p] : null;
+        if (spec == null) return null;
+        n = normSchema(spec);
+        if (i === path.length - 1) return n;
+        const next = path[i + 1];
+        if (n.kind === 'object') { cur = n.fields; continue; }
+        if (n.kind === 'arrayOfObjects' && typeof next === 'number') { cur = n.fields; i++; continue; }
+        if ((n.kind === 'arrayOfStrings' || n.kind === 'arrayOfPrimitives') && typeof next === 'number') {
+            // leaf scalar under array
+            return n.itemSchema || { kind: 'string' };
+        }
+        return n;
+    }
+    return n;
+}
+
+function protoFromSchema(n) {
+    if (!n) return '';
+    if (n.kind === 'object') {
+        const o = {};
+        Object.keys(n.fields || {}).forEach(k => { o[k] = protoFromSchema(normSchema(n.fields[k])); });
+        return o;
+    }
+    if (n.kind === 'arrayOfObjects' || n.kind === 'arrayOfStrings' || n.kind === 'arrayOfPrimitives' || n.kind === 'arrayOfAny') return [];
+    if (n.kind === 'number') return 0;
+    if (n.kind === 'boolean') return false;
+    if (n.kind === 'enum' && n.enum && n.enum.length) return n.enum[0];
+    return '';
+}
+
+// Keys commonly containing long text → use textarea even when schema says plain string
+const LONG_TEXT_KEYS = new Set(['text','content','answer','subtitle','description','caption','verdict','reason','quote','note','footer','explanation','question']);
+
+function isLongTextKey(path) {
+    const last = path[path.length - 1];
+    if (typeof last !== 'string') return false;
+    return LONG_TEXT_KEYS.has(last.toLowerCase());
+}
+
+function renderSchemaField(blockId, path, value, label, spec) {
+    const n = normSchema(spec);
+    if (n.kind === 'object') {
+        const obj = (value && typeof value === 'object' && !Array.isArray(value)) ? value : {};
+        const subSpecs = n.fields || {};
+        const subKeys = Object.keys(subSpecs);
+        const extra = Object.keys(obj).filter(k => !subSpecs.hasOwnProperty(k));
+        const parts = [];
+        subKeys.forEach(k => parts.push(renderSchemaField(blockId, path.concat([k]), obj[k], labelFor(k, subSpecs[k]), subSpecs[k])));
+        extra.forEach(k => parts.push(renderInferredField(blockId, path.concat([k]), obj[k], labelFor(k, null))));
+        return `<div class="blk-nested">
+            <div class="blk-nested-label">${esc(label)}</div>
+            <div class="blk-nested-body">${parts.join('')}</div>
+        </div>`;
+    }
+    if (n.kind === 'arrayOfObjects') {
+        return renderArrayOfObjects(blockId, path, Array.isArray(value) ? value : [], label, n.fields || {});
+    }
+    if (n.kind === 'arrayOfStrings' || n.kind === 'arrayOfPrimitives' || n.kind === 'arrayOfAny') {
+        return renderArrayOfPrimitives(blockId, path, Array.isArray(value) ? value : [], label, n.itemSchema);
+    }
+    if (n.kind === 'enum') return renderEnum(path, value, label, n.enum);
+    if (n.kind === 'boolean') return renderBool(path, value, label);
+    if (n.kind === 'number') return renderNumber(path, value, label);
+    if (n.kind === 'color') return renderColor(path, value, label);
+    if (n.kind === 'string') return renderString(path, value, label, isLongTextKey(path));
+    return renderInferredField(blockId, path, value, label);
+}
+
+function renderInferredField(blockId, path, value, label) {
+    if (Array.isArray(value)) {
+        const allPrim = value.every(v => v === null || typeof v !== 'object');
+        if (allPrim) return renderArrayOfPrimitives(blockId, path, value, label, { kind: 'string' });
+        return renderArrayOfObjects(blockId, path, value, label, inferObjectSchema(value[0]));
+    }
+    if (value && typeof value === 'object') {
+        const fields = {};
+        Object.keys(value).forEach(k => fields[k] = 'string');
+        const spec = { type: 'object', fields };
+        return renderSchemaField(blockId, path, value, label, spec);
+    }
+    if (typeof value === 'number') return renderNumber(path, value, label);
+    if (typeof value === 'boolean') return renderBool(path, value, label);
+    return renderString(path, value == null ? '' : String(value), label, isLongTextKey(path) || (typeof value === 'string' && (value.length > 80 || value.includes('\n'))));
+}
+
+function inferObjectSchema(sample) {
+    if (!sample || typeof sample !== 'object') return { text: 'string' };
+    const fields = {};
+    Object.keys(sample).forEach(k => {
+        const v = sample[k];
+        if (Array.isArray(v)) fields[k] = 'array of strings';
+        else if (typeof v === 'number') fields[k] = { type: 'number' };
+        else if (typeof v === 'boolean') fields[k] = { type: 'boolean' };
+        else fields[k] = 'string';
+    });
+    return fields;
+}
+
+/* ── Field renderers ── */
+
+function renderString(path, value, label, long) {
+    const pa = pathAttr(path);
+    const v = value == null ? '' : String(value);
+    if (long || v.length > 80 || v.includes('\n')) {
+        return `<div class="field blk-wide"><label>${esc(label)}</label><textarea data-path='${pa}' rows="3">${esc(v)}</textarea></div>`;
+    }
+    return `<div class="field"><label>${esc(label)}</label><input type="text" data-path='${pa}' value="${esc(v)}"></div>`;
+}
+
+function renderNumber(path, value, label) {
+    const pa = pathAttr(path);
+    const v = (value === null || value === undefined || value === '') ? '' : String(value);
+    return `<div class="field"><label>${esc(label)}</label><input type="number" data-path='${pa}' data-type="number" value="${esc(v)}"></div>`;
+}
+
+function renderBool(path, value, label) {
+    const pa = pathAttr(path);
+    const checked = !!value;
+    return `<div class="field blk-bool">
+        <label class="blk-switch">
+            <input type="checkbox" data-path='${pa}' data-type="boolean" ${checked ? 'checked' : ''}>
+            <span class="blk-switch-track"><span class="blk-switch-dot"></span></span>
+            <span class="blk-switch-text">${esc(label)}</span>
+        </label>
+    </div>`;
+}
+
+function renderEnum(path, value, label, options) {
+    const pa = pathAttr(path);
+    const cur = value == null ? '' : String(value);
+    const useChips = options.length <= 5;
+    if (useChips) {
+        const gname = 'enum-' + esc(JSON.stringify(path));
+        const chips = options.map(o => {
+            const on = cur === o;
+            return `<label class="blk-chip ${on ? 'on' : ''}"><input type="radio" name="${gname}" data-path='${pa}' value="${esc(o)}" ${on ? 'checked' : ''}> ${esc(o)}</label>`;
+        }).join('');
+        return `<div class="field"><label>${esc(label)}</label><div class="blk-chips">${chips}</div></div>`;
+    }
+    const opts = options.map(o => `<option value="${esc(o)}" ${cur === o ? 'selected' : ''}>${esc(o)}</option>`).join('');
+    return `<div class="field"><label>${esc(label)}</label><select data-path='${pa}'><option value="">—</option>${opts}</select></div>`;
+}
+
+function renderColor(path, value, label) {
+    const pa = pathAttr(path);
+    const hex = (typeof value === 'string' && /^#[0-9A-Fa-f]{3,8}$/.test(value)) ? value : '';
+    return `<div class="field"><label>${esc(label)}</label>
+        <div class="blk-color">
+            <input type="color" class="blk-color-swatch" value="${hex || '#3b82f6'}" oninput="blkColorSync(this)">
+            <input type="text" class="blk-color-hex" data-path='${pa}' value="${esc(value == null ? '' : String(value))}" oninput="blkColorSync(this)" placeholder="#RRGGBB">
+        </div>
+    </div>`;
+}
+
+function renderArrayOfPrimitives(blockId, path, arr, label, itemSchema) {
+    const pa = pathAttr(path);
+    const kind = (itemSchema && itemSchema.kind) || 'string';
+    const chips = arr.map((v, i) => {
+        const rpa = pathAttr(path.concat([i]));
+        const val = v == null ? '' : String(v);
+        if (kind === 'number') {
+            return `<div class="blk-chip-input"><input type="number" data-path='${rpa}' data-type="number" value="${esc(val)}"><button type="button" class="blk-chip-del" onclick="blkArrDel(${blockId}, ${pa}, ${i})">✕</button></div>`;
+        }
+        return `<div class="blk-chip-input"><input type="text" data-path='${rpa}' value="${esc(val)}"><button type="button" class="blk-chip-del" onclick="blkArrDel(${blockId}, ${pa}, ${i})">✕</button></div>`;
+    }).join('');
+    return `<div class="blk-nested blk-arr blk-wide">
+        <div class="blk-nested-label">${esc(label)} <span class="blk-arr-count">${arr.length}</span></div>
+        <div class="blk-chip-list">${chips || '<div class="field-hint">Пусто</div>'}</div>
+        <button type="button" class="btn btn-secondary btn-sm blk-add" onclick="blkArrAdd(${blockId}, ${pa})">+ Добавить</button>
+    </div>`;
+}
+
+function renderArrayOfObjects(blockId, path, arr, label, fieldsSpec) {
+    const pa = pathAttr(path);
+    const items = arr.map((v, i) => {
+        const obj = (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+        const preview = arrObjPreview(obj, fieldsSpec);
+        const subKeys = Object.keys(fieldsSpec || {});
+        const extra = Object.keys(obj).filter(k => !subKeys.includes(k));
+        const parts = [];
+        subKeys.forEach(k => parts.push(renderSchemaField(blockId, path.concat([i, k]), obj[k], labelFor(k, fieldsSpec[k]), fieldsSpec[k])));
+        extra.forEach(k => parts.push(renderInferredField(blockId, path.concat([i, k]), obj[k], labelFor(k, null))));
+        return `<details class="blk-arr-card" ${i === 0 ? 'open' : ''}>
+            <summary class="blk-arr-card-sum">
+                <span class="blk-arr-idx">#${i + 1}</span>
+                <span class="blk-arr-preview">${esc(preview || '—')}</span>
+                <button type="button" class="blk-del" onclick="event.preventDefault();event.stopPropagation();blkArrDel(${blockId}, ${pa}, ${i})">✕</button>
+                <span class="blk-arr-caret">▾</span>
+            </summary>
+            <div class="blk-arr-card-body">
+                <div class="blk-nested-body">${parts.join('')}</div>
+            </div>
+        </details>`;
+    }).join('');
+    return `<div class="blk-nested blk-arr blk-wide">
+        <div class="blk-nested-label">${esc(label)} <span class="blk-arr-count">${arr.length}</span></div>
+        <div class="blk-arr-cards">${items || '<div class="field-hint">Пусто</div>'}</div>
+        <button type="button" class="btn btn-secondary btn-sm blk-add" onclick="blkArrAdd(${blockId}, ${pa})">+ Добавить</button>
+    </div>`;
+}
+
+function arrObjPreview(obj, fieldsSpec) {
+    const priority = ['title','name','question','label','headline','text','subtitle','content','rule'];
+    for (const k of priority) {
+        if (obj[k] && typeof obj[k] === 'string') return obj[k].slice(0, 80);
+    }
+    const keys = Object.keys(fieldsSpec || obj);
+    for (const k of keys) {
+        const v = obj[k];
+        if (typeof v === 'string' && v.trim()) return v.slice(0, 80);
+    }
+    return '';
+}
+
+function blkColorSync(source) {
+    const row = source.closest('.blk-color');
+    if (!row) return;
+    const swatch = row.querySelector('.blk-color-swatch');
+    const hex = row.querySelector('.blk-color-hex');
+    if (source === swatch) hex.value = swatch.value;
+    else {
+        const v = hex.value.trim();
+        if (/^#[0-9A-Fa-f]{6}$/.test(v)) swatch.value = v;
+    }
+}
+
+function blkCollectIntoDraft(blockId) {
+    const b = (S.article.blocks || []).find(x => x.id === blockId);
+    if (!b || !b._draft) return;
+    const pane = el('blockPane-' + blockId);
+    if (!pane) return;
+    pane.querySelectorAll('[data-path]').forEach(input => {
+        const path = JSON.parse(input.getAttribute('data-path'));
+        const t = input.getAttribute('data-type');
+        const tag = input.tagName;
+        let v;
+        if (input.type === 'radio') {
+            if (!input.checked) return; // only winning radio writes
+            v = input.value;
+        } else if (input.type === 'checkbox') {
+            v = !!input.checked;
+        } else {
+            v = input.value;
+        }
+        if (t === 'number') {
+            if (v === '' || v == null) v = null;
+            else { const n = parseFloat(v); v = isNaN(n) ? v : n; }
+        } else if (t === 'boolean') {
+            v = !!input.checked;
+        }
+        try { setByPath(b._draft, path, v); } catch(e) {}
+    });
+}
+
+function blkRerenderPane(blockId) {
+    const b = (S.article.blocks || []).find(x => x.id === blockId);
+    if (!b) return;
+    const pane = el('blockPane-' + blockId);
+    if (!pane) return;
+    const tab = S.blockTabs[blockId] || 'form';
+    pane.innerHTML = renderBlockPane(b, tab);
+}
+
+function blkArrAdd(blockId, path) {
+    blkCollectIntoDraft(blockId);
+    const b = (S.article.blocks || []).find(x => x.id === blockId);
+    if (!b || !b._draft) return;
+    const arr = getByPath(b._draft, path);
+    if (!Array.isArray(arr)) return;
+    let proto;
+    const arrSpec = resolveSchemaAtPath(b.type, path);
+    if (arrSpec && arrSpec.kind === 'arrayOfObjects') {
+        proto = protoFromSchema({ kind: 'object', fields: arrSpec.fields || {} });
+    } else if (arrSpec && (arrSpec.kind === 'arrayOfStrings' || arrSpec.kind === 'arrayOfPrimitives')) {
+        proto = protoFromSchema(arrSpec.itemSchema || { kind: 'string' });
+    } else if (arr.length) {
+        const sample = arr[0];
+        if (sample && typeof sample === 'object' && !Array.isArray(sample)) {
+            proto = {};
+            Object.keys(sample).forEach(k => {
+                const sv = sample[k];
+                if (typeof sv === 'string') proto[k] = '';
+                else if (typeof sv === 'number') proto[k] = 0;
+                else if (typeof sv === 'boolean') proto[k] = false;
+                else if (Array.isArray(sv)) proto[k] = [];
+                else proto[k] = null;
+            });
+        } else if (typeof sample === 'string') proto = '';
+        else if (typeof sample === 'number') proto = 0;
+        else if (typeof sample === 'boolean') proto = false;
+        else proto = null;
+    } else {
+        proto = '';
+    }
+    arr.push(proto);
+    blkRerenderPane(blockId);
+}
+
+function blkArrDel(blockId, path, idx) {
+    blkCollectIntoDraft(blockId);
+    const b = (S.article.blocks || []).find(x => x.id === blockId);
+    if (!b || !b._draft) return;
+    const arr = getByPath(b._draft, path);
+    if (!Array.isArray(arr)) return;
+    arr.splice(idx, 1);
+    blkRerenderPane(blockId);
 }
 
 async function saveBlockFields(blockId) {
@@ -1277,31 +1696,13 @@ async function saveBlockFields(blockId) {
     const sp = el('saveBlkSpin-' + blockId);
     if (sp) sp.innerHTML = '<span class="spin spin-white"></span>';
 
-    const content = Object.assign({}, b.content || {});
-    const pane = el('blockPane-' + blockId);
-    let invalid = null;
-    const inputs = pane.querySelectorAll('[data-key]');
-    for (const input of inputs) {
-        const k = input.getAttribute('data-key');
-        const t = input.getAttribute('data-type');
-        let v = input.value;
-        if (t === 'number') {
-            if (v === '' || v === null) { invalid = 'Пустое число в поле ' + k; break; }
-            const n = parseFloat(v);
-            if (isNaN(n)) { invalid = 'Не число в поле ' + k; break; }
-            v = n;
-        } else if (t === 'boolean') {
-            v = (v === 'true' || v === '1');
-        } else if (t === 'json') {
-            try { v = JSON.parse(v); } catch(e) { invalid = 'Некорректный JSON в поле ' + k; break; }
-        }
-        content[k] = v;
-    }
-    if (invalid) {
-        toast(invalid, 'err');
-        if (sp) sp.innerHTML = '';
-        return;
-    }
+    blkCollectIntoDraft(blockId);
+    // Preserve non-editable technical fields from original content
+    const base = Object.assign({}, b.content || {});
+    const draft = b._draft || {};
+    const preserved = ['image_id', 'image_layout', 'gpt_prompt'];
+    const content = Object.assign({}, draft);
+    preserved.forEach(k => { if (base[k] !== undefined) content[k] = base[k]; });
     const name = el('blkName-' + blockId).value;
 
     try {
@@ -1313,9 +1714,11 @@ async function saveBlockFields(blockId) {
         S.article = normalizeArticle(res.data);
         const nb = (S.article.blocks || []).find(x => x.id === blockId);
         if (nb) {
+            nb._draft = null; // reseed from fresh content on next render
             const card = el('block-' + blockId);
             const nameEl = card.querySelector('.block-name');
             if (nameEl) nameEl.textContent = nb.name || blockTypeMeta(nb.type)?.display_name || nb.type;
+            blkRerenderPane(blockId);
         }
         toast('Блок сохранён', 'ok');
     } catch(e) { toast(e.message, 'err'); }

@@ -134,6 +134,23 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .stat-box-value { font-size: 28px; font-weight: 800; color: var(--text); line-height: 1; }
 .stat-box-label { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .4px; margin-top: 4px; }
 
+/* ─── Token usage tab ─── */
+.tok-totals { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+.tok-box { background: var(--surface-2, #fafafa); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; text-align: center; }
+.tok-box-value { font-size: 22px; font-weight: 800; color: var(--text); }
+.tok-box-label { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; margin-top: 4px; }
+.tok-cat-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.tok-cat { display: flex; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.tok-cat-icon { font-size: 22px; width: 40px; height: 40px; display:flex; align-items:center; justify-content:center; background: var(--accent-light, #eef); border-radius: 8px; flex-shrink:0; }
+.tok-cat-body { min-width:0; flex:1; }
+.tok-cat-name { font-weight: 700; color: var(--text); font-size: 13px; }
+.tok-cat-meta { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+.tok-cat-sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.tok-tbl { width:100%; border-collapse:collapse; font-size:12px; }
+.tok-tbl th, .tok-tbl td { padding: 8px 10px; text-align:left; border-bottom:1px solid var(--border); }
+.tok-tbl th { background: var(--surface-2, #fafafa); color: var(--text-3); font-weight:600; text-transform:uppercase; font-size:10px; letter-spacing:.3px; }
+.tok-tbl tr:hover td { background: rgba(91,91,214,.04); }
+
 /* ─── Quick actions ─── */
 .quick-links { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .quick-link { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: .15s; text-decoration: none; }
@@ -592,6 +609,7 @@ body.advanced .adv-only.inline-flex { display: inline-flex; }
         <div class="tab" data-tab="brief">AI Бриф</div>
         <div class="tab" data-tab="templates">Шаблоны</div>
         <div class="tab" data-tab="telegram">Telegram</div>
+        <div class="tab" data-tab="tokens">Расход токенов</div>
     </div>
 
     <!-- ─── Tab: Overview ─── -->
@@ -861,6 +879,39 @@ body.advanced .adv-only.inline-flex { display: inline-flex; }
             </div>
         </div>
     </div>
+
+    <!-- ─── Tab: Token usage ─── -->
+    <div id="tab-tokens" style="display:none">
+        <div class="section" style="margin-bottom:16px">
+            <div class="section-head">
+                <span class="section-head-title">Итого по профилю</span>
+                <button class="btn btn-ghost btn-xs" onclick="loadTokenUsage(true)">🔄 Обновить</button>
+            </div>
+            <div class="section-body">
+                <div id="tokUsageTotals" class="tok-totals">
+                    <div class="tok-box"><div class="tok-box-value" id="tuCalls">—</div><div class="tok-box-label">Вызовов</div></div>
+                    <div class="tok-box"><div class="tok-box-value" id="tuPrompt">—</div><div class="tok-box-label">Prompt токенов</div></div>
+                    <div class="tok-box"><div class="tok-box-value" id="tuCompletion">—</div><div class="tok-box-label">Completion токенов</div></div>
+                    <div class="tok-box"><div class="tok-box-value" id="tuTotal">—</div><div class="tok-box-label">Всего токенов</div></div>
+                    <div class="tok-box"><div class="tok-box-value" id="tuCost">—</div><div class="tok-box-label">Стоимость (USD)</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" style="margin-bottom:16px">
+            <div class="section-head"><span class="section-head-title">По категориям</span></div>
+            <div class="section-body">
+                <div class="tok-cat-list" id="tokCatList"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-head"><span class="section-head-title">Последние вызовы</span></div>
+            <div class="section-body">
+                <div class="tok-recent" id="tokRecent"></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- ─── Template detail view ─── -->
@@ -1053,7 +1104,7 @@ function switchTab(tab) {
     document.querySelectorAll('.tab').forEach(t => {
         t.classList.toggle('active', t.dataset.tab === tab);
     });
-    ['overview','settings','branding','brief','templates','telegram'].forEach(t => {
+    ['overview','settings','branding','brief','templates','telegram','tokens'].forEach(t => {
         el('tab-' + t).style.display = t === tab ? '' : 'none';
     });
 
@@ -1062,6 +1113,76 @@ function switchTab(tab) {
     if (tab === 'brief') sbInit();
     if (tab === 'templates') loadTemplates();
     if (tab === 'telegram') fillTelegram();
+    if (tab === 'tokens') loadTokenUsage();
+}
+
+const TOK_CAT_LABELS = {
+    profile_create: 'Создание профиля',
+    profile_brief: 'AI Бриф',
+    template_create: 'Создание шаблонов',
+    template_review: 'Ревью шаблонов',
+    article_create: 'Создание статей',
+    telegram_aggregate: 'Агрегация Telegram',
+};
+const TOK_CAT_ICONS = {
+    profile_create: '🚀', profile_brief: '📋', template_create: '🧩',
+    template_review: '🔍', article_create: '📝', telegram_aggregate: '✈️',
+};
+
+function fmtNum(n) { return (n|0).toLocaleString('ru-RU'); }
+function fmtCost(c) { c = Number(c) || 0; return '$' + c.toFixed(c < 1 ? 4 : 2); }
+
+async function loadTokenUsage(force) {
+    if (!S.profile || !S.profile.id) return;
+    const wrap = el('tokCatList');
+    const rec  = el('tokRecent');
+    if (!force && wrap.dataset.loaded === String(S.profile.id)) return;
+    wrap.innerHTML = '<div class="empty"><div class="spin"></div></div>';
+    rec.innerHTML = '';
+    try {
+        const data = await api('profiles/' + S.profile.id + '/token-usage', 'GET');
+        const t = data.totals || {};
+        el('tuCalls').textContent      = fmtNum(t.calls);
+        el('tuPrompt').textContent     = fmtNum(t.prompt_tokens);
+        el('tuCompletion').textContent = fmtNum(t.completion_tokens);
+        el('tuTotal').textContent      = fmtNum(t.total_tokens);
+        el('tuCost').textContent       = fmtCost(t.cost_usd);
+
+        const cats = data.categories || {};
+        wrap.innerHTML = Object.keys(TOK_CAT_LABELS).map(k => {
+            const c = cats[k] || {calls:0, prompt_tokens:0, completion_tokens:0, total_tokens:0, cost_usd:0, last_at:null};
+            const last = c.last_at ? new Date(c.last_at.replace(' ','T')).toLocaleString('ru-RU') : '—';
+            return `<div class="tok-cat">
+                <div class="tok-cat-icon">${TOK_CAT_ICONS[k]||'•'}</div>
+                <div class="tok-cat-body">
+                    <div class="tok-cat-name">${TOK_CAT_LABELS[k]}</div>
+                    <div class="tok-cat-meta">${fmtNum(c.calls)} вызовов · ${fmtNum(c.total_tokens)} ток. · ${fmtCost(c.cost_usd)}</div>
+                    <div class="tok-cat-sub">prompt ${fmtNum(c.prompt_tokens)} / completion ${fmtNum(c.completion_tokens)} · последний: ${last}</div>
+                </div>
+            </div>`;
+        }).join('');
+
+        const recent = data.recent || [];
+        rec.innerHTML = recent.length === 0
+            ? '<div class="empty-sub">Пока нет вызовов</div>'
+            : `<table class="tok-tbl"><thead><tr>
+                <th>Когда</th><th>Категория</th><th>Операция</th><th>Модель</th>
+                <th>Prompt</th><th>Completion</th><th>Всего</th><th>USD</th>
+               </tr></thead><tbody>${recent.map(r => `<tr>
+                <td>${(r.created_at||'').replace('T',' ').slice(0,19)}</td>
+                <td>${TOK_CAT_LABELS[r.category]||r.category}</td>
+                <td>${escHtml(r.operation||'')}</td>
+                <td>${escHtml(r.model||'')}</td>
+                <td>${fmtNum(r.prompt_tokens)}</td>
+                <td>${fmtNum(r.completion_tokens)}</td>
+                <td>${fmtNum(r.total_tokens)}</td>
+                <td>${fmtCost(r.cost_usd)}</td>
+               </tr>`).join('')}</tbody></table>`;
+
+        wrap.dataset.loaded = String(S.profile.id);
+    } catch(e) {
+        wrap.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-sub">'+escHtml(e.message)+'</div></div>';
+    }
 }
 
 document.querySelectorAll('.tab').forEach(t => {
@@ -2107,6 +2228,7 @@ async function sbRender(forceRegen = false) {
         try {
             const data = await api('profiles/brief', 'POST', {
                 step: step.key,
+                profile_id: S.profile.id,
                 description: S.profile.description || '',
                 brief: sbState || {},
             });

@@ -9,6 +9,7 @@ use Seo\Entity\SeoSiteProfile;
 use Seo\Enum\BriefPrompt;
 use Seo\Service\GptClient;
 use Seo\Service\TemplateGeneratorService;
+use Seo\Service\TokenUsageLogger;
 
 /*
    GET    /profiles                              — list all profiles
@@ -29,6 +30,10 @@ class SiteProfileController extends AbstractController {
     public function dispatch(string $method, ?string $action, ?int $id): void {
         if ($id !== null && $action === 'stats' && $method === 'GET') {
             $this->stats($id);
+            return;
+        }
+        if ($id !== null && $action === 'token-usage' && $method === 'GET') {
+            $this->tokenUsage($id);
             return;
         }
         if ($id !== null && $action === 'icon') {
@@ -302,6 +307,20 @@ class SiteProfileController extends AbstractController {
         ]);
     }
 
+    private function tokenUsage(int $id): void {
+        $existing = $this->db->fetchOne(
+            "SELECT id FROM " . SeoSiteProfile::TABLE . " WHERE id = :id",
+            [':id' => $id]
+        );
+        if ($existing === null) $this->notFound('Профиль');
+
+        $limit = (int)$this->getParam('recent', 20);
+        if ($limit < 0)   $limit = 0;
+        if ($limit > 200) $limit = 200;
+
+        $this->success((new TokenUsageLogger())->summaryForProfile($id, $limit));
+    }
+
     // ── Icon upload ─────────────────────────────────────────
 
     private function getIconDir(): string {
@@ -435,7 +454,8 @@ class SiteProfileController extends AbstractController {
             $this->error('Поле description обязательно — опишите проект', 422);
         }
 
-        $gpt = new \Seo\Service\GptClient();
+        $gpt = new GptClient();
+        $gpt->setLogContext(['category' => TokenUsageLogger::CATEGORY_PROFILE_CREATE, 'operation' => 'generate_from_description']);
         $result = $gpt->chatJson([
             [
                 'role' => 'system',
@@ -487,6 +507,7 @@ PROMPT
         $niche = $data['niche'] ?? $profile['niche'] ?? $profile['name'] ?? '';
 
         $gpt = new GptClient();
+        $gpt->setLogContext(['category' => TokenUsageLogger::CATEGORY_PROFILE_CREATE, 'operation' => 'generate_intents', 'profile_id' => $profileId]);
         $result = $gpt->chatJson([
             [
                 'role' => 'system',
@@ -600,6 +621,7 @@ EOT;
             . "Описание: " . ($profile['description'] ?? '');
 
         $gpt = new GptClient();
+        $gpt->setLogContext(['category' => TokenUsageLogger::CATEGORY_TEMPLATE_CREATE, 'operation' => 'suggest_template_purposes', 'profile_id' => $id]);
         $result = $gpt->chatJson([
             ['role' => 'system', 'content' => $system],
             ['role' => 'user', 'content' => $userContent],
@@ -629,6 +651,7 @@ EOT;
         $step = trim((string)($data['step'] ?? ''));
         $description = trim((string)($data['description'] ?? ''));
         $brief = is_array($data['brief'] ?? null) ? $data['brief'] : [];
+        $profileId = isset($data['profile_id']) ? (int)$data['profile_id'] : null;
 
         if ($description === '') {
             $this->error('Поле description обязательно', 422);
@@ -662,6 +685,7 @@ EOT;
             : SEO_TEMPERATURE_CREATIVE;
 
         $gpt = new GptClient();
+        $gpt->setLogContext(['category' => TokenUsageLogger::CATEGORY_PROFILE_BRIEF, 'operation' => 'brief_' . $step, 'profile_id' => $profileId]);
         $result = $gpt->chatJson([
             ['role' => 'system', 'content' => $systemPrompt],
             ['role' => 'user', 'content' => $userContent],

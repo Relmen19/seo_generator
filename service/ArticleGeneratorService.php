@@ -265,6 +265,13 @@ class ArticleGeneratorService {
             'max_tokens' => $options['max_tokens'] ?? 500,
         ];
 
+        $this->gpt->setLogContext([
+            'category'    => TokenUsageLogger::CATEGORY_ARTICLE_CREATE,
+            'operation'   => 'generate_meta',
+            'profile_id'  => $article['profile_id'] ?? null,
+            'entity_type' => 'article',
+            'entity_id'   => $articleId,
+        ]);
         $result = $this->gpt->chatJson($messages, $gptOptions);
         $meta = $result['data'];
 
@@ -322,6 +329,13 @@ class ArticleGeneratorService {
             'max_tokens' => $options['max_tokens'] ?? 8000,
         ];
 
+        $this->gpt->setLogContext([
+            'category'    => TokenUsageLogger::CATEGORY_ARTICLE_CREATE,
+            'operation'   => 'generate_all_blocks',
+            'profile_id'  => $article['profile_id'] ?? null,
+            'entity_type' => 'article',
+            'entity_id'   => $articleId,
+        ]);
         $result = $this->gpt->chatJson($messages, $gptOptions);
         $data   = $result['data'];
 
@@ -402,6 +416,13 @@ class ArticleGeneratorService {
             'max_tokens' => $options['max_tokens'] ?? 4000,
         ];
 
+        $this->gpt->setLogContext([
+            'category'    => TokenUsageLogger::CATEGORY_ARTICLE_CREATE,
+            'operation'   => 'generate_single_block',
+            'profile_id'  => $article['profile_id'] ?? null,
+            'entity_type' => 'article',
+            'entity_id'   => $articleId,
+        ]);
         $result = $this->gpt->chatJson($messages, $gptOptions);
         $unwrapped = $this->unwrapBlockContent($result['data'], $block['type'] ?? '');
         $contentJson = json_encode($unwrapped, JSON_UNESCAPED_UNICODE);
@@ -487,6 +508,13 @@ class ArticleGeneratorService {
                     'max_tokens' => $options['max_tokens'] ?? 4000,
                 ];
 
+                $this->gpt->setLogContext([
+                    'category'    => TokenUsageLogger::CATEGORY_ARTICLE_CREATE,
+                    'operation'   => 'generate_block_sse',
+                    'profile_id'  => $article['profile_id'] ?? null,
+                    'entity_type' => 'article',
+                    'entity_id'   => $articleId,
+                ]);
                 $result = $this->gpt->chatJson($messages, $gptOptions);
 
                 foreach (['prompt_tokens', 'completion_tokens', 'total_tokens'] as $k) {

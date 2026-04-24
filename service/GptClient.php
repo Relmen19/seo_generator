@@ -14,6 +14,8 @@ class GptClient {
     private string $baseUrl = 'https://api.openai.com/v1';
 
     private array $lastUsage = [];
+    private array $logContext = [];
+    private ?TokenUsageLogger $logger = null;
 
     public function __construct(?string $apiKey = null, ?string $model = null, ?int $timeout = null) {
         $this->apiKey = $apiKey ?? GPT_API_KEY;
@@ -39,13 +41,44 @@ class GptClient {
 
         $choice = $result['choices'][0] ?? [];
         $this->lastUsage = $result['usage'] ?? [];
+        $respModel = $result['model'] ?? $model;
+
+        $this->recordUsage($this->lastUsage, $respModel);
 
         return [
             'content' => $choice['message']['content'] ?? '',
             'finish_reason' => $choice['finish_reason'] ?? 'unknown',
             'usage' => $this->lastUsage,
-            'model' => $result['model'] ?? $model,
+            'model' => $respModel,
         ];
+    }
+
+    /**
+     * Attach caller context so each subsequent chat() auto-logs usage.
+     * Keys: profile_id, category, operation, entity_type, entity_id.
+     * Passing empty array clears context.
+     */
+    public function setLogContext(array $context): self {
+        $this->logContext = $context;
+        return $this;
+    }
+
+    public function getLogContext(): array {
+        return $this->logContext;
+    }
+
+    public function clearLogContext(): self {
+        $this->logContext = [];
+        return $this;
+    }
+
+    private function recordUsage(array $usage, ?string $model): void {
+        if (empty($this->logContext) || empty($this->logContext['category'])) return;
+        if ($this->logger === null) {
+            try { $this->logger = new TokenUsageLogger(); }
+            catch (\Throwable $e) { return; }
+        }
+        $this->logger->log($this->logContext, $usage, $model);
     }
 
 

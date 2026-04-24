@@ -69,6 +69,13 @@ class TelegramCopywriterService
         $system = $this->buildSystemPrompt($profile);
         $user   = $this->buildUserPrompt($article, $articleText, $imageBlocksCtx, $articleLink);
 
+        $this->gpt->setLogContext([
+            'category'    => TokenUsageLogger::CATEGORY_TELEGRAM_AGGREGATE,
+            'operation'   => 'compose_post',
+            'profile_id'  => $profile->getId(),
+            'entity_type' => 'article',
+            'entity_id'   => isset($article['id']) ? (int)$article['id'] : null,
+        ]);
         $result = $this->gpt->chatJson(
             [
                 ['role' => 'system', 'content' => $system],
