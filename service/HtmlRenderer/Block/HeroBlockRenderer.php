@@ -25,11 +25,28 @@ class HeroBlockRenderer extends AbstractBlockRenderer
             ? '<a class="hero-cta" href="{{link:' . $this->e($ctaK) . '}}">' . $cta . '</a>'
             : '';
 
+        // Resolve hero image: prefer per-article illustration (kind=hero), fall back to legacy image_id.
+        $imageId = null;
+        $articleId = $c['article_id'] ?? null;
+        if ($articleId) {
+            $row = $this->db->fetchOne(
+                "SELECT image_id FROM seo_article_illustrations
+                 WHERE article_id = ? AND kind = 'hero' AND status = 'ready' AND image_id IS NOT NULL",
+                [(int)$articleId]
+            );
+            if ($row && !empty($row['image_id'])) {
+                $imageId = (int)$row['image_id'];
+            }
+        }
+        if ($imageId === null && !empty($c['image_id'])) {
+            $imageId = (int)$c['image_id'];
+        }
+
         $imgH = '';
-        if (!empty($c['image_id'])) {
+        if ($imageId) {
             $img = $this->db->fetchOne(
                 "SELECT mime_type, data_base64 FROM seo_images WHERE id = ?",
-                [$c['image_id']]
+                [$imageId]
             );
             if ($img) {
                 $alt  = $this->e($c['image_alt'] ?? $c['title'] ?? '');

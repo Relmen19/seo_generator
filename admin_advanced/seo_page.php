@@ -351,6 +351,39 @@ requireAuth();
         }
         .section-block h3 .section-icon { font-size: 1rem; }
 
+        .prep-block { padding: 14px 18px; }
+        .prep-block .section-header { margin-bottom: 10px; }
+        .prep-block.collapsed #prepBody { display: none; }
+        .prep-block.collapsed #prepCaret { transform: rotate(-90deg); }
+        .prep-sub { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+        .prep-sub:last-child { margin-bottom: 0; }
+        .prep-sub-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+        .prep-sub-head strong { color: #e2e8f0; font-size: .8rem; }
+        .prep-actions { display: flex; gap: 4px; margin-left: auto; }
+        .prep-tabs { display: inline-flex; background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 2px; }
+        .prep-tab { background: transparent; border: 0; color: #94a3b8; padding: 3px 10px; font-size: .7rem; border-radius: 4px; cursor: pointer; font-family: inherit; }
+        .prep-tab.active { background: #334155; color: #f1f5f9; }
+        .prep-tab:hover:not(.active) { color: #cbd5e1; }
+        .prep-mode { display: none; }
+        .prep-mode-active { display: block; }
+        .plan-row { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
+        .plan-row select { width: 140px; flex-shrink: 0; padding: 4px 6px; background:#0f172a; border:1px solid #334155; color:#e2e8f0; border-radius:4px; font-size:.72rem; }
+        .plan-row input { flex: 1; padding: 4px 8px; background:#0f172a; border:1px solid #334155; color:#e2e8f0; border-radius:4px; font-size:.75rem; }
+        .plan-row button { background:transparent;border:1px solid #475569;color:#94a3b8;border-radius:4px;padding:3px 8px;cursor:pointer;font-family:inherit; }
+        .plan-row button:hover { color:#fca5a5;border-color:#7f1d1d; }
+        .plan-add { font-size: .7rem; color: #22d3ee; background: transparent; border: 1px dashed #334155; border-radius: 4px; padding: 4px 10px; cursor: pointer; margin-top: 6px; font-family: inherit; }
+        .plan-add:hover { border-color: #0891b2; }
+        .outline-card { background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; }
+        .outline-card-head { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
+        .outline-card-head input { flex: 1; font-weight: 600; padding:4px 8px; background:#0f172a; border:1px solid #334155; color:#e2e8f0; border-radius:4px; font-size:.78rem; }
+        .outline-card-head select { width: 130px; padding:4px 6px; background:#0f172a; border:1px solid #334155; color:#e2e8f0; border-radius:4px; font-size:.72rem; }
+        .outline-card-head button { background:transparent;border:1px solid #475569;color:#94a3b8;border-radius:4px;padding:3px 8px;cursor:pointer;font-family:inherit; }
+        .outline-card-head button:hover { color:#fca5a5;border-color:#7f1d1d; }
+        .outline-card label { font-size: .62rem; color: #64748b; display: block; margin-top: 5px; text-transform: uppercase; letter-spacing: .4px; }
+        .outline-card textarea, .outline-card input.brief, .outline-card input.ol-fld { font-size: .72rem; width: 100%; padding: 4px 8px; background:#0f172a; border:1px solid #334155; color:#cbd5e1; border-radius:4px; font-family: inherit; }
+        .outline-card textarea { font-family:'SF Mono',Menlo,monospace; line-height: 1.5; resize: vertical; }
+        .outline-empty { font-size: .72rem; color: #64748b; padding: 12px; text-align: center; border: 1px dashed #334155; border-radius: 6px; }
+
         .status-badge {
             display: inline-flex; align-items: center; gap: 4px;
             font-size: .72rem; padding: 3px 9px; border-radius: 20px;
@@ -1104,12 +1137,73 @@ requireAuth();
                             <label>Meta Keywords</label>
                             <input type="text" id="artMetaKeywords" placeholder="ключевые слова через запятую">
                         </div>
-                        <div class="form-group full plan-field">
-                            <label>Article Plan <span class="plan-badge">редакторский план</span></label>
-                            <textarea id="artArticlePlan" rows="5" placeholder="[hero] Введение&#10;[richtext] Основной контент&#10;[faq] FAQ и вопросы&#10;[image] Изображение&#10;[cta] Призыв к действию"></textarea>
-                        </div>
                     </div>
                 </div>
+
+                <!-- Подготовка к генерации: Plan + Research + Outline (collapsible) -->
+                <div class="section-block prep-block" id="prepBlock">
+                    <div class="section-header prep-header" onclick="togglePrep()" style="cursor:pointer;user-select:none">
+                        <h3><span id="prepCaret" style="display:inline-block;transition:transform .15s">▼</span> Подготовка статьи <span id="prepSummary" style="font-size:.7rem;font-weight:400;color:#64748b;margin-left:8px"></span></h3>
+                    </div>
+                    <div id="prepBody">
+
+                        <!-- Article Plan -->
+                        <div class="prep-sub">
+                            <div class="prep-sub-head">
+                                <strong>Article Plan</strong>
+                                <span class="plan-badge" style="font-size:.65rem">редакторский план</span>
+                                <div class="prep-tabs" data-target="plan">
+                                    <button type="button" class="prep-tab active" data-mode="list" onclick="prepSetMode('plan','list')">Список</button>
+                                    <button type="button" class="prep-tab" data-mode="text" onclick="prepSetMode('plan','text')">Текст</button>
+                                </div>
+                            </div>
+                            <div id="planList" class="prep-mode prep-mode-active"></div>
+                            <div id="planText" class="prep-mode" style="display:none">
+                                <textarea id="artArticlePlan" rows="6" placeholder="[hero] Введение&#10;[richtext] Основной контент&#10;[faq] FAQ и вопросы&#10;[image] Изображение&#10;[cta] Призыв к действию" oninput="planTextChanged()"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Research dossier -->
+                        <div class="prep-sub">
+                            <div class="prep-sub-head">
+                                <strong>Research dossier</strong>
+                                <span id="artResearchStatus" class="status-badge" style="font-size:.65rem;background:#334155;color:#94a3b8">none</span>
+                                <span id="artResearchAt" style="font-size:.65rem;color:#64748b;font-weight:400"></span>
+                                <div class="prep-actions">
+                                    <button type="button" class="btn btn-sm btn-ghost" onclick="saveResearchAdv()" title="Сохранить">💾</button>
+                                    <button type="button" class="btn btn-sm btn-ghost" style="color:#22d3ee;border-color:#0891b2" onclick="buildResearchAdv(false)" title="Собрать через GPT">🔍 GPT</button>
+                                    <button type="button" class="btn btn-sm btn-ghost" style="color:#f59e0b;border-color:#b45309" onclick="buildResearchAdv(true)" title="Перезаписать через GPT">⟲</button>
+                                </div>
+                            </div>
+                            <textarea id="artResearch" rows="12" placeholder="Markdown досье. Заполнится через «GPT» или впишите вручную." style="font-family:'SF Mono',Menlo,monospace;font-size:12px;line-height:1.55;width:100%" oninput="dirty=true; updatePrepSummary();"></textarea>
+                            <div style="font-size:.65rem;color:#64748b;margin-top:3px">Категория токенов: <b>article_research</b>.</div>
+                        </div>
+
+                        <!-- Outline -->
+                        <div class="prep-sub">
+                            <div class="prep-sub-head">
+                                <strong>Outline</strong>
+                                <span id="artOutlineStatus" class="status-badge" style="font-size:.65rem;background:#334155;color:#94a3b8">none</span>
+                                <div class="prep-tabs" data-target="outline">
+                                    <button type="button" class="prep-tab active" data-mode="cards" onclick="prepSetMode('outline','cards')">Секции</button>
+                                    <button type="button" class="prep-tab" data-mode="json" onclick="prepSetMode('outline','json')">JSON</button>
+                                </div>
+                                <div class="prep-actions">
+                                    <button type="button" class="btn btn-sm btn-ghost" onclick="saveOutlineAdv()" title="Сохранить">💾</button>
+                                    <button type="button" class="btn btn-sm btn-ghost" style="color:#22d3ee;border-color:#0891b2" onclick="buildOutlineAdv(false)" title="Построить через GPT">🧭 GPT</button>
+                                    <button type="button" class="btn btn-sm btn-ghost" style="color:#f59e0b;border-color:#b45309" onclick="buildOutlineAdv(true)" title="Перезаписать через GPT">⟲</button>
+                                </div>
+                            </div>
+                            <div id="outlineCards" class="prep-mode prep-mode-active"></div>
+                            <div id="outlineJson" class="prep-mode" style="display:none">
+                                <textarea id="artOutline" rows="14" placeholder='{"sections":[{"id":"s1","h2_title":"...","narrative_role":"hook","block_type":"richtext","content_brief":"...","source_facts":["..."]}]}' style="font-family:'SF Mono',Menlo,monospace;font-size:12px;line-height:1.55;width:100%" oninput="outlineJsonChanged()"></textarea>
+                            </div>
+                            <div style="font-size:.65rem;color:#64748b;margin-top:3px">Источник истины для блоков. Требует research dossier. Категория: <b>article_outline</b>.</div>
+                        </div>
+
+                    </div>
+                </div>
+
                 <div class="section-block">
                     <div class="gen-panel" id="genPanel">
                         <h3>Генерация контента (GPT)</h3>
@@ -1971,10 +2065,204 @@ requireAuth();
     function setArticlePlan(raw) {
         const val = (raw || '').replace(/\s*→\s*/g, '\n');
         $('artArticlePlan').value = val;
+        if (typeof renderPlanList === 'function') renderPlanList();
     }
     function getArticlePlan() {
         return $('artArticlePlan').value.split('\n').map(s => s.trim()).filter(Boolean).join(' → ');
     }
+
+    // ── Prep block (Plan + Research + Outline) ──
+    const PLAN_TYPES = ['hero','richtext','image','faq','cta','review_carousel','feature_grid','tag_carousel','breadcrumbs','content_carousel','comparison_table','statistics','timeline','poll','footer'];
+
+    function togglePrep() {
+        const b = $('prepBlock');
+        const c = b.classList.toggle('collapsed');
+        try { localStorage.setItem('seo_prep_collapsed', c ? '1' : '0'); } catch(e){}
+    }
+
+    function prepSetMode(target, mode) {
+        document.querySelectorAll('.prep-tabs[data-target="'+target+'"] .prep-tab').forEach(t =>
+            t.classList.toggle('active', t.dataset.mode === mode));
+        if (target === 'plan') {
+            const list = $('planList'), txt = $('planText');
+            list.style.display = mode==='list' ? '' : 'none';
+            txt.style.display  = mode==='text' ? '' : 'none';
+            list.classList.toggle('prep-mode-active', mode==='list');
+            txt.classList.toggle('prep-mode-active', mode==='text');
+            if (mode==='list') renderPlanList();
+        } else if (target === 'outline') {
+            const cards = $('outlineCards'), js = $('outlineJson');
+            cards.style.display = mode==='cards' ? '' : 'none';
+            js.style.display    = mode==='json'  ? '' : 'none';
+            cards.classList.toggle('prep-mode-active', mode==='cards');
+            js.classList.toggle('prep-mode-active', mode==='json');
+            if (mode==='cards') renderOutlineCards();
+        }
+    }
+
+    function escAttr(s) { return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function parsePlanLines(raw) {
+        return (raw||'').split('\n').map(s=>s.trim()).filter(Boolean).map(line => {
+            const m = line.match(/^\[(\w+)\]\s*(.*)$/);
+            return m ? {type:m[1], text:m[2]} : {type:'richtext', text:line};
+        });
+    }
+    function planLinesToText(rows) {
+        return rows.map(r => '['+r.type+'] '+r.text).join('\n');
+    }
+    function renderPlanList() {
+        const host = $('planList'); if (!host) return;
+        const rows = parsePlanLines($('artArticlePlan').value);
+        host.innerHTML = '';
+        rows.forEach((r, i) => {
+            const div = document.createElement('div');
+            div.className = 'plan-row';
+            const known = PLAN_TYPES.includes(r.type) ? PLAN_TYPES : PLAN_TYPES.concat([r.type]);
+            const opts = known.map(t => `<option value="${t}"${t===r.type?' selected':''}>${t}</option>`).join('');
+            div.innerHTML = `<select data-i="${i}" class="plan-type">${opts}</select>
+                <input type="text" data-i="${i}" class="plan-text" value="${escAttr(r.text)}" placeholder="конкретное содержание блока">
+                <button type="button" data-i="${i}" class="plan-del" title="Удалить">✕</button>`;
+            host.appendChild(div);
+        });
+        const add = document.createElement('button');
+        add.type='button'; add.className='plan-add'; add.textContent='+ блок';
+        add.onclick = () => {
+            const cur = parsePlanLines($('artArticlePlan').value);
+            cur.push({type:'richtext', text:''});
+            $('artArticlePlan').value = planLinesToText(cur);
+            dirty = true; renderPlanList(); updatePrepSummary();
+        };
+        host.appendChild(add);
+        host.querySelectorAll('.plan-type').forEach(el => { el.addEventListener('change', planRowChanged); });
+        host.querySelectorAll('.plan-text').forEach(el => { el.addEventListener('input', planRowChanged); });
+        host.querySelectorAll('.plan-del').forEach(el => el.addEventListener('click', e => {
+            const i = +e.currentTarget.dataset.i;
+            const cur = parsePlanLines($('artArticlePlan').value);
+            cur.splice(i, 1);
+            $('artArticlePlan').value = planLinesToText(cur);
+            dirty = true; renderPlanList(); updatePrepSummary();
+        }));
+        updatePrepSummary();
+    }
+    function planRowChanged() {
+        const rows = [];
+        $('planList').querySelectorAll('.plan-row').forEach(div => {
+            rows.push({
+                type: div.querySelector('.plan-type').value,
+                text: div.querySelector('.plan-text').value
+            });
+        });
+        $('artArticlePlan').value = planLinesToText(rows);
+        dirty = true; updatePrepSummary();
+    }
+    function planTextChanged() { dirty = true; updatePrepSummary(); }
+
+    function parseOutline(raw) {
+        if (!raw || !raw.trim()) return null;
+        try {
+            const o = JSON.parse(raw);
+            return Array.isArray(o.sections) ? o : null;
+        } catch(e) { return null; }
+    }
+    function renderOutlineCards() {
+        const host = $('outlineCards'); if (!host) return;
+        host.innerHTML = '';
+        const data = parseOutline($('artOutline').value);
+        if (!data) {
+            const raw = ($('artOutline').value||'').trim();
+            host.innerHTML = '<div class="outline-empty">' +
+                (raw ? 'Невалидный JSON. Откройте вкладку JSON для правки.' :
+                       'Outline пуст. Используйте «🧭 GPT» или вкладку JSON.') + '</div>';
+            updatePrepSummary();
+            return;
+        }
+        data.sections.forEach((s, i) => {
+            const card = document.createElement('div');
+            card.className = 'outline-card'; card.dataset.i = i;
+            const facts = Array.isArray(s.source_facts) ? s.source_facts.join('\n') : '';
+            const btType = s.block_type || 'richtext';
+            const known = PLAN_TYPES.includes(btType) ? PLAN_TYPES : PLAN_TYPES.concat([btType]);
+            card.innerHTML = `
+                <div class="outline-card-head">
+                    <input type="text" data-k="h2_title" value="${escAttr(s.h2_title)}" placeholder="H2 заголовок">
+                    <select data-k="block_type">${known.map(t => `<option value="${t}"${t===btType?' selected':''}>${t}</option>`).join('')}</select>
+                    <button type="button" class="ol-del" title="Удалить">✕</button>
+                </div>
+                <label>Роль в нарративе</label>
+                <input type="text" class="ol-fld" data-k="narrative_role" value="${escAttr(s.narrative_role)}" placeholder="hook / buildup / payoff / ...">
+                <label>Что должна сказать секция</label>
+                <input type="text" class="ol-fld brief" data-k="content_brief" value="${escAttr(s.content_brief)}">
+                <label>Опорные факты (по строке)</label>
+                <textarea rows="3" data-k="source_facts">${escAttr(facts)}</textarea>`;
+            host.appendChild(card);
+        });
+        const add = document.createElement('button');
+        add.type='button'; add.className='plan-add'; add.textContent='+ секция';
+        add.onclick = () => {
+            const d = parseOutline($('artOutline').value) || {sections:[]};
+            d.sections.push({id:'s'+(d.sections.length+1), h2_title:'', narrative_role:'', block_type:'richtext', content_brief:'', source_facts:[]});
+            $('artOutline').value = JSON.stringify(d, null, 2);
+            dirty = true; renderOutlineCards();
+        };
+        host.appendChild(add);
+        host.querySelectorAll('.outline-card [data-k]').forEach(el => {
+            el.addEventListener('input', outlineCardChanged);
+            if (el.tagName === 'SELECT') el.addEventListener('change', outlineCardChanged);
+        });
+        host.querySelectorAll('.ol-del').forEach(b => b.addEventListener('click', e => {
+            const card = e.currentTarget.closest('.outline-card');
+            const i = +card.dataset.i;
+            const d = parseOutline($('artOutline').value);
+            if (!d) return;
+            d.sections.splice(i, 1);
+            $('artOutline').value = JSON.stringify(d, null, 2);
+            dirty = true; renderOutlineCards();
+        }));
+        updatePrepSummary();
+    }
+    function outlineCardChanged() {
+        const orig = parseOutline($('artOutline').value) || {sections:[]};
+        const sections = [];
+        $('outlineCards').querySelectorAll('.outline-card').forEach((card, i) => {
+            const out = Object.assign({}, orig.sections[i] || {});
+            card.querySelectorAll('[data-k]').forEach(el => {
+                const k = el.dataset.k;
+                let v = el.value;
+                if (k === 'source_facts') v = v.split('\n').map(s=>s.trim()).filter(Boolean);
+                out[k] = v;
+            });
+            if (!out.id) out.id = 's'+(i+1);
+            sections.push(out);
+        });
+        const d = Object.assign({}, orig, {sections});
+        $('artOutline').value = JSON.stringify(d, null, 2);
+        dirty = true; updatePrepSummary();
+    }
+    function outlineJsonChanged() { dirty = true; updatePrepSummary(); }
+
+    function updatePrepSummary() {
+        const sum = $('prepSummary'); if (!sum) return;
+        const planRows = parsePlanLines($('artArticlePlan').value || '');
+        const ol = parseOutline($('artOutline').value || '');
+        const research = ($('artResearch').value || '').trim();
+        const parts = [
+            planRows.length + ' блок(ов)',
+            'research ' + (research ? '✓' : '—'),
+            (ol ? ol.sections.length : 0) + ' секц.'
+        ];
+        sum.textContent = '· ' + parts.join(' · ');
+    }
+
+    // Restore collapsed state on load
+    try {
+        if (localStorage.getItem('seo_prep_collapsed') === '1') {
+            document.addEventListener('DOMContentLoaded', () => {
+                const b = document.getElementById('prepBlock');
+                if (b) b.classList.add('collapsed');
+            });
+        }
+    } catch(e){}
 
     function switchTab(tab) {
         activeTab = tab;
@@ -2091,6 +2379,14 @@ requireAuth();
             $('artGenLog').style.display = 'none';
             $('genLogToggleIcon').textContent = '▶ показать';
 
+            $('artResearch').value = art.research_dossier || '';
+            renderResearchStatusAdv(art.research_status || 'none', art.research_at || null);
+            $('artOutline').value = art.article_outline || '';
+            renderOutlineStatusAdv(art.outline_status || 'none');
+            renderPlanList();
+            renderOutlineCards();
+            updatePrepSummary();
+
             $('btnUnpublish').style.display = art.status==='published' ? 'inline-flex' : 'none';
             $('pubResult').style.display = 'none';
             $('previewFrame').style.display = 'none';
@@ -2116,7 +2412,12 @@ requireAuth();
         activeEditor = 'article';
         showEditor('articleEditor', 'Новая статья', null, '<span class="status-badge status-draft">Черновик</span>');
         loading = true;
-        ['artTitle','artSlug','artKeywords','artMetaTitle','artMetaDesc','artMetaKeywords','artArticlePlan','artCreatedBy','artGenLog'].forEach(id => $(id).value='');
+        ['artTitle','artSlug','artKeywords','artMetaTitle','artMetaDesc','artMetaKeywords','artArticlePlan','artCreatedBy','artGenLog','artResearch','artOutline'].forEach(id => $(id).value='');
+        renderResearchStatusAdv('none', null);
+        renderOutlineStatusAdv('none');
+        renderPlanList();
+        renderOutlineCards();
+        updatePrepSummary();
         $('artStatus').value = 'draft'; ssArtCatalog.clear(); ssArtTemplate.clear();
         $('artGptModel').value = 'gpt-4o'; setVersionBadge(1); setPublishedUrl('');
         $('artGenLog').style.display = 'none'; $('genLogToggleIcon').textContent = '▶ показать';
@@ -2760,6 +3061,112 @@ requireAuth();
 
         if (btn) btn.textContent = 'Gen';
         genReset();
+    }
+
+    function renderResearchStatusAdv(status, at) {
+        const badge = $('artResearchStatus');
+        if (!badge) return;
+        const map = {
+            none:    {text:'none',    bg:'#334155', fg:'#94a3b8'},
+            pending: {text:'pending', bg:'#7c2d12', fg:'#fed7aa'},
+            ready:   {text:'ready',   bg:'#064e3b', fg:'#6ee7b7'},
+            error:   {text:'error',   bg:'#7f1d1d', fg:'#fecaca'},
+        };
+        const m = map[status] || map.none;
+        badge.textContent = m.text;
+        badge.style.background = m.bg;
+        badge.style.color = m.fg;
+        const at_ = $('artResearchAt');
+        if (at_) at_.textContent = at ? ('обновлено ' + new Date(String(at).replace(' ', 'T')).toLocaleString('ru-RU')) : '';
+    }
+
+    function renderOutlineStatusAdv(status) {
+        const badge = $('artOutlineStatus');
+        if (!badge) return;
+        const map = {
+            none:    {text:'none',    bg:'#334155', fg:'#94a3b8'},
+            pending: {text:'pending', bg:'#7c2d12', fg:'#fed7aa'},
+            ready:   {text:'ready',   bg:'#064e3b', fg:'#6ee7b7'},
+            error:   {text:'error',   bg:'#7f1d1d', fg:'#fecaca'},
+        };
+        const m = map[status] || map.none;
+        badge.textContent = m.text;
+        badge.style.background = m.bg;
+        badge.style.color = m.fg;
+    }
+
+    async function buildResearchAdv(force) {
+        if (!artId) { toast('Сначала сохраните статью', true); return; }
+        const cur = ($('artResearch').value || '').trim();
+        if (cur && !force && !confirm('Research уже заполнен. Перезаписать через GPT?')) return;
+        try {
+            renderResearchStatusAdv('pending', null);
+            const result = await api('generate/'+artId+'/research', {
+                method: 'POST',
+                body: { force: !!force, model: $('genModel').value }
+            });
+            const d = result.data || {};
+            $('artResearch').value = d.dossier || '';
+            renderResearchStatusAdv('ready', d.at || new Date().toISOString().replace('T',' ').slice(0,19));
+            toast('Research собран');
+        } catch(e) {
+            renderResearchStatusAdv('error', null);
+            toast('Ошибка research: ' + e.message, true);
+        }
+    }
+
+    async function saveResearchAdv() {
+        if (!artId) { toast('Сначала сохраните статью', true); return; }
+        const dossier = $('artResearch').value;
+        try {
+            const result = await api('generate/'+artId+'/research', {
+                method: 'POST',
+                body: { dossier, status: dossier.trim() ? 'ready' : 'none' }
+            });
+            const d = result.data || {};
+            renderResearchStatusAdv(d.status || 'none', d.at || null);
+            toast('Research сохранён');
+        } catch(e) {
+            toast('Ошибка: ' + e.message, true);
+        }
+    }
+
+    async function buildOutlineAdv(force) {
+        if (!artId) { toast('Сначала сохраните статью', true); return; }
+        const cur = ($('artOutline').value || '').trim();
+        if (cur && !force && !confirm('Outline уже заполнен. Перезаписать через GPT?')) return;
+        try {
+            renderOutlineStatusAdv('pending');
+            const result = await api('generate/'+artId+'/outline', {
+                method: 'POST',
+                body: { force: !!force, model: $('genModel').value }
+            });
+            const d = result.data || {};
+            const out = typeof d.outline === 'string' ? d.outline
+                : (d.outline ? JSON.stringify(d.outline, null, 2) : '');
+            $('artOutline').value = out;
+            renderOutlineStatusAdv('ready');
+            toast('Outline построен');
+        } catch(e) {
+            renderOutlineStatusAdv('error');
+            toast('Ошибка outline: ' + e.message, true);
+        }
+    }
+
+    async function saveOutlineAdv() {
+        if (!artId) { toast('Сначала сохраните статью', true); return; }
+        const outline = $('artOutline').value;
+        try {
+            const result = await api('generate/'+artId+'/outline', {
+                method: 'POST',
+                body: { outline, status: outline.trim() ? 'ready' : 'none' }
+            });
+            const d = result.data || {};
+            renderOutlineStatusAdv(d.status || 'none');
+            toast('Outline сохранён');
+        } catch(e) {
+            toast('Ошибка: ' + e.message, true);
+        }
     }
 
     async function generateMeta() {

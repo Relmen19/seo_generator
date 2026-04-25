@@ -544,57 +544,7 @@ body.advanced .section.adv-only { display: block !important; }
         </div>
     </div>
 
-    <!-- Research dossier -->
-    <div class="section">
-        <div class="section-head" style="display:flex;align-items:center;gap:10px;justify-content:space-between">
-            <span class="section-head-title">Research dossier
-                <span id="researchStatusBadge" class="badge badge-muted" style="margin-left:8px">none</span>
-                <span id="researchAt" style="margin-left:8px;color:var(--text-3);font-size:11px"></span>
-            </span>
-            <span style="display:flex;gap:8px">
-                <button type="button" class="btn btn-secondary btn-sm" id="btnResearchSave" onclick="saveResearchManual()" title="Сохранить как есть (без GPT)">💾 Сохранить</button>
-                <button type="button" class="btn btn-primary btn-sm" id="btnResearchBuild" onclick="buildResearch(false)" title="Собрать через GPT">🔍 Собрать research</button>
-            </span>
-        </div>
-        <div class="section-body">
-            <div class="field">
-                <label>Markdown досье (факты, цифры, сравнения, термины)</label>
-                <textarea id="fResearch" rows="14" placeholder="Будет заполнено автоматически после нажатия «Собрать research», или впишите вручную."
-                          style="font-family:'SF Mono',Menlo,monospace;font-size:12px;line-height:1.55"></textarea>
-            </div>
-            <div style="font-size:11px;color:var(--text-3);margin-top:6px">
-                Досье — фактическая база. Используется в meta + блоках. Если пусто — генерация идёт «всухую».
-                Кнопка «Собрать» запускает отдельный GPT-вызов (категория токенов: <b>article_research</b>).
-            </div>
-        </div>
-    </div>
-
-    <!-- Outline -->
-    <div class="section">
-        <div class="section-head" style="display:flex;align-items:center;gap:10px;justify-content:space-between">
-            <span class="section-head-title">Outline (структура статьи)
-                <span id="outlineStatusBadge" class="badge badge-muted" style="margin-left:8px">none</span>
-            </span>
-            <span style="display:flex;gap:8px">
-                <button type="button" class="btn btn-secondary btn-sm" id="btnOutlineSave" onclick="saveOutlineManual()" title="Сохранить как есть (без GPT)">💾 Сохранить</button>
-                <button type="button" class="btn btn-primary btn-sm" id="btnOutlineBuild" onclick="buildOutline(false)" title="Построить через GPT">🧭 Построить outline</button>
-            </span>
-        </div>
-        <div class="section-body">
-            <div id="outlineSections" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
-            <details>
-                <summary style="cursor:pointer;font-size:12px;color:var(--text-3)">JSON outline (правится вручную)</summary>
-                <div class="field" style="margin-top:8px">
-                    <textarea id="fOutline" rows="12" placeholder='{"sections":[{"id":"s1","h2_title":"...","narrative_role":"hook","block_type":"richtext","content_brief":"...","source_facts":["..."]}]}'
-                              style="font-family:'SF Mono',Menlo,monospace;font-size:12px;line-height:1.55"></textarea>
-                </div>
-            </details>
-            <div style="font-size:11px;color:var(--text-3);margin-top:6px">
-                Outline — источник истины: блоки строятся по секциям. Шаблон используется только если outline пуст.
-                Требуется готовый research dossier. Категория токенов: <b>article_outline</b>.
-            </div>
-        </div>
-    </div>
+    <!-- Research dossier / Outline — advanced-only. См. admin_advanced. -->
 
     <!-- Generate -->
     <div class="gen-card">
@@ -843,13 +793,7 @@ function renderEditor() {
     el('fMetaTitle').value = a.meta_title || '';
     el('fMetaDesc').value = a.meta_description || '';
 
-    // Research dossier
-    el('fResearch').value = a.research_dossier || '';
-    renderResearchStatus(a.research_status || 'none', a.research_at || null);
-
-    // Outline
-    el('fOutline').value = a.article_outline || '';
-    renderOutline(a.article_outline || '', a.outline_status || 'none');
+    // Research/Outline UI — advanced-only; markup removed in simple mode.
 
     el('metaPubUrl').textContent = a.published_url || '—';
     el('metaVersion').textContent = a.version || 1;

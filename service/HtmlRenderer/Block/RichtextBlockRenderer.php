@@ -126,7 +126,18 @@ class RichtextBlockRenderer extends AbstractBlockRenderer
             }
         }
 
-        $h = '<section id="'.$id.'" class="block-richtext lf-richtext reveal">'
+        // Detect long-form types — apply lf-* styling only when present.
+        $longformTypes = ['callout', 'code', 'figure', 'table', 'footnote'];
+        $isLongform = false;
+        foreach ($normalized as $nb) {
+            if (in_array(($nb['type'] ?? ''), $longformTypes, true)) {
+                $isLongform = true;
+                break;
+            }
+        }
+        $rootClass = $isLongform ? 'block-richtext lf-richtext reveal' : 'block-richtext reveal';
+
+        $h = '<section id="'.$id.'" class="'.$rootClass.'">'
             . '<div class="container">';
 
         if ($isTopBottom && $imageVPos === 'top' && $imageHtml) {
@@ -147,7 +158,7 @@ class RichtextBlockRenderer extends AbstractBlockRenderer
                 $imageHtml = '';
             }
 
-            $h .= $this->renderRichtextSubblock($b, $tocName);
+            $h .= $this->renderRichtextSubblock($b, $tocName, $isLongform);
         }
 
         if ($inFloat) {
@@ -173,18 +184,21 @@ class RichtextBlockRenderer extends AbstractBlockRenderer
         }
 
         $h = str_replace(
-            'class="block-richtext lf-richtext reveal"',
-            'class="block-richtext lf-richtext reveal" data-toc="'.$this->e($tocName ?: 'Описание').'"',
+            'class="'.$rootClass.'"',
+            'class="'.$rootClass.'" data-toc="'.$this->e($tocName ?: 'Описание').'"',
             $h
         );
 
         return $h.'</div></section>'."\n";
     }
 
-    private function renderRichtextSubblock(array $b, string &$tocName): string
+    private function renderRichtextSubblock(array $b, string &$tocName, bool $longform = false): string
     {
         $t = $b['type'] ?? 'paragraph';
         $h = '';
+        $inline = function (string $s) use ($longform): string {
+            return $longform ? $this->renderInline($s) : $this->e($s);
+        };
 
         // Block types that read scalar text
         $txt = $b['text'] ?? $b['content'] ?? '';
@@ -213,24 +227,29 @@ class RichtextBlockRenderer extends AbstractBlockRenderer
             $h .= '<ul>';
             foreach ($items as $li) {
                 $liText = is_string($li) ? $li : (is_array($li) && isset($li['text']) ? $li['text'] : json_encode($li, JSON_UNESCAPED_UNICODE));
-                $h .= '<li>'.$this->renderInline((string)$liText).'</li>';
+                $h .= '<li>'.$inline((string)$liText).'</li>';
             }
             $h .= '</ul>';
 
         } elseif ($t === 'highlight') {
-            $h .= '<div class="highlight">'.$this->renderInline($txt).'</div>';
+            $h .= '<div class="highlight">'.$inline($txt).'</div>';
 
         } elseif ($t === 'quote') {
             $author = isset($b['author']) ? (string)$b['author'] : '';
             $source = isset($b['source']) ? (string)$b['source'] : '';
-            $h .= '<blockquote class="lf-quote"><p>'.$this->renderInline($txt).'</p>';
-            if ($author !== '' || $source !== '') {
-                $h .= '<footer class="lf-quote-cite">';
-                if ($author !== '') $h .= '<span class="lf-quote-author">'.$this->e($author).'</span>';
-                if ($source !== '') $h .= '<cite class="lf-quote-source">'.$this->e($source).'</cite>';
-                $h .= '</footer>';
+            // Legacy: simple <blockquote>text</blockquote>. Long-form: structured citation.
+            if (!$longform && $author === '' && $source === '') {
+                $h .= '<blockquote>'.$this->e($txt).'</blockquote>';
+            } else {
+                $h .= '<blockquote class="lf-quote"><p>'.$inline($txt).'</p>';
+                if ($author !== '' || $source !== '') {
+                    $h .= '<footer class="lf-quote-cite">';
+                    if ($author !== '') $h .= '<span class="lf-quote-author">'.$this->e($author).'</span>';
+                    if ($source !== '') $h .= '<cite class="lf-quote-source">'.$this->e($source).'</cite>';
+                    $h .= '</footer>';
+                }
+                $h .= '</blockquote>';
             }
-            $h .= '</blockquote>';
 
         } elseif ($t === 'callout') {
             $variant = (string)($b['variant'] ?? 'info');
@@ -243,7 +262,7 @@ class RichtextBlockRenderer extends AbstractBlockRenderer
             ][$variant];
             $h .= '<aside class="lf-callout lf-callout--'.$variant.'">'
                 . '<span class="lf-callout-icon" aria-hidden="true">'.$icon.'</span>'
-                . '<div class="lf-callout-body">'.$this->renderInline($txt).'</div>'
+                . '<div class="lf-callout-body">'.$inline($txt).'</div>'
                 . '</aside>';
 
         } elseif ($t === 'code') {
@@ -281,7 +300,7 @@ class RichtextBlockRenderer extends AbstractBlockRenderer
                 $h .= '<figure class="lf-figure">'
                     . '<div class="img-frame"><img src="'.$this->e($imgSrc).'" alt="'.$alt.'" loading="lazy"></div>';
                 if ($caption !== '') {
-                    $h .= '<figcaption>'.$this->renderInline($caption).'</figcaption>';
+                    $h .= '<figcaption>'.$inline($caption).'</figcaption>';
                 }
                 $h .= '</figure>';
             }
@@ -294,7 +313,7 @@ class RichtextBlockRenderer extends AbstractBlockRenderer
                 if (!empty($headers)) {
                     $h .= '<thead><tr>';
                     foreach ($headers as $col) {
-                        $h .= '<th>'.$this->renderInline((string)$col).'</th>';
+                        $h .= '<th>'.$inline((string)$col).'</th>';
                     }
                     $h .= '</tr></thead>';
                 }
@@ -303,7 +322,7 @@ class RichtextBlockRenderer extends AbstractBlockRenderer
                     if (!is_array($row)) continue;
                     $h .= '<tr>';
                     foreach ($row as $cell) {
-                        $h .= '<td>'.$this->renderInline((string)$cell).'</td>';
+                        $h .= '<td>'.$inline((string)$cell).'</td>';
                     }
                     $h .= '</tr>';
                 }
@@ -317,7 +336,7 @@ class RichtextBlockRenderer extends AbstractBlockRenderer
 
         } else {
             if (trim($txt) !== '') {
-                $h .= '<p>'.$this->renderInline($txt).'</p>';
+                $h .= '<p>'.$inline($txt).'</p>';
             }
         }
 

@@ -8,7 +8,9 @@ use RuntimeException;
 use Seo\Database;
 use Seo\Entity\SeoArticle;
 use Seo\Entity\SeoArticleBlock;
+use Seo\Entity\SeoArticleIllustration;
 use Seo\Entity\SeoAuditLog;
+use Seo\Entity\SeoImage;
 use Seo\Entity\SeoSiteProfile;
 use Seo\Entity\SeoTemplateBlock;
 use Seo\Enum\ImagePrompt;
@@ -475,5 +477,339 @@ class ImageGeneratorService {
 
     public function getLastResult(): array {
         return $this->lastResult;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Hero / OG illustration pipeline (article-level).
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Generate hero banner: GPT crafts prompt from research_dossier + brand kit,
+     * Imagen-3 / DALL-E renders 16:9, saved into seo_images and linked via
+     * seo_article_illustrations(kind=hero). Replaces previous hero atomically.
+     *
+     * $options: model (gemini-2.5-flash-image|dall-e-3), size (default 1792x1024),
+     *           custom_prompt (skip GPT crafting), prompt_model (GPT model for crafter).
+     */
+    public function generateHero(int $articleId, array $options = []): array {
+        $article = $this->loadArticle($articleId);
+        $profile = $this->loadProfileForArticle($article);
+        $brandKit = $this->extractBrandKit($profile);
+
+        $size = $options['size'] ?? '1792x1024';
+        $options['size'] = $size;
+        $options['model'] = $options['model'] ?? 'gemini-2.5-flash-image';
+
+        $prompt = !empty($options['custom_prompt'])
+            ? $options['custom_prompt']
+            : $this->buildHeroPrompt($articleId, $article, $profile, $brandKit, $options);
+
+        $this->upsertIllustration($articleId, SeoArticleIllustration::KIND_HERO, [
+            'status' => SeoArticleIllustration::STATUS_PENDING,
+            'prompt' => $prompt,
+            'model'  => $options['model'],
+        ]);
+
+        try {
+            $result = $this->callImageApi($prompt, $options);
+        } catch (Throwable $e) {
+            $this->upsertIllustration($articleId, SeoArticleIllustration::KIND_HERO, [
+                'status' => SeoArticleIllustration::STATUS_FAILED,
+                'error'  => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+
+        $imageId = $this->saveImage([
+            'article_id'  => $articleId,
+            'block_id'    => null,
+            'name'        => mb_substr('hero: ' . ($article['title'] ?? ''), 0, 200),
+            'alt_text'    => mb_substr($article['title'] ?? '', 0, 300),
+            'mime_type'   => 'image/png',
+            'data_base64' => $result['b64_json'],
+            'source'      => SeoImage::SOURCE_GENERATED,
+            'gpt_prompt'  => $prompt,
+        ]);
+
+        $this->upsertIllustration($articleId, SeoArticleIllustration::KIND_HERO, [
+            'status'     => SeoArticleIllustration::STATUS_READY,
+            'prompt'     => $prompt,
+            'model'      => $options['model'],
+            'image_id'   => $imageId,
+            'cost_cents' => $this->estimateImageCostCents($options['model'], $size),
+            'error'      => null,
+        ]);
+
+        $this->writeAudit($articleId, 'illustration_hero_generate', [
+            'image_id' => $imageId,
+            'model'    => $options['model'],
+            'size'     => $size,
+            'prompt'   => mb_substr($prompt, 0, 500),
+        ]);
+
+        return [
+            'kind'     => SeoArticleIllustration::KIND_HERO,
+            'image_id' => $imageId,
+            'prompt'   => $prompt,
+            'model'    => $options['model'],
+        ];
+    }
+
+    /**
+     * Generate OG image (1200x630) via puppeteer: HTML template + brand kit + title.
+     * No image-API call by default — pure HTML→PNG. Cheap & deterministic.
+     */
+    public function generateOg(int $articleId, array $options = []): array {
+        $article  = $this->loadArticle($articleId);
+        $profile  = $this->loadProfileForArticle($article);
+        $brandKit = $this->extractBrandKit($profile);
+
+        $heroIllust = $this->loadIllustration($articleId, SeoArticleIllustration::KIND_HERO);
+        $bgDataUri  = null;
+        if ($heroIllust && !empty($heroIllust['image_id'])) {
+            $img = $this->db->fetchOne(
+                "SELECT mime_type, data_base64 FROM seo_images WHERE id = ?",
+                [(int)$heroIllust['image_id']]
+            );
+            if ($img) {
+                $bgDataUri = 'data:' . $img['mime_type'] . ';base64,' . $img['data_base64'];
+            }
+        }
+
+        $html = $this->renderOgHtml($article, $profile, $brandKit, $bgDataUri);
+
+        $this->upsertIllustration($articleId, SeoArticleIllustration::KIND_OG, [
+            'status' => SeoArticleIllustration::STATUS_PENDING,
+            'prompt' => null,
+            'model'  => 'puppeteer',
+        ]);
+
+        try {
+            $puppeteer = new PuppeteerClient();
+            $shot = $puppeteer->screenshot($html, 1200, 1);
+        } catch (Throwable $e) {
+            $this->upsertIllustration($articleId, SeoArticleIllustration::KIND_OG, [
+                'status' => SeoArticleIllustration::STATUS_FAILED,
+                'error'  => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+
+        $imageId = $this->saveImage([
+            'article_id'  => $articleId,
+            'block_id'    => null,
+            'name'        => mb_substr('og: ' . ($article['title'] ?? ''), 0, 200),
+            'alt_text'    => mb_substr($article['title'] ?? '', 0, 300),
+            'mime_type'   => 'image/png',
+            'data_base64' => $shot['image'],
+            'source'      => SeoImage::SOURCE_RENDERED,
+            'gpt_prompt'  => null,
+        ]);
+
+        $this->upsertIllustration($articleId, SeoArticleIllustration::KIND_OG, [
+            'status'   => SeoArticleIllustration::STATUS_READY,
+            'model'    => 'puppeteer',
+            'image_id' => $imageId,
+            'error'    => null,
+        ]);
+
+        $this->writeAudit($articleId, 'illustration_og_generate', [
+            'image_id' => $imageId,
+            'width'    => $shot['width']  ?? null,
+            'height'   => $shot['height'] ?? null,
+        ]);
+
+        return [
+            'kind'     => SeoArticleIllustration::KIND_OG,
+            'image_id' => $imageId,
+            'model'    => 'puppeteer',
+        ];
+    }
+
+    /**
+     * Build hero prompt via GPT: title + keywords + research_dossier (truncated)
+     * + brand kit fed into HERO_CRAFT_SYSTEM. Token usage logged under
+     * CATEGORY_ARTICLE_ILLUSTRATION.
+     */
+    public function buildHeroPrompt(
+        int $articleId,
+        array $article,
+        ?array $profile,
+        array $brandKit,
+        array $options = []
+    ): string {
+        $niche = $profile['niche'] ?? '';
+        $nicheCtx = $niche !== '' ? "в нише «{$niche}»" : "на профессиональную тему";
+        $styleHint = $brandKit['illustration_style']
+            ?: 'flat vector isometric, ytsaurus.tech style, soft gradients, clean shapes';
+        $palette = !empty($brandKit['palette'])
+            ? json_encode($brandKit['palette'], JSON_UNESCAPED_UNICODE)
+            : '{"primary":"#2563eb","accent":"#22c55e","ink":"#0f172a","bg":"#f8fafc"}';
+
+        $system = sprintf(ImagePrompt::HERO_CRAFT_SYSTEM, $nicheCtx, $styleHint, $palette);
+
+        $userMsg  = "Контекст статьи:\n";
+        $userMsg .= "Заголовок: " . ($article['title']    ?? '') . "\n";
+        $userMsg .= "Ключевые слова: " . ($article['keywords'] ?? '') . "\n";
+        $dossier = (string)($article['research_dossier'] ?? '');
+        if ($dossier !== '') {
+            $userMsg .= "\nResearch dossier:\n" . mb_substr($dossier, 0, 4000) . "\n";
+        }
+        $userMsg .= "\n" . ImagePrompt::HERO_CRAFT_USER_FOOTER;
+
+        $this->gpt->setLogContext([
+            'category'    => TokenUsageLogger::CATEGORY_ARTICLE_ILLUSTRATION,
+            'profile_id'  => $article['profile_id'] ?? null,
+            'operation'   => 'build_hero_prompt',
+            'entity_type' => 'article',
+            'entity_id'   => $articleId,
+        ]);
+
+        try {
+            $result = $this->gpt->chat([
+                ['role' => 'system', 'content' => $system],
+                ['role' => 'user',   'content' => $userMsg],
+            ], [
+                'model'       => $options['prompt_model'] ?? SEO_IMAGE_PROMPT_MODEL,
+                'temperature' => SEO_TEMPERATURE_IMAGE,
+                'max_tokens'  => SEO_MAX_TOKENS_IMG_PROMPT,
+            ]);
+        } finally {
+            $this->gpt->clearLogContext();
+        }
+
+        $prompt = trim((string)($result['content'] ?? ''), " \t\n\r\0\x0B\"'");
+        if ($prompt === '') {
+            throw new RuntimeException('GPT вернул пустой hero prompt');
+        }
+        return $prompt;
+    }
+
+    /**
+     * Render OG HTML from public/og-template.html with placeholders substituted.
+     * Placeholders: {{title}} {{accent_color}} {{primary_color}} {{ink_color}}
+     *               {{bg_color}} {{logo_data_uri}} {{bg_image_data_uri}} {{niche}}
+     */
+    public function renderOgHtml(
+        array $article,
+        ?array $profile,
+        array $brandKit,
+        ?string $bgImageDataUri = null
+    ): string {
+        $tplPath = dirname(__DIR__) . '/public/og-template.html';
+        if (!is_file($tplPath)) {
+            throw new RuntimeException("OG template not found: {$tplPath}");
+        }
+        $tpl = (string)file_get_contents($tplPath);
+
+        $palette = $brandKit['palette'] ?? [];
+        $logoDataUri = '';
+        if (!empty($brandKit['logo_image_id'])) {
+            $img = $this->db->fetchOne(
+                "SELECT mime_type, data_base64 FROM seo_images WHERE id = ?",
+                [(int)$brandKit['logo_image_id']]
+            );
+            if ($img) {
+                $logoDataUri = 'data:' . $img['mime_type'] . ';base64,' . $img['data_base64'];
+            }
+        }
+
+        $vars = [
+            '{{title}}'             => htmlspecialchars((string)($article['title'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+            '{{niche}}'             => htmlspecialchars((string)($profile['niche'] ?? ''),  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+            '{{primary_color}}'     => $this->safeColor($palette['primary'] ?? '#2563eb'),
+            '{{accent_color}}'      => $this->safeColor($palette['accent']  ?? '#22c55e'),
+            '{{ink_color}}'         => $this->safeColor($palette['ink']     ?? '#0f172a'),
+            '{{bg_color}}'          => $this->safeColor($palette['bg']      ?? '#f8fafc'),
+            '{{logo_data_uri}}'     => $logoDataUri,
+            '{{bg_image_data_uri}}' => $bgImageDataUri ?? '',
+        ];
+        return strtr($tpl, $vars);
+    }
+
+    /** UPSERT a row in seo_article_illustrations. Old image_id is detached and deleted. */
+    private function upsertIllustration(int $articleId, string $kind, array $data): int {
+        $existing = $this->loadIllustration($articleId, $kind);
+
+        $row = [
+            'article_id' => $articleId,
+            'kind'       => $kind,
+            'prompt'     => array_key_exists('prompt',     $data) ? $data['prompt']     : ($existing['prompt']     ?? null),
+            'model'      => array_key_exists('model',      $data) ? $data['model']      : ($existing['model']      ?? null),
+            'status'     => array_key_exists('status',     $data) ? $data['status']     : ($existing['status']     ?? SeoArticleIllustration::STATUS_PENDING),
+            'error'      => array_key_exists('error',      $data) ? $data['error']      : ($existing['error']      ?? null),
+            'cost_cents' => array_key_exists('cost_cents', $data) ? (int)$data['cost_cents'] : (int)($existing['cost_cents'] ?? 0),
+            'image_id'   => array_key_exists('image_id',   $data) ? $data['image_id']   : ($existing['image_id']   ?? null),
+        ];
+
+        if ($existing) {
+            $oldImageId = $existing['image_id'] ?? null;
+            $this->db->update(
+                SeoArticleIllustration::TABLE,
+                'id = :id',
+                $row,
+                [':id' => (int)$existing['id']]
+            );
+            $id = (int)$existing['id'];
+            if ($oldImageId && !empty($row['image_id']) && (int)$oldImageId !== (int)$row['image_id']) {
+                try {
+                    $this->db->getPdo()->prepare("DELETE FROM seo_images WHERE id = ?")
+                        ->execute([(int)$oldImageId]);
+                } catch (Throwable $e) {
+                    error_log('[ImageGeneratorService] failed to delete stale image #' . $oldImageId . ': ' . $e->getMessage());
+                }
+            }
+            return $id;
+        }
+
+        $this->db->insert(SeoArticleIllustration::TABLE, $row);
+        return (int)$this->db->getPdo()->lastInsertId();
+    }
+
+    public function loadIllustration(int $articleId, string $kind): ?array {
+        $r = $this->db->fetchOne(
+            "SELECT * FROM " . SeoArticleIllustration::TABLE . " WHERE article_id = ? AND kind = ?",
+            [$articleId, $kind]
+        );
+        return $r ?: null;
+    }
+
+    private function loadProfileForArticle(array $article): ?array {
+        if (empty($article['profile_id'])) return null;
+        return $this->db->fetchOne(
+            "SELECT * FROM " . SeoSiteProfile::TABLE . " WHERE id = ?",
+            [(int)$article['profile_id']]
+        );
+    }
+
+    private function extractBrandKit(?array $profile): array {
+        if (!$profile) return ['palette' => [], 'illustration_style' => '', 'logo_image_id' => null];
+        $palette = [];
+        if (!empty($profile['brand_palette'])) {
+            $decoded = is_array($profile['brand_palette'])
+                ? $profile['brand_palette']
+                : json_decode((string)$profile['brand_palette'], true);
+            if (is_array($decoded)) $palette = $decoded;
+        }
+        return [
+            'palette'            => $palette,
+            'illustration_style' => (string)($profile['brand_illustration_style'] ?? ''),
+            'logo_image_id'      => $profile['brand_logo_image_id'] ?? null,
+        ];
+    }
+
+    private function safeColor(string $c): string {
+        return preg_match('/^#[0-9a-fA-F]{3,8}$|^rgb\([^)]+\)$|^rgba\([^)]+\)$/', $c) ? $c : '#2563eb';
+    }
+
+    /** Rough cost estimate in cents per image generation by model+size. */
+    private function estimateImageCostCents(string $model, string $size): int {
+        if (strpos($model, 'dall-e-3') !== false) {
+            return $size === '1792x1024' || $size === '1024x1792' ? 8 : 4; // standard quality
+        }
+        if (strpos($model, 'gemini') !== false || strpos($model, 'imagen') !== false) {
+            return 4;
+        }
+        return 0;
     }
 }

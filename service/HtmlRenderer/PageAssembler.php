@@ -97,6 +97,10 @@ class PageAssembler
             $content = is_string($block['content'])
                 ? json_decode($block['content'], true)
                 : ($block['content'] ?? []);
+            // Inject article_id so block renderers can pull article-scoped data
+            // (e.g. HeroBlockRenderer reads seo_article_illustrations).
+            if (!is_array($content)) $content = [];
+            $content['article_id'] = $block['article_id'] ?? null;
 
             $renderer = $this->registry->get($block['type']);
             if (!$renderer) {
@@ -167,6 +171,34 @@ class PageAssembler
         $css   = $template ? $this->e($template['css_class'] ?? '') : '';
         $url   = $this->e($article['published_url'] ?? '');
 
+        // Resolve OG illustration → absolute URL pointing to /images/{id}/raw on same host as published_url.
+        $ogImageMeta = '';
+        $ogIll = $this->db->fetchOne(
+            "SELECT image_id FROM seo_article_illustrations
+             WHERE article_id = ? AND kind = 'og' AND status = 'ready' AND image_id IS NOT NULL",
+            [(int)$articleId]
+        );
+        if ($ogIll && !empty($ogIll['image_id'])) {
+            $base = '';
+            $rawUrl = (string)($article['published_url'] ?? '');
+            if ($rawUrl !== '') {
+                $parts = parse_url($rawUrl);
+                if (!empty($parts['scheme']) && !empty($parts['host'])) {
+                    $base = $parts['scheme'] . '://' . $parts['host']
+                          . (!empty($parts['port']) ? ':' . $parts['port'] : '');
+                }
+            }
+            if ($base === '' && defined('SITE_BASE_URL')) {
+                $base = rtrim(SITE_BASE_URL, '/');
+            }
+            $ogImgUrl = $base . '/images/' . (int)$ogIll['image_id'] . '/raw';
+            $ogImageMeta = '<meta property="og:image" content="' . $this->e($ogImgUrl) . '">'
+                . '<meta property="og:image:width" content="1200">'
+                . '<meta property="og:image:height" content="630">'
+                . '<meta name="twitter:card" content="summary_large_image">'
+                . '<meta name="twitter:image" content="' . $this->e($ogImgUrl) . '">';
+        }
+
         $chartJs = strpos($bodyHtml, 'chartjs-wrap') !== false
             ? '<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>'
             : '';
@@ -193,6 +225,7 @@ class PageAssembler
             . '<meta property="og:description" content="' . $desc . '">'
             . '<meta property="og:type" content="article">'
             . '<meta property="og:url" content="' . $url . '">'
+            . $ogImageMeta
             . '<link rel="canonical" href="' . $url . '">'
             . '<link rel="icon" href="' . $logo . '">'
             . $fonts

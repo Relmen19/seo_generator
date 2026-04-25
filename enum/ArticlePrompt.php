@@ -13,6 +13,9 @@ abstract class ArticlePrompt
     /** Default SEO copywriter persona */
     const DEFAULT_PERSONA = "Ты — профессиональный SEO-копирайтер. JSON-формат. Профессиональный, но доступный стиль. Конкретные факты, данные, примеры.";
 
+    /** Backwards-compatible format example — only original 5 types (default). */
+    const RICHTEXT_FORMAT_BASIC = '{"blocks":[{"type":"heading","text":"...","level":2},{"type":"paragraph","text":"..."},{"type":"list","items":["..."]},{"type":"highlight","text":"..."},{"type":"quote","text":"..."}]}';
+
     /** JSON format example for richtext blocks (long-form: ytsaurus.tech style) */
     const RICHTEXT_FORMAT = '{"blocks":['
         . '{"type":"heading","text":"...","level":2},'
@@ -27,7 +30,10 @@ abstract class ArticlePrompt
         . '{"type":"highlight","text":"..."}'
         . ']}';
 
-    /** Rules for richtext sub-block types */
+    /** Backwards-compatible rules — only original 5 types (default). */
+    const RICHTEXT_RULES_BASIC = 'type "list" → "items"(массив строк). type "heading" → "text"+"level"(2/3). Остальные → "text"(строка). Мин. 6 подблоков, чередуй типы.';
+
+    /** Long-form rules — used only when template opts in via block_types. */
     const RICHTEXT_RULES =
           'list → items(массив строк). heading → text+level(2/3). '
         . 'quote → text(+author, source опционально). '
