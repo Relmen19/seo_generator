@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS `seo_article_illustrations` (
     `kind`        ENUM('hero','og','inline') NOT NULL,
     `prompt`      TEXT            NULL,
     `model`       VARCHAR(64)     NULL COMMENT 'imagen-3 / dall-e-3 / puppeteer / manual',
-    `image_id`    INT UNSIGNED    NULL COMMENT 'FK seo_images.id (base64 storage)',
+    `image_id`    BIGINT UNSIGNED    NULL COMMENT 'FK seo_images.id (base64 storage)',
     `status`      VARCHAR(32)     NOT NULL DEFAULT 'ready' COMMENT 'pending|ready|failed',
     `error`       TEXT            NULL,
     `cost_cents`  INT UNSIGNED    NOT NULL DEFAULT 0,
