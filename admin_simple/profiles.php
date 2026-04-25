@@ -355,30 +355,61 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 
 .sb-json { background: #0f172a; color: #cbd5e1; padding: 14px; border-radius: var(--radius-sm); font-size: 11.5px; font-family: 'SF Mono', monospace; max-height: 320px; overflow: auto; white-space: pre-wrap; line-height: 1.5; }
 
+/* Hint row (above AI options) */
+.sb-hint-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; padding: 10px 12px; background: #fafbff; border: 1px dashed var(--border); border-radius: var(--radius-sm); }
+.sb-hint-row .sb-hint-input { flex: 1; }
+.sb-hint-input { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; background: #fff; color: var(--text); width: 100%; box-sizing: border-box; transition: .15s; }
+.sb-hint-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,91,214,.12); }
+
+/* Delete button on option cards */
+.sb-card { position: relative; }
+.sb-card-del { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border: 1px solid var(--border); background: #fff; color: var(--text-3); border-radius: 50%; font-size: 11px; line-height: 1; cursor: pointer; opacity: 0; transition: .15s; display: flex; align-items: center; justify-content: center; padding: 0; z-index: 2; }
+.sb-card:hover .sb-card-del { opacity: 1; }
+.sb-card-del:hover { background: #fee; border-color: #e57373; color: #c62828; }
+.sb-rule { position: relative; }
+.sb-rule-del { position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border: 1px solid var(--border); background: transparent; color: var(--text-3); border-radius: 50%; font-size: 10px; line-height: 1; cursor: pointer; opacity: 0; transition: .15s; display: flex; align-items: center; justify-content: center; padding: 0; }
+.sb-rule:hover .sb-rule-del { opacity: 1; }
+.sb-rule-del:hover { background: #fee; border-color: #e57373; color: #c62828; }
+
 /* Phrase quote — brighter */
 .sb-card-phrase { background: #fff; border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: 14px; color: var(--text); line-height: 1.6; box-shadow: inset 0 0 0 1px var(--border-light); margin-top: 8px; }
 .sb-card-phrase-ctx { font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
 
 /* Manual-add row — styled block, matches option cards */
-.sb-add-row { display: none; margin-top: 14px; padding: 14px; background: linear-gradient(135deg, #fafbff 0%, #fff 100%); border: 1.5px dashed var(--border); border-radius: var(--radius); gap: 8px; grid-template-columns: 1fr 1fr auto; align-items: start; transition: .15s; position: relative; }
+.sb-add-row { display: none; margin-top: 14px; padding: 16px 14px 14px; background: linear-gradient(135deg, #fafbff 0%, #fff 100%); border: 1.5px dashed var(--border); border-radius: var(--radius); gap: 10px; grid-template-columns: 1fr 1fr auto; align-items: start; transition: .15s; position: relative; }
 body.advanced .sb-add-row { display: grid; }
 .sb-add-row:hover { border-color: rgba(91,91,214,.5); background: linear-gradient(135deg, var(--accent-light) 0%, #fff 100%); }
 .sb-add-row:focus-within { border-color: var(--accent); border-style: solid; box-shadow: 0 0 0 3px rgba(91,91,214,.12); }
 .sb-add-row.single { grid-template-columns: 1fr auto; }
 .sb-add-row::before { content: '+'; position: absolute; top: -10px; left: 14px; background: var(--accent); color: #fff; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; box-shadow: 0 2px 6px rgba(91,91,214,.3); }
-.sb-add-row input, .sb-add-row textarea { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; background: #fff; color: var(--text); transition: .15s; }
+.sb-add-row input, .sb-add-row textarea { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; background: #fff; color: var(--text); transition: .15s; width: 100%; box-sizing: border-box; }
 .sb-add-row input:focus, .sb-add-row textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,91,214,.1); }
 .sb-add-row input::placeholder, .sb-add-row textarea::placeholder { color: var(--text-3); }
-.sb-add-row textarea { resize: vertical; min-height: 40px; line-height: 1.5; }
-.sb-add-row button { align-self: stretch; min-width: 110px; justify-content: center; }
+.sb-add-row textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
+.sb-add-row button { align-self: stretch; min-width: 130px; justify-content: center; }
+/* Phrase add-row: stack ctx on top, textarea full-width, button right */
+.sb-add-row:has(textarea) { grid-template-columns: 1fr auto; grid-template-areas: "ctx ctx" "txt txt" "sp btn"; }
+.sb-add-row:has(textarea) > input:first-of-type { grid-area: ctx; }
+.sb-add-row:has(textarea) > textarea { grid-area: txt; }
+.sb-add-row:has(textarea) > button { grid-area: btn; justify-self: end; min-width: 150px; }
 
 /* Voice advanced-edit block inside card */
-.sb-voice-edit { display: none; margin-top: 10px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border-light); border-radius: var(--radius-sm); gap: 4px; }
+.sb-voice-edit { display: none; margin-top: 12px; padding: 14px; background: var(--bg); border: 1px solid var(--border-light); border-radius: var(--radius-sm); gap: 10px 12px; grid-template-columns: 1fr 1fr; }
 body.advanced .sb-voice-edit { display: grid; }
-.sb-voice-lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: var(--text-3); margin-top: 6px; }
-.sb-voice-edit input, .sb-voice-edit textarea { border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; font-size: 12.5px; font-family: inherit; color: var(--text); background: #fff; }
-.sb-voice-edit input:focus, .sb-voice-edit textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(91,91,214,.12); }
-.sb-voice-edit textarea { resize: vertical; min-height: 40px; line-height: 1.4; }
+.sb-voice-edit .sb-voice-lbl { margin-top: 0; display: block; }
+.sb-voice-edit > .sb-voice-lbl + input,
+.sb-voice-edit > .sb-voice-lbl + textarea { margin-top: 4px; }
+.sb-voice-edit > .sb-voice-lbl,
+.sb-voice-edit > .sb-voice-lbl + input,
+.sb-voice-edit > .sb-voice-lbl + textarea { grid-column: span 1; }
+/* Full-width rows: sample (3), CTA (4), vocab (5) */
+.sb-voice-edit > .sb-voice-lbl:nth-of-type(n+3),
+.sb-voice-edit > .sb-voice-lbl:nth-of-type(n+3) + input,
+.sb-voice-edit > .sb-voice-lbl:nth-of-type(n+3) + textarea { grid-column: 1 / -1; }
+.sb-voice-lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: var(--text-3); }
+.sb-voice-edit input, .sb-voice-edit textarea { border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px; font-family: inherit; color: var(--text); background: #fff; width: 100%; box-sizing: border-box; transition: .15s; }
+.sb-voice-edit input:focus, .sb-voice-edit textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,91,214,.12); }
+.sb-voice-edit textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
 
 /* Compliance form */
 .sb-cmp { display: grid; gap: 14px; }
@@ -905,7 +936,7 @@ body.advanced .adv-only.inline-flex { display: inline-flex; }
             </div>
         </div>
 
-        <div class="section">
+        <div class="section adv-only">
             <div class="section-head"><span class="section-head-title">Последние вызовы</span></div>
             <div class="section-body">
                 <div class="tok-recent" id="tokRecent"></div>
@@ -2159,6 +2190,17 @@ const SB_STEPS = [
 let sbState = null;
 let sbIdx = 0;
 let sbCur = {};
+let sbHints = {};
+
+function sbHintHtml() {
+    const steps = sbVisible();
+    const step = steps[sbIdx];
+    const v = sbHints[step.key] || '';
+    return `<div class="sb-hint-row">
+        <input type="text" id="sb_hint" class="sb-hint-input" value="${escHtml(v)}" placeholder="Уточнение для AI (опц.) — например: «ближе к B2B», «мягче», «добавь креатива»" oninput="sbHints['${step.key}']=this.value">
+        <button class="btn btn-secondary btn-sm" type="button" onclick="sbRegen()" title="Сгенерировать новые варианты с учётом уточнения">↻ Ещё варианты</button>
+    </div>`;
+}
 
 function sbInit() {
     sbState = (S.profile && S.profile.content_brief) ? JSON.parse(JSON.stringify(S.profile.content_brief)) : {};
@@ -2220,10 +2262,20 @@ async function sbRender(forceRegen = false) {
                 <div class="sb-empty-icon">✨</div>
                 <div class="empty-title">${hasSaved ? 'Уже выбрано' : 'AI подскажет варианты'}</div>
                 <div class="empty-sub">${hasSaved ? 'Этот шаг уже заполнен. Можно оставить как есть или запросить новые варианты.' : 'Нажмите ниже — GPT сгенерирует варианты на основе описания и уже собранного брифа'}</div>
+                <div class="sb-hint-wrap" style="max-width:520px;margin:14px auto 0">
+                    <input type="text" id="sb_hint" class="sb-hint-input" value="${escHtml(sbHints[step.key] || '')}" placeholder="Уточнение для AI (опционально) — например: «больше про b2b», «мягкий тон»" oninput="sbHints['${step.key}']=this.value">
+                </div>
                 <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="sbRender(true)">${hasSaved ? 'Предложить новые варианты' : 'Предложить варианты'}</button>
             </div>`;
             return;
         }
+        // Capture hint before replacing body
+        const hintEl = el('sb_hint');
+        const hint = (hintEl ? hintEl.value.trim() : '') || (sbHints[step.key] || '');
+        if (hintEl) sbHints[step.key] = hint;
+        // Preserve existing options (so regen appends, not replaces)
+        const prev = sbCur[step.key] || null;
+        const existing = prev && Array.isArray(prev.options) ? prev.options : [];
         body.innerHTML = `<div class="sb-loading"><div class="spin"></div>AI подбирает варианты на основе описания и брифа...</div>`;
         try {
             const data = await api('profiles/brief', 'POST', {
@@ -2231,8 +2283,33 @@ async function sbRender(forceRegen = false) {
                 profile_id: S.profile.id,
                 description: S.profile.description || '',
                 brief: sbState || {},
+                hint,
+                existing_options: existing,
             });
-            sbCur[step.key] = data.data || {};
+            const fresh = data.data || {};
+            // Merge: append fresh options to existing, dedupe by sbOptKey
+            if (Array.isArray(fresh.options) && existing.length) {
+                const seen = new Set(existing.map(sbOptKey));
+                const merged = [...existing];
+                for (const o of fresh.options) {
+                    const k = sbOptKey(o);
+                    if (!seen.has(k)) { merged.push(o); seen.add(k); }
+                }
+                fresh.options = merged;
+            }
+            // Rules step: merge do/dont separately
+            if (step.key === 'rules' && prev) {
+                const mergeArr = (a, b) => {
+                    const out = Array.isArray(a) ? [...a] : [];
+                    const seen = new Set(out.map(r => r.rule || ''));
+                    for (const r of (b || [])) if (!seen.has(r.rule || '')) { out.push(r); seen.add(r.rule || ''); }
+                    return out;
+                };
+                fresh.do = mergeArr(prev.do, fresh.do);
+                fresh.dont = mergeArr(prev.dont, fresh.dont);
+            }
+            sbCur[step.key] = fresh;
+            sbAutoSave();
         } catch(e) {
             body.innerHTML = `<div class="sb-empty"><div class="sb-empty-icon">⚠️</div><div class="empty-title">Ошибка AI</div><div class="empty-sub">${escHtml(e.message)}</div><button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="sbRender(true)">Повторить</button></div>`;
             return;
@@ -2254,18 +2331,78 @@ function sbHydrateFromSaved(key) {
 
 function sbGoto(idx) {
     sbCommit();
+    sbAutoSave();
     sbIdx = idx;
     sbRender();
 }
 
 function sbRegen() {
+    // Capture hint & current selections before regen
     const steps = sbVisible();
     const key = steps[sbIdx].key;
-    delete sbCur[key];
+    sbCommitLive(key);
+    // Do NOT delete sbCur[key] — sbRender(true) will merge new options with existing
     sbRender(true);
 }
 
+// Silent save — no toast, no redirect; persists sbState to DB
+let __sbAutoSaveTimer = null;
+function sbAutoSave() {
+    if (!S.profile || !S.profile.id) return;
+    clearTimeout(__sbAutoSaveTimer);
+    __sbAutoSaveTimer = setTimeout(async () => {
+        try {
+            const updated = await api('profiles/' + S.profile.id + '/brief', 'POST', { brief: sbState });
+            S.profile = updated;
+        } catch(e) { /* silent */ }
+    }, 400);
+}
+
+// Delete an option from current step's sbCur and sbState, then rerender
+function sbDelOption(idx) {
+    const steps = sbVisible();
+    const key = steps[sbIdx].key;
+    const data = sbCur[key];
+    if (!data || !Array.isArray(data.options)) return;
+    // Commit current selections first so removing index doesn't misalign saved set
+    sbCommitLive(key);
+    const removed = data.options[idx];
+    const rkey = removed ? sbOptKey(removed) : null;
+    data.options.splice(idx, 1);
+    // Prune from sbState if present
+    if (rkey) {
+        if (key === 'audience' && sbState.audience && sbOptKey(sbState.audience) === rkey) {
+            sbState.audience = null;
+        } else if (key === 'voice' && sbState.voice && sbOptKey(sbState.voice) === rkey) {
+            sbState.voice = null;
+        } else if (key === 'usp' && Array.isArray(sbState.usps)) {
+            sbState.usps = sbState.usps.filter(o => sbOptKey(o) !== rkey);
+        } else if ((key === 'competitors' || key === 'phrases') && Array.isArray(sbState[key])) {
+            sbState[key] = sbState[key].filter(o => sbOptKey(o) !== rkey);
+        }
+    }
+    sbRenderBody();
+    sbAutoSave();
+}
+
+// Delete a rule from rules step
+function sbDelRule(group, idx) {
+    const data = sbCur.rules;
+    if (!data || !Array.isArray(data[group])) return;
+    sbCommitLive('rules');
+    const removed = data[group][idx];
+    const rkey = removed && removed.rule ? removed.rule : null;
+    data[group].splice(idx, 1);
+    if (rkey && sbState.rules && Array.isArray(sbState.rules[group])) {
+        sbState.rules[group] = sbState.rules[group].filter(r => (r.rule || '') !== rkey);
+    }
+    sbRenderBody();
+    sbAutoSave();
+}
+
 function sbAttachHandlers() {
+    const steps = sbVisible();
+    const curKey = steps[sbIdx].key;
     // Card click toggles hidden input + .selected class
     document.querySelectorAll('.sb-card').forEach(card => {
         card.onclick = (e) => {
@@ -2283,13 +2420,16 @@ function sbAttachHandlers() {
                 input.checked = !input.checked;
                 card.classList.toggle('selected', input.checked);
             }
+            sbCommitLive(curKey);
         };
     });
     document.querySelectorAll('.sb-rule').forEach(row => {
-        row.onclick = () => {
+        row.onclick = (e) => {
+            if (e.target.tagName === 'BUTTON') return;
             const input = row.querySelector('input');
             input.checked = !input.checked;
             row.classList.toggle('on', input.checked);
+            sbCommitLive(curKey);
         };
     });
     document.querySelectorAll('.sb-switch').forEach(sw => {
@@ -2297,7 +2437,13 @@ function sbAttachHandlers() {
             const input = sw.querySelector('input');
             input.checked = !input.checked;
             sw.classList.toggle('on', input.checked);
+            sbCommitLive(curKey);
         };
+    });
+    // Persist text inputs (classify/voice-edit/compliance) on change
+    document.querySelectorAll('#sbStep input[type="text"], #sbStep textarea').forEach(inp => {
+        if (inp.id === 'sb_hint') return;
+        inp.addEventListener('change', () => sbCommitLive(curKey));
     });
 }
 
@@ -2363,7 +2509,7 @@ function sbStepHtml(step, data) {
         data.do = data.do || []; data.dont = data.dont || [];
         const doKeep = saved && saved.do ? new Set(saved.do.map(r => r.rule || '')) : null;
         const dontKeep = saved && saved.dont ? new Set(saved.dont.map(r => r.rule || '')) : null;
-        const renderRules = (list, cls, keep) => list.map((r, i) => {
+        const renderRules = (list, cls, keep, group) => list.map((r, i) => {
             const on = keep ? keep.has(r.rule || '') : true;
             return `
             <div class="sb-rule ${on ? 'on' : ''}">
@@ -2373,12 +2519,13 @@ function sbStepHtml(step, data) {
                     ${escHtml(r.rule || '')}
                     ${r.check ? `<div class="sb-rule-check">${escHtml(r.check)}</div>` : ''}
                 </div>
+                <button class="sb-rule-del" onclick="event.stopPropagation();sbDelRule('${group}', ${i})" title="Удалить правило">✕</button>
             </div>`;
         }).join('');
-        return `
+        return sbHintHtml() + `
             <div class="sb-group do">
                 <div class="sb-group-title">✓ Делать</div>
-                ${renderRules(data.do, 'sb_do', doKeep)}
+                ${renderRules(data.do, 'sb_do', doKeep, 'do')}
                 <div class="sb-add-row">
                     <input type="text" id="sb_add_do_rule" placeholder="Своё правило DO">
                     <input type="text" id="sb_add_do_check" placeholder="Как проверить (опц.)">
@@ -2387,7 +2534,7 @@ function sbStepHtml(step, data) {
             </div>
             <div class="sb-group dont">
                 <div class="sb-group-title">✕ Не делать</div>
-                ${renderRules(data.dont, 'sb_dont', dontKeep)}
+                ${renderRules(data.dont, 'sb_dont', dontKeep, 'dont')}
                 <div class="sb-add-row">
                     <input type="text" id="sb_add_dont_rule" placeholder="Своё правило DON'T">
                     <input type="text" id="sb_add_dont_check" placeholder="Как проверить (опц.)">
@@ -2451,8 +2598,9 @@ function sbStepHtml(step, data) {
         const savedKey = saved ? sbOptKey(saved) : null;
         let selIdx = savedKey ? opts.findIndex(o => sbOptKey(o) === savedKey) : 0;
         if (selIdx < 0) selIdx = 0;
-        return `<div class="sb-options">` + opts.map((o, i) => `
+        return sbHintHtml() + `<div class="sb-options">` + opts.map((o, i) => `
             <div class="sb-card ${i === selIdx ? 'selected' : ''}" data-vi="${i}">
+                <button class="sb-card-del" onclick="event.stopPropagation();sbDelOption(${i})" title="Удалить вариант">✕</button>
                 <input type="radio" name="sb_voice" value="${i}" ${i === selIdx ? 'checked' : ''}>
                 <div class="sb-card-tick">✓</div>
                 <div class="sb-card-body">
@@ -2489,6 +2637,7 @@ function sbStepHtml(step, data) {
             const on = savedKeys ? savedKeys.has(sbOptKey(o)) : true;
             return `
             <div class="sb-card ${on ? 'selected' : ''}">
+                <button class="sb-card-del" onclick="event.stopPropagation();sbDelOption(${i})" title="Удалить">✕</button>
                 <input type="checkbox" class="sb_phrase" value="${i}" ${on ? 'checked' : ''}>
                 <div class="sb-card-tick">✓</div>
                 <div class="sb-card-body">
@@ -2499,7 +2648,7 @@ function sbStepHtml(step, data) {
                 </div>
             </div>`;
         }).join('');
-        return `<div class="sb-options">${cards}</div>
+        return sbHintHtml() + `<div class="sb-options">${cards}</div>
             <div class="sb-add-row">
                 <input type="text" id="sb_add_phrase_ctx" placeholder="Контекст (hero / FAQ / CTA...)">
                 <textarea id="sb_add_phrase_text" placeholder="Ваш текст в голосе бренда..." rows="2"></textarea>
@@ -2513,7 +2662,7 @@ function sbStepHtml(step, data) {
         const arr = Array.isArray(saved) ? saved : [saved];
         savedKeys = new Set(arr.map(sbOptKey));
     }
-    return `<div class="sb-options">` + opts.map((o, i) => {
+    return sbHintHtml() + `<div class="sb-options">` + opts.map((o, i) => {
         const primary = o.label || o.headline || o.name || ('Вариант ' + (i + 1));
         const tag = o.type ? `<span class="sb-card-tag">${escHtml(o.type)}</span>` : '';
         const facts = [];
@@ -2528,6 +2677,7 @@ function sbStepHtml(step, data) {
         const on = savedKeys ? savedKeys.has(sbOptKey(o)) : (i < 2);
         return `
             <div class="sb-card ${on ? 'selected' : ''}">
+                <button class="sb-card-del" onclick="event.stopPropagation();sbDelOption(${i})" title="Удалить вариант">✕</button>
                 <input type="checkbox" class="sb_pick" value="${i}" ${on ? 'checked' : ''}>
                 <div class="sb-card-tick">✓</div>
                 <div class="sb-card-body">
@@ -2640,6 +2790,7 @@ function sbCommitLive(stepKey) {
     if (val === null || val === undefined) return;
     if (stepKey === 'usp') sbState.usps = val.usps;
     else sbState[stepKey] = val;
+    sbAutoSave();
 }
 
 function escHtml(s) {
@@ -2720,6 +2871,7 @@ function sbCommit() {
     if (val === null) return false;
     if (step.key === 'usp') sbState.usps = val.usps;
     else sbState[step.key] = val;
+    sbAutoSave();
     return true;
 }
 

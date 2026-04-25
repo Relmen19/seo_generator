@@ -13,11 +13,33 @@ abstract class ArticlePrompt
     /** Default SEO copywriter persona */
     const DEFAULT_PERSONA = "Ты — профессиональный SEO-копирайтер. JSON-формат. Профессиональный, но доступный стиль. Конкретные факты, данные, примеры.";
 
-    /** JSON format example for richtext blocks */
-    const RICHTEXT_FORMAT = '{"blocks":[{"type":"heading","text":"...","level":2},{"type":"paragraph","text":"..."},{"type":"list","items":["..."]},{"type":"highlight","text":"..."}]}';
+    /** JSON format example for richtext blocks (long-form: ytsaurus.tech style) */
+    const RICHTEXT_FORMAT = '{"blocks":['
+        . '{"type":"heading","text":"...","level":2},'
+        . '{"type":"paragraph","text":"... с `inline_code`, **жирным**, *курсивом*, [ссылкой](https://...)"},'
+        . '{"type":"list","items":["..."]},'
+        . '{"type":"quote","text":"...","author":"...","source":"..."},'
+        . '{"type":"callout","variant":"info|warn|tip|danger","text":"..."},'
+        . '{"type":"code","lang":"python|bash|sql|js|go|yaml|json","code":"..."},'
+        . '{"type":"figure","image_url":"https://...","caption":"...","alt":"..."},'
+        . '{"type":"table","headers":["..."],"rows":[["..."]]},'
+        . '{"type":"footnote","id":"1","text":"..."},'
+        . '{"type":"highlight","text":"..."}'
+        . ']}';
 
     /** Rules for richtext sub-block types */
-    const RICHTEXT_RULES = 'type "list" → "items"(массив строк). type "heading" → "text"+"level"(2/3). Остальные → "text"(строка). Мин. 6 подблоков, чередуй типы.';
+    const RICHTEXT_RULES =
+          'list → items(массив строк). heading → text+level(2/3). '
+        . 'quote → text(+author, source опционально). '
+        . 'callout → variant(info|warn|tip|danger)+text. '
+        . 'code → lang+code(многострочный). '
+        . 'figure → image_url+caption+alt (или image_id если есть). '
+        . 'table → headers(массив)+rows(массив массивов строк). '
+        . 'footnote → id(строка)+text. Ссылка на сноску в paragraph через [^id]. '
+        . 'paragraph/highlight → text(строка). '
+        . 'Inline в paragraph/list/quote/callout: `code`, **bold**, *italic*, [text](url). '
+        . 'Мин. 8 подблоков, чередуй типы. Для технической темы — мин. 1 code ИЛИ table ИЛИ figure. '
+        . 'callout не чаще 1 на 3 параграфа. inline `code` для команд, имён файлов, типов, флагов.';
 
     /** Warning: do not wrap richtext in outer object */
     const RICHTEXT_NO_WRAP = "НЕ оборачивай в {\"type\":\"richtext\",\"content\":[...]}!\n";

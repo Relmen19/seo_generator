@@ -241,7 +241,124 @@ requireAuth();
         .theme-card-desc { font-size: .7rem; color: #64748b; margin-top: 2px; line-height: 1.3; }
         .theme-card-badge { display: inline-block; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; padding: 2px 6px; border-radius: 3px; background: #334155; color: #94a3b8; margin-top: 6px; }
         .theme-card.selected .theme-card-badge { background: #312e81; color: #a78bfa; }
+
+        /* ── AI Brief Wizard ── */
+        .bf-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 16px 18px; background: linear-gradient(135deg, rgba(99,102,241,.15) 0%, #1e293b 100%); border: 1px solid #334155; border-radius: 10px; }
+        .bf-step-num { width: 38px; height: 38px; border-radius: 50%; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(99,102,241,.35); }
+        .bf-head-text { flex: 1; min-width: 0; }
+        .bf-head-title { font-size: 15px; font-weight: 700; color: #f1f5f9; }
+        .bf-head-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+        .bf-progress-bar { height: 4px; background: #1e293b; border-radius: 2px; overflow: hidden; margin: 12px 0 20px; }
+        .bf-progress-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6); border-radius: 2px; transition: width .3s ease; }
+        .bf-steps-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+        .bf-dot { width: 10px; height: 10px; border-radius: 50%; background: #334155; transition: .2s; cursor: pointer; }
+        .bf-dot.done { background: #10b981; }
+        .bf-dot.active { background: #6366f1; transform: scale(1.3); box-shadow: 0 0 0 3px rgba(99,102,241,.25); }
+
+        .bf-options { display: grid; gap: 10px; }
+        .bf-card { position: relative; background: #1e293b; border: 2px solid #334155; border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: .15s; display: flex; gap: 12px; align-items: flex-start; }
+        .bf-card:hover { border-color: rgba(99,102,241,.55); }
+        .bf-card.selected { border-color: #6366f1; background: linear-gradient(135deg, rgba(99,102,241,.18) 0%, #1e293b 80%); box-shadow: 0 4px 12px rgba(99,102,241,.18); }
+        .bf-card input[type=checkbox], .bf-card input[type=radio] { position: absolute; opacity: 0; pointer-events: none; }
+        .bf-card-tick { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #334155; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: .15s; background: #0f172a; font-size: 12px; color: transparent; font-weight: 700; margin-top: 2px; }
+        .bf-card.selected .bf-card-tick { border-color: #6366f1; background: #6366f1; color: #fff; }
+        .bf-card-body { flex: 1; min-width: 0; }
+        .bf-card-title { font-size: 14px; font-weight: 700; color: #f1f5f9; line-height: 1.3; }
+        .bf-card-facts { display: grid; gap: 4px; margin-top: 8px; font-size: 12px; color: #cbd5e1; line-height: 1.45; }
+        .bf-fact { display: flex; gap: 6px; align-items: flex-start; }
+        .bf-fact-icon { flex-shrink: 0; width: 18px; text-align: center; opacity: .7; }
+        .bf-card-tag { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; padding: 2px 7px; border-radius: 100px; background: rgba(99,102,241,.18); color: #a5b4fc; margin-right: 6px; }
+        .bf-card-quote { margin-top: 8px; padding: 8px 12px; background: #0f172a; border-left: 3px solid #6366f1; border-radius: 0 6px 6px 0; font-size: 12.5px; color: #cbd5e1; font-style: italic; line-height: 1.5; }
+        .bf-card-cta { margin-top: 6px; font-size: 12px; color: #a78bfa; font-weight: 600; }
+        .bf-card-vocab { margin-top: 6px; font-size: 11px; color: #64748b; font-family: 'SF Mono', monospace; }
+        .bf-card-del { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border: 1px solid #334155; background: #0f172a; color: #94a3b8; border-radius: 50%; font-size: 11px; line-height: 1; cursor: pointer; opacity: 0; transition: .15s; display: flex; align-items: center; justify-content: center; padding: 0; z-index: 2; }
+        .bf-card:hover .bf-card-del { opacity: 1; }
+        .bf-card-del:hover { background: rgba(239,68,68,.18); border-color: #ef4444; color: #fca5a5; }
+
+        .bf-group { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+        .bf-group-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; color: #94a3b8; }
+        .bf-group.do .bf-group-title { color: #10b981; }
+        .bf-group.dont .bf-group-title { color: #ef4444; }
+        .bf-rule { position: relative; display: flex; gap: 10px; padding: 10px 12px; background: #1e293b; border: 1px solid #334155; border-radius: 6px; margin-bottom: 6px; cursor: pointer; transition: .15s; align-items: flex-start; }
+        .bf-rule:hover { border-color: rgba(99,102,241,.4); }
+        .bf-rule.on { border-color: #6366f1; background: rgba(99,102,241,.12); }
+        .bf-rule input { position: absolute; opacity: 0; pointer-events: none; }
+        .bf-rule-tick { width: 18px; height: 18px; border-radius: 4px; border: 2px solid #334155; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; color: transparent; font-weight: 700; margin-top: 2px; transition: .15s; }
+        .bf-rule.on .bf-rule-tick { border-color: #6366f1; background: #6366f1; color: #fff; }
+        .bf-group.do .bf-rule.on .bf-rule-tick { border-color: #10b981; background: #10b981; }
+        .bf-group.dont .bf-rule.on .bf-rule-tick { border-color: #ef4444; background: #ef4444; }
+        .bf-rule-body { flex: 1; font-size: 13px; color: #e2e8f0; line-height: 1.4; }
+        .bf-rule-check { color: #64748b; font-size: 11.5px; margin-top: 3px; }
+        .bf-rule-del { position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border: 1px solid #334155; background: transparent; color: #94a3b8; border-radius: 50%; font-size: 10px; line-height: 1; cursor: pointer; opacity: 0; transition: .15s; display: flex; align-items: center; justify-content: center; padding: 0; }
+        .bf-rule:hover .bf-rule-del { opacity: 1; }
+        .bf-rule-del:hover { background: rgba(239,68,68,.18); border-color: #ef4444; color: #fca5a5; }
+
+        .bf-classify-grid { display: grid; gap: 14px; }
+        .bf-switch { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: #0f172a; border: 1px solid #334155; border-radius: 10px; cursor: pointer; user-select: none; }
+        .bf-switch-toggle { width: 42px; height: 24px; background: #334155; border-radius: 100px; position: relative; flex-shrink: 0; transition: .2s; }
+        .bf-switch-toggle::after { content: ''; position: absolute; width: 18px; height: 18px; background: #fff; border-radius: 50%; top: 3px; left: 3px; transition: .2s; box-shadow: 0 2px 4px rgba(0,0,0,.3); }
+        .bf-switch.on .bf-switch-toggle { background: #6366f1; }
+        .bf-switch.on .bf-switch-toggle::after { left: 21px; }
+        .bf-switch-text { flex: 1; font-size: 13px; color: #e2e8f0; font-weight: 600; }
+        .bf-switch-sub { font-size: 11.5px; color: #64748b; font-weight: 400; margin-top: 2px; }
+        .bf-switch input { display: none; }
+
+        .bf-field { display: grid; gap: 4px; }
+        .bf-field label { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: #64748b; font-weight: 600; }
+
+        .bf-nav { display: flex; gap: 8px; justify-content: space-between; margin-top: 20px; padding-top: 16px; border-top: 1px solid #334155; }
+        .bf-nav-right { display: flex; gap: 8px; }
+        .bf-empty { text-align: center; padding: 36px 20px; color: #94a3b8; }
+        .bf-empty-icon { font-size: 32px; margin-bottom: 10px; opacity: .6; }
+        .bf-empty-title { font-size: 15px; font-weight: 700; color: #e2e8f0; margin-bottom: 6px; }
+        .bf-empty-sub { font-size: 12.5px; color: #94a3b8; line-height: 1.5; }
+        .bf-loading { text-align: center; padding: 40px 20px; color: #cbd5e1; font-size: 13px; }
+        .bf-loading .spinner { width: 24px; height: 24px; border-width: 3px; margin: 0 auto 10px; display: block; }
+
+        .bf-hint-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; padding: 10px 12px; background: #0f172a; border: 1px dashed #334155; border-radius: 6px; }
+        .bf-hint-input { flex: 1; padding: 9px 12px; border: 1px solid #334155; border-radius: 6px; font-size: 13px; background: #1e293b; color: #e2e8f0; width: 100%; box-sizing: border-box; transition: .15s; }
+        .bf-hint-input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.2); }
+
+        .bf-add-row { display: grid; margin-top: 14px; padding: 16px 14px 14px; background: #0f172a; border: 1.5px dashed #334155; border-radius: 10px; gap: 10px; grid-template-columns: 1fr 1fr auto; align-items: start; position: relative; }
+        .bf-add-row.single { grid-template-columns: 1fr auto; }
+        .bf-add-row::before { content: '+'; position: absolute; top: -10px; left: 14px; background: #6366f1; color: #fff; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; box-shadow: 0 2px 6px rgba(99,102,241,.4); }
+        .bf-add-row:hover { border-color: rgba(99,102,241,.55); }
+        .bf-add-row input, .bf-add-row textarea { padding: 10px 12px; border: 1px solid #334155; border-radius: 6px; font-size: 13px; background: #1e293b; color: #e2e8f0; width: 100%; box-sizing: border-box; }
+        .bf-add-row textarea { resize: vertical; min-height: 60px; }
+
+        .bf-card-phrase { background: #0f172a; border-left: 3px solid #6366f1; padding: 10px 14px; border-radius: 0 6px 6px 0; font-size: 13.5px; color: #e2e8f0; line-height: 1.6; margin-top: 4px; }
+        .bf-card-phrase-ctx { font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: #a78bfa; margin-bottom: 4px; }
+
+        .bf-voice-edit { display: grid; margin-top: 12px; padding: 14px; background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; gap: 10px 12px; grid-template-columns: 1fr 1fr; }
+        .bf-voice-edit .bf-voice-lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: #64748b; display: block; }
+        .bf-voice-edit > .bf-voice-lbl:nth-of-type(n+3),
+        .bf-voice-edit > .bf-voice-lbl:nth-of-type(n+3) + input,
+        .bf-voice-edit > .bf-voice-lbl:nth-of-type(n+3) + textarea { grid-column: 1 / -1; }
+        .bf-voice-edit input, .bf-voice-edit textarea { border: 1px solid #334155; background: #1e293b; color: #e2e8f0; border-radius: 6px; padding: 8px 10px; font-size: 13px; width: 100%; box-sizing: border-box; }
+
+        .bf-cmp { display: grid; gap: 14px; }
+        .bf-cmp-group { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 14px; }
+        .bf-cmp-group-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #cbd5e1; margin-bottom: 10px; }
+        .bf-cmp-item { background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; display: grid; gap: 6px; }
+        .bf-cmp-item input { border: 1px solid #334155; background: #0f172a; color: #e2e8f0; border-radius: 5px; padding: 7px 10px; font-size: 13px; width: 100%; box-sizing: border-box; }
+        .bf-cmp-item-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; }
+        .bf-cmp-del { background: transparent; border: 0; color: #94a3b8; cursor: pointer; font-size: 14px; padding: 6px 10px; border-radius: 6px; }
+        .bf-cmp-del:hover { background: rgba(239,68,68,.18); color: #fca5a5; }
+
+        /* Form/JSON tab switcher per step */
+        .bf-view-tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid #334155; }
+        .bf-vt { padding: 7px 14px; background: transparent; border: 0; color: #94a3b8; font-size: .78rem; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: .15s; }
+        .bf-vt:hover { color: #cbd5e1; }
+        .bf-vt.active { color: #a5b4fc; border-bottom-color: #6366f1; }
+        .bf-json-toolbar { display: flex; gap: 6px; margin-bottom: 6px; }
+        .bf-cm-wrap .CodeMirror { height: auto; min-height: 260px; font-size: .82rem; line-height: 1.5; border: 1px solid #334155; border-radius: 6px; }
     </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5/lib/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5/theme/dracula.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5/lib/codemirror.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5/addon/edit/closebrackets.min.js"></script>
 </head>
 <body>
 <div class="topbar" id="topbarList">
@@ -304,6 +421,7 @@ requireAuth();
         <div class="ws-tab" data-tab="templates" onclick="switchWsTab('templates')">Шаблоны</div>
         <div class="ws-tab" data-tab="intents" onclick="switchWsTab('intents')">Интенты</div>
         <div class="ws-tab" data-tab="telegram" onclick="switchWsTab('telegram')">Telegram</div>
+        <div class="ws-tab" data-tab="tokens" onclick="switchWsTab('tokens')">Расход токенов</div>
     </div>
 
     <!-- Tab: Overview -->
@@ -415,14 +533,36 @@ requireAuth();
             <span>AI Бриф проекта</span>
             <div style="display:flex;gap:8px">
                 <button class="btn btn-ghost btn-sm" onclick="briefReset()">Сбросить</button>
-                <button class="btn btn-primary btn-sm" onclick="briefSave()">Сохранить бриф</button>
+                <button class="btn btn-primary btn-sm" onclick="briefSave()">Сохранить и закрыть</button>
             </div>
         </div>
         <div style="font-size:.82rem;color:#94a3b8;margin-bottom:12px">
-            Пошаговый мастер строит детальный бриф: аудитория, УТП, конкуренты, голос бренда, правила, compliance.
-            На каждом шаге AI предлагает 3-5 вариантов — выбираешь/редактируешь. Бриф затем используется для генерации шаблонов и статей.
+            Пошаговый мастер строит бриф: аудитория, УТП, конкуренты, голос бренда, правила, compliance.
+            Изменения автосохраняются. На каждом шаге доступны формы и JSON-редактор.
         </div>
-        <div id="briefWizard"></div>
+        <div class="settings-section">
+            <div id="briefHeader"></div>
+            <div class="bf-progress-bar"><div class="bf-progress-fill" id="briefProgressFill"></div></div>
+            <div class="bf-steps-dots" id="briefDots"></div>
+            <div id="briefStep"></div>
+            <div class="bf-nav">
+                <button class="btn btn-ghost btn-sm" id="briefBtnBack" onclick="briefPrev()">&larr; Назад</button>
+                <div class="bf-nav-right">
+                    <button class="btn btn-ghost btn-sm" id="briefBtnRegen" onclick="briefRegen()" style="display:none">↻ Другие варианты</button>
+                    <button class="btn btn-primary btn-sm" id="briefBtnNext" onclick="briefNext()">Далее &rarr;</button>
+                </div>
+            </div>
+        </div>
+        <div class="settings-section" style="margin-top:16px">
+            <h3 style="margin-bottom:10px">Полный JSON брифа</h3>
+            <div style="font-size:.78rem;color:#94a3b8;margin-bottom:8px">Итоговый объект, который сохраняется в content_brief. Можно править напрямую.</div>
+            <div class="bf-json-toolbar">
+                <button class="btn btn-ghost btn-sm" onclick="briefFullJsonFormat()">Format</button>
+                <button class="btn btn-ghost btn-sm" onclick="briefFullJsonApply()">Применить JSON</button>
+                <button class="btn btn-ghost btn-sm" onclick="briefFullJsonReload()">Перечитать из state</button>
+            </div>
+            <div id="briefFullJsonWrap" class="bf-cm-wrap"></div>
+        </div>
     </div>
 
     <!-- Tab: Templates -->
@@ -495,6 +635,49 @@ requireAuth();
 
         <div style="margin-top:16px;display:flex;gap:8px">
             <button class="btn btn-primary" onclick="saveTelegram()">Сохранить</button>
+        </div>
+    </div>
+
+    <!-- Tab: Token usage -->
+    <div class="ws-content" id="tabTokens" style="display:none">
+        <div class="settings-section">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                <h3 style="margin:0">Итого по профилю</h3>
+                <button class="btn btn-ghost btn-sm" onclick="loadTokenUsage(true)">🔄 Обновить</button>
+            </div>
+            <div class="tok-totals" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">
+                <div class="tok-box" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:8px">
+                    <div id="tuCalls" style="font-size:1.4rem;font-weight:700;color:#e2e8f0">—</div>
+                    <div style="font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.4px">Вызовов</div>
+                </div>
+                <div class="tok-box" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:8px">
+                    <div id="tuPrompt" style="font-size:1.4rem;font-weight:700;color:#e2e8f0">—</div>
+                    <div style="font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.4px">Prompt токенов</div>
+                </div>
+                <div class="tok-box" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:8px">
+                    <div id="tuCompletion" style="font-size:1.4rem;font-weight:700;color:#e2e8f0">—</div>
+                    <div style="font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.4px">Completion токенов</div>
+                </div>
+                <div class="tok-box" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:8px">
+                    <div id="tuTotal" style="font-size:1.4rem;font-weight:700;color:#e2e8f0">—</div>
+                    <div style="font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.4px">Всего токенов</div>
+                </div>
+                <div class="tok-box" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:8px">
+                    <div id="tuCost" style="font-size:1.4rem;font-weight:700;color:#10b981">—</div>
+                    <div style="font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.4px">Стоимость (USD)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3>По категориям</h3>
+            <p style="font-size:.78rem;color:#64748b;margin-bottom:12px">Расходы разделены: <b style="color:#a78bfa">Создание шаблонов</b> и <b style="color:#fbbf24">Ревью шаблонов</b> учитываются раздельно.</p>
+            <div id="tokCatList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px"></div>
+        </div>
+
+        <div class="settings-section">
+            <h3>Последние вызовы</h3>
+            <div id="tokRecent" style="overflow-x:auto"></div>
         </div>
     </div>
 </div>
@@ -950,8 +1133,9 @@ function renderWsHeader() {
 
 function switchWsTab(tab) {
     document.querySelectorAll('.ws-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-    ['Overview','Settings','Branding','Brief','Templates','Intents','Telegram'].forEach(t => {
-        $('tab' + t).style.display = t.toLowerCase() === tab ? '' : 'none';
+    ['Overview','Settings','Branding','Brief','Templates','Intents','Telegram','Tokens'].forEach(t => {
+        const node = $('tab' + t);
+        if (node) node.style.display = t.toLowerCase() === tab ? '' : 'none';
     });
 
     if (tab === 'overview') loadOverview();
@@ -961,6 +1145,91 @@ function switchWsTab(tab) {
     else if (tab === 'templates') loadTemplates();
     else if (tab === 'intents') loadIntents();
     else if (tab === 'telegram') fillTelegram();
+    else if (tab === 'tokens') loadTokenUsage();
+}
+
+// ── Token usage ──
+const TOK_CAT_LABELS = {
+    profile_create: 'Создание профиля',
+    profile_brief: 'AI Бриф',
+    template_create: 'Создание шаблонов',
+    template_review: 'Ревью шаблонов',
+    article_create: 'Создание статей',
+    telegram_aggregate: 'Агрегация Telegram',
+};
+const TOK_CAT_ICONS = {
+    profile_create: '🚀', profile_brief: '📋', template_create: '🧩',
+    template_review: '🔍', article_create: '📝', telegram_aggregate: '✈️',
+};
+const TOK_CAT_COLORS = {
+    template_create: '#a78bfa', template_review: '#fbbf24',
+    profile_create: '#60a5fa', profile_brief: '#34d399',
+    article_create: '#f472b6', telegram_aggregate: '#22d3ee',
+};
+
+function fmtTokNum(n) { return (n|0).toLocaleString('ru-RU'); }
+function fmtTokCost(c) { c = Number(c) || 0; return '$' + c.toFixed(c < 1 ? 4 : 2); }
+function escTokHtml(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
+
+async function loadTokenUsage(force) {
+    if (!currentProfile || !currentProfile.id) return;
+    const wrap = $('tokCatList');
+    const rec  = $('tokRecent');
+    if (!force && wrap.dataset.loaded === String(currentProfile.id)) return;
+    wrap.innerHTML = '<div style="color:#64748b">Загрузка...</div>';
+    rec.innerHTML = '';
+    try {
+        const res = await api('profiles/' + currentProfile.id + '/token-usage');
+        if (!res || res.success === false) throw new Error(res && res.error ? res.error : 'Ошибка загрузки');
+        const data = res.data || {};
+        const t = data.totals || {};
+        $('tuCalls').textContent      = fmtTokNum(t.calls);
+        $('tuPrompt').textContent     = fmtTokNum(t.prompt_tokens);
+        $('tuCompletion').textContent = fmtTokNum(t.completion_tokens);
+        $('tuTotal').textContent      = fmtTokNum(t.total_tokens);
+        $('tuCost').textContent       = fmtTokCost(t.cost_usd);
+
+        const cats = data.categories || {};
+        wrap.innerHTML = Object.keys(TOK_CAT_LABELS).map(k => {
+            const c = cats[k] || {calls:0, prompt_tokens:0, completion_tokens:0, total_tokens:0, cost_usd:0, last_at:null};
+            const last = c.last_at ? new Date(String(c.last_at).replace(' ','T')).toLocaleString('ru-RU') : '—';
+            const color = TOK_CAT_COLORS[k] || '#94a3b8';
+            return '<div style="display:flex;gap:12px;padding:12px;background:#0f172a;border:1px solid #334155;border-left:3px solid '+color+';border-radius:8px">'
+                + '<div style="font-size:22px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:#1e293b;border-radius:8px;flex-shrink:0">'+(TOK_CAT_ICONS[k]||'•')+'</div>'
+                + '<div style="min-width:0;flex:1">'
+                + '<div style="font-weight:700;color:'+color+';font-size:13px">'+TOK_CAT_LABELS[k]+'</div>'
+                + '<div style="font-size:12px;color:#cbd5e1;margin-top:4px">'+fmtTokNum(c.calls)+' вызовов · '+fmtTokNum(c.total_tokens)+' ток. · <b>'+fmtTokCost(c.cost_usd)+'</b></div>'
+                + '<div style="font-size:11px;color:#64748b;margin-top:2px">prompt '+fmtTokNum(c.prompt_tokens)+' / completion '+fmtTokNum(c.completion_tokens)+' · последний: '+last+'</div>'
+                + '</div></div>';
+        }).join('');
+
+        const recent = data.recent || [];
+        rec.innerHTML = recent.length === 0
+            ? '<div style="color:#64748b;font-size:.85rem">Пока нет вызовов</div>'
+            : '<table style="width:100%;border-collapse:collapse;font-size:.8rem">'
+              + '<thead><tr style="color:#64748b;text-align:left;border-bottom:1px solid #334155">'
+              + '<th style="padding:8px 10px">Когда</th><th style="padding:8px 10px">Категория</th><th style="padding:8px 10px">Операция</th><th style="padding:8px 10px">Модель</th>'
+              + '<th style="padding:8px 10px;text-align:right">Prompt</th><th style="padding:8px 10px;text-align:right">Completion</th><th style="padding:8px 10px;text-align:right">Всего</th><th style="padding:8px 10px;text-align:right">USD</th>'
+              + '</tr></thead><tbody>'
+              + recent.map(r => {
+                  const color = TOK_CAT_COLORS[r.category] || '#94a3b8';
+                  return '<tr style="border-bottom:1px solid #1e293b;color:#e2e8f0">'
+                      + '<td style="padding:8px 10px;color:#94a3b8">'+escTokHtml(String(r.created_at||'').replace('T',' ').slice(0,19))+'</td>'
+                      + '<td style="padding:8px 10px;color:'+color+';font-weight:600">'+escTokHtml(TOK_CAT_LABELS[r.category]||r.category)+'</td>'
+                      + '<td style="padding:8px 10px">'+escTokHtml(r.operation||'')+'</td>'
+                      + '<td style="padding:8px 10px;color:#94a3b8">'+escTokHtml(r.model||'')+'</td>'
+                      + '<td style="padding:8px 10px;text-align:right">'+fmtTokNum(r.prompt_tokens)+'</td>'
+                      + '<td style="padding:8px 10px;text-align:right">'+fmtTokNum(r.completion_tokens)+'</td>'
+                      + '<td style="padding:8px 10px;text-align:right;font-weight:600">'+fmtTokNum(r.total_tokens)+'</td>'
+                      + '<td style="padding:8px 10px;text-align:right;color:#10b981">'+fmtTokCost(r.cost_usd)+'</td>'
+                      + '</tr>';
+              }).join('')
+              + '</tbody></table>';
+
+        wrap.dataset.loaded = String(currentProfile.id);
+    } catch(e) {
+        wrap.innerHTML = '<div style="color:#ef4444">⚠️ '+escTokHtml(e.message)+'</div>';
+    }
 }
 
 // ── Overview ──
@@ -2419,36 +2688,59 @@ function clearPurposeSuggestions() {
 }
 
 // ═══════════════════ BRIEF WIZARD ═══════════════════
+// Click-driven cards, autosave, per-step Form/JSON toggle, hint-driven regen.
 
 const BRIEF_STEPS = [
-    { key: 'classify',    title: 'Классификация',      multi: false },
-    { key: 'audience',    title: 'Аудитория (ICP)',    multi: true  },
-    { key: 'usp',         title: 'УТП',                multi: true  },
-    { key: 'competitors', title: 'Конкуренты',         multi: true  },
-    { key: 'voice',       title: 'Голос бренда',       multi: false },
-    { key: 'rules',       title: 'Правила do/dont',    multi: false },
-    { key: 'compliance',  title: 'Compliance',         multi: false, regulatedOnly: true },
-    { key: 'phrases',     title: 'Пробы текста',       multi: true  },
-    { key: 'review',      title: 'Ревью брифа',        multi: false },
+    { key: 'classify',    title: 'Нишевые параметры',       sub: 'AI определит нишу, язык и регулирование' },
+    { key: 'audience',    title: 'Аудитория (ICP)',         sub: 'Выберите 1-2 ICP с болями и целями' },
+    { key: 'usp',         title: 'УТП',                     sub: 'Отметьте сильнейшие УТП' },
+    { key: 'competitors', title: 'Конкуренты',              sub: 'Кого обыгрывать в контенте' },
+    { key: 'voice',       title: 'Голос бренда',            sub: 'Выберите один архетип голоса' },
+    { key: 'rules',       title: 'Правила do/dont',         sub: 'Редакционные do и don\'t' },
+    { key: 'compliance',  title: 'Compliance',              sub: 'Запреты регулятора и оговорки', regulatedOnly: true },
+    { key: 'phrases',     title: 'Пробы голоса',            sub: 'Отметьте лучшие образцы стиля' },
 ];
 
 let briefState = null;
-let briefStepIdx = 0;
-let briefStepData = {};
+let briefIdx = 0;
+let briefCur = {};
+let briefHints = {};
+let briefViewMode = {}; // per-step: 'form' | 'json'
+let briefStepEditor = null; // CodeMirror for current step JSON
+let briefFullEditor = null; // CodeMirror for full-brief JSON
+
+function briefApi(path, method, body) {
+    const opts = { method, headers: {} };
+    if (body !== null && body !== undefined) {
+        opts.headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(body);
+    }
+    return api(path, opts).then(res => {
+        if (!res || !res.success) throw new Error((res && res.error) || 'Ошибка API');
+        return res;
+    });
+}
 
 function briefInit() {
     briefState = (currentProfile && currentProfile.content_brief) ? JSON.parse(JSON.stringify(currentProfile.content_brief)) : {};
-    briefStepData = {};
-    briefStepIdx = 0;
+    briefCur = {};
+    briefIdx = 0;
+    briefViewMode = {};
+    briefStepEditor = null;
     briefRender();
+    briefRenderFullJson();
 }
 
 function briefReset() {
     if (!confirm('Сбросить весь бриф?')) return;
     briefState = {};
-    briefStepData = {};
-    briefStepIdx = 0;
+    briefCur = {};
+    briefIdx = 0;
+    briefViewMode = {};
+    briefStepEditor = null;
     briefRender();
+    briefRenderFullJson();
+    briefAutoSave();
 }
 
 function briefVisibleSteps() {
@@ -2456,265 +2748,714 @@ function briefVisibleSteps() {
     return BRIEF_STEPS.filter(s => !s.regulatedOnly || regulated);
 }
 
-function briefRender() {
+function briefOptKey(o) {
+    if (!o || typeof o !== 'object') return '';
+    return o.label || o.headline || o.name || o.archetype || o.text || o.rule || JSON.stringify(o);
+}
+
+async function briefRender(forceRegen = false) {
     const steps = briefVisibleSteps();
-    const stepper = steps.map((s, i) => {
-        const done = briefState && briefState[s.key] !== undefined;
-        const cls = i === briefStepIdx ? 'active' : (done ? 'done' : '');
-        return `<div class="wizard-step ${cls}" onclick="briefGoto(${i})" style="cursor:pointer">
-            <div class="wizard-step-line"></div>
-            <div class="wizard-step-dot">${i + 1}</div>
-            <div class="wizard-step-label">${esc(s.title)}</div>
+    if (briefIdx >= steps.length) briefIdx = steps.length - 1;
+    const step = steps[briefIdx];
+
+    $('briefHeader').innerHTML = `
+        <div class="bf-header">
+            <div class="bf-step-num">${briefIdx + 1}</div>
+            <div class="bf-head-text">
+                <div class="bf-head-title">${esc(step.title)}</div>
+                <div class="bf-head-sub">${esc(step.sub || '')}</div>
+            </div>
+            <div style="font-size:11.5px;color:#94a3b8;font-weight:600">${briefIdx + 1} / ${steps.length}</div>
         </div>`;
+    $('briefProgressFill').style.width = ((briefIdx + 1) / steps.length * 100) + '%';
+    $('briefDots').innerHTML = steps.map((s, i) => {
+        const done = s.key === 'usp' ? (briefState.usps != null) : (briefState[s.key] !== undefined);
+        const cls = i === briefIdx ? 'active' : (done ? 'done' : '');
+        return `<div class="bf-dot ${cls}" onclick="briefGoto(${i})" title="${esc(s.title)}"></div>`;
     }).join('');
 
-    const cur = steps[briefStepIdx];
-    const body = cur.key === 'review' ? briefRenderReview() : briefRenderStep(cur);
+    $('briefBtnBack').disabled = briefIdx === 0;
+    $('briefBtnNext').textContent = briefIdx === steps.length - 1 ? 'Готово ✓' : 'Далее →';
 
-    $('briefWizard').innerHTML = `
-        <div class="wizard-steps" style="padding:12px 0 20px">${stepper}</div>
-        <div class="settings-section">${body}</div>
-    `;
+    const body = $('briefStep');
+
+    if (!briefCur[step.key] && !forceRegen) {
+        const h = briefHydrateFromSaved(step.key);
+        if (h) briefCur[step.key] = h;
+    }
+
+    if (forceRegen || !briefCur[step.key]) {
+        if (!forceRegen) {
+            $('briefBtnRegen').style.display = 'none';
+            briefStepEditor = null;
+            const hasSaved = (step.key === 'usp' ? !!briefState.usps : briefState[step.key] != null);
+            body.innerHTML = `<div class="bf-empty">
+                <div class="bf-empty-icon">✨</div>
+                <div class="bf-empty-title">${hasSaved ? 'Уже выбрано' : 'AI подскажет варианты'}</div>
+                <div class="bf-empty-sub">${hasSaved ? 'Шаг заполнен. Можно оставить или запросить новые варианты.' : 'Нажмите ниже — AI сгенерирует варианты на основе описания и уже собранного брифа'}</div>
+                <div style="max-width:520px;margin:14px auto 0">
+                    <input type="text" id="briefHint" class="bf-hint-input" value="${esc(briefHints[step.key] || '')}" placeholder="Уточнение для AI (опц.) — «ближе к B2B», «мягче», «добавь креатива»" oninput="briefHints['${step.key}']=this.value">
+                </div>
+                <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="briefRender(true)">${hasSaved ? 'Предложить новые варианты' : 'Предложить варианты'}</button>
+            </div>`;
+            return;
+        }
+        const hintEl = $('briefHint');
+        const hint = (hintEl ? hintEl.value.trim() : '') || (briefHints[step.key] || '');
+        if (hintEl) briefHints[step.key] = hint;
+        const prev = briefCur[step.key] || null;
+        const existing = prev && Array.isArray(prev.options) ? prev.options : [];
+        body.innerHTML = `<div class="bf-loading"><div class="spinner"></div>AI подбирает варианты на основе описания и брифа...</div>`;
+        try {
+            const res = await briefApi('profiles/brief', 'POST', {
+                step: step.key,
+                profile_id: currentProfile.id,
+                description: currentProfile.description || '',
+                brief: briefState || {},
+                hint,
+                existing_options: existing,
+            });
+            const fresh = (res.data && res.data.data) || {};
+            if (Array.isArray(fresh.options) && existing.length) {
+                const seen = new Set(existing.map(briefOptKey));
+                const merged = [...existing];
+                for (const o of fresh.options) {
+                    const k = briefOptKey(o);
+                    if (!seen.has(k)) { merged.push(o); seen.add(k); }
+                }
+                fresh.options = merged;
+            }
+            if (step.key === 'rules' && prev) {
+                const mergeArr = (a, b) => {
+                    const out = Array.isArray(a) ? [...a] : [];
+                    const seen = new Set(out.map(r => r.rule || ''));
+                    for (const r of (b || [])) if (!seen.has(r.rule || '')) { out.push(r); seen.add(r.rule || ''); }
+                    return out;
+                };
+                fresh.do = mergeArr(prev.do, fresh.do);
+                fresh.dont = mergeArr(prev.dont, fresh.dont);
+            }
+            briefCur[step.key] = fresh;
+            briefAutoSave();
+        } catch(e) {
+            body.innerHTML = `<div class="bf-empty"><div class="bf-empty-icon">⚠️</div><div class="bf-empty-title">Ошибка AI</div><div class="bf-empty-sub">${esc(e.message)}</div><button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="briefRender(true)">Повторить</button></div>`;
+            return;
+        }
+    }
+
+    briefRenderBody();
+    $('briefBtnRegen').style.display = '';
+}
+
+function briefRenderBody() {
+    const steps = briefVisibleSteps();
+    const step = steps[briefIdx];
+    const mode = briefViewMode[step.key] || 'form';
+    const tabs = `<div class="bf-view-tabs">
+        <button class="bf-vt ${mode === 'form' ? 'active' : ''}" onclick="briefSetView('${step.key}','form')">Форма</button>
+        <button class="bf-vt ${mode === 'json' ? 'active' : ''}" onclick="briefSetView('${step.key}','json')">JSON</button>
+    </div>`;
+    let inner;
+    if (mode === 'json') {
+        inner = `<div class="bf-json-toolbar">
+            <button class="btn btn-ghost btn-sm" onclick="briefStepJsonFormat()">Format</button>
+            <button class="btn btn-ghost btn-sm" onclick="briefStepJsonApply()">Применить</button>
+        </div>
+        <div id="briefStepJson" class="bf-cm-wrap"></div>`;
+    } else {
+        inner = briefStepHtml(step, briefCur[step.key]);
+    }
+    $('briefStep').innerHTML = tabs + inner;
+    if (mode === 'json') {
+        briefInitStepJson();
+    } else {
+        briefStepEditor = null;
+        briefAttachHandlers();
+    }
+}
+
+function briefSetView(stepKey, mode) {
+    // Commit live state before swap so JSON reflects current form selections
+    briefCommitLive(stepKey);
+    briefViewMode[stepKey] = mode;
+    briefRenderBody();
+}
+
+function briefInitStepJson() {
+    const host = $('briefStepJson');
+    if (!host) return;
+    const steps = briefVisibleSteps();
+    const step = steps[briefIdx];
+    const payload = briefCur[step.key] || {};
+    briefStepEditor = CodeMirror(host, {
+        value: JSON.stringify(payload, null, 2),
+        mode: { name: 'javascript', json: true },
+        theme: 'dracula',
+        lineNumbers: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        tabSize: 2,
+        lineWrapping: true,
+    });
+}
+
+function briefStepJsonFormat() {
+    if (!briefStepEditor) return;
+    try { briefStepEditor.setValue(JSON.stringify(JSON.parse(briefStepEditor.getValue()), null, 2)); }
+    catch(e) { toast('Невалидный JSON: ' + e.message, true); }
+}
+
+function briefStepJsonApply() {
+    if (!briefStepEditor) return;
+    const steps = briefVisibleSteps();
+    const step = steps[briefIdx];
+    let parsed;
+    try { parsed = JSON.parse(briefStepEditor.getValue()); }
+    catch(e) { toast('Невалидный JSON: ' + e.message, true); return; }
+    briefCur[step.key] = parsed;
+    // Mirror to briefState shape
+    const val = briefCollectFromCur(step.key);
+    if (val !== null && val !== undefined) {
+        if (step.key === 'usp') briefState.usps = val.usps;
+        else briefState[step.key] = val;
+    }
+    toast('JSON применён');
+    briefViewMode[step.key] = 'form';
+    briefRenderBody();
+    briefAutoSave();
+    briefRenderFullJson();
+}
+
+// Build brief[key] shape directly from briefCur (without reading DOM)
+function briefCollectFromCur(stepKey) {
+    const data = briefCur[stepKey];
+    if (!data) return null;
+    if (stepKey === 'classify' || stepKey === 'rules' || stepKey === 'compliance') return data;
+    if (stepKey === 'voice') return (Array.isArray(data.options) && data.options[0]) ? data.options[0] : null;
+    if (stepKey === 'audience') return (Array.isArray(data.options) && data.options[0]) ? data.options[0] : null;
+    if (stepKey === 'usp') return { usps: Array.isArray(data.options) ? data.options : [] };
+    if (stepKey === 'competitors' || stepKey === 'phrases') return Array.isArray(data.options) ? data.options : [];
+    return null;
+}
+
+function briefHydrateFromSaved(key) {
+    const s = key === 'usp' ? briefState.usps : briefState[key];
+    if (s == null) return null;
+    if (key === 'audience' || key === 'voice') return { options: [s] };
+    if (key === 'competitors' || key === 'phrases') return { options: Array.isArray(s) ? s : [] };
+    if (key === 'usp') return { options: Array.isArray(s) ? s : [] };
+    return s;
 }
 
 function briefGoto(idx) {
-    const steps = briefVisibleSteps();
-    if (idx < 0 || idx >= steps.length) return;
-    briefStepIdx = idx;
+    briefCommit();
+    briefIdx = idx;
     briefRender();
 }
 
-function briefRenderStep(step) {
-    const options = (briefStepData[step.key] && briefStepData[step.key].options) || [];
-    const raw = briefStepData[step.key] && briefStepData[step.key].raw;
-    const hasData = briefStepData[step.key] !== undefined;
-    const saved = briefState && briefState[step.key];
-
-    const optionsHtml = hasData
-        ? briefRenderOptions(step, options, raw)
-        : (saved
-            ? `<div style="color:#94a3b8;font-size:.82rem;margin-bottom:12px">Уже сохранено. Нажмите «Сгенерировать варианты» для перезаписи.</div><pre style="background:#0f172a;padding:12px;border-radius:6px;font-size:.75rem;color:#cbd5e1;max-height:200px;overflow:auto">${esc(JSON.stringify(saved, null, 2))}</pre>`
-            : '<div style="color:#94a3b8;font-size:.85rem">Нажмите «Сгенерировать варианты» — AI предложит 3-5 опций на основе описания и текущего брифа.</div>');
-
-    return `
-        <h3>${esc(step.title)}</h3>
-        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-            <button class="ai-badge" onclick="briefGenerate('${step.key}')" id="briefGenBtn">Сгенерировать варианты</button>
-            <button class="btn btn-ghost btn-sm" onclick="briefPrev()" ${briefStepIdx === 0 ? 'disabled' : ''}>&larr; Назад</button>
-            <button class="btn btn-primary btn-sm" onclick="briefNext()">Далее &rarr;</button>
-        </div>
-        <div id="briefGenStatus" style="display:none;font-size:.78rem;color:#a78bfa;margin-bottom:12px"><span class="spinner"></span> Генерация...</div>
-        <div id="briefStepBody">${optionsHtml}</div>
-    `;
+function briefRegen() {
+    const steps = briefVisibleSteps();
+    const key = steps[briefIdx].key;
+    briefCommitLive(key);
+    briefRender(true);
 }
 
-function briefRenderOptions(step, options, raw) {
-    // classify / rules / compliance — single object, not list
+let __briefAutoTimer = null;
+function briefAutoSave() {
+    if (!currentProfile || !currentProfile.id) return;
+    clearTimeout(__briefAutoTimer);
+    __briefAutoTimer = setTimeout(async () => {
+        try {
+            const res = await briefApi(`profiles/${currentProfile.id}/brief`, 'POST', { brief: briefState });
+            currentProfile = res.data || currentProfile;
+            briefRenderFullJson();
+        } catch(e) { /* silent */ }
+    }, 400);
+}
+
+function briefDelOption(idx) {
+    const steps = briefVisibleSteps();
+    const key = steps[briefIdx].key;
+    const data = briefCur[key];
+    if (!data || !Array.isArray(data.options)) return;
+    briefCommitLive(key);
+    const removed = data.options[idx];
+    const rkey = removed ? briefOptKey(removed) : null;
+    data.options.splice(idx, 1);
+    if (rkey) {
+        if (key === 'audience' && briefState.audience && briefOptKey(briefState.audience) === rkey) briefState.audience = null;
+        else if (key === 'voice' && briefState.voice && briefOptKey(briefState.voice) === rkey) briefState.voice = null;
+        else if (key === 'usp' && Array.isArray(briefState.usps)) briefState.usps = briefState.usps.filter(o => briefOptKey(o) !== rkey);
+        else if ((key === 'competitors' || key === 'phrases') && Array.isArray(briefState[key])) briefState[key] = briefState[key].filter(o => briefOptKey(o) !== rkey);
+    }
+    briefRenderBody();
+    briefAutoSave();
+}
+
+function briefDelRule(group, idx) {
+    const data = briefCur.rules;
+    if (!data || !Array.isArray(data[group])) return;
+    briefCommitLive('rules');
+    const removed = data[group][idx];
+    const rkey = removed && removed.rule ? removed.rule : null;
+    data[group].splice(idx, 1);
+    if (rkey && briefState.rules && Array.isArray(briefState.rules[group])) {
+        briefState.rules[group] = briefState.rules[group].filter(r => (r.rule || '') !== rkey);
+    }
+    briefRenderBody();
+    briefAutoSave();
+}
+
+function briefAttachHandlers() {
+    const steps = briefVisibleSteps();
+    const curKey = steps[briefIdx].key;
+    document.querySelectorAll('#briefStep .bf-card').forEach(card => {
+        card.onclick = (e) => {
+            if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') return;
+            const input = card.querySelector('input');
+            if (!input) return;
+            if (input.type === 'radio') {
+                document.querySelectorAll('input[name="' + input.name + '"]').forEach(r => {
+                    r.checked = false;
+                    r.closest('.bf-card').classList.remove('selected');
+                });
+                input.checked = true;
+                card.classList.add('selected');
+            } else {
+                input.checked = !input.checked;
+                card.classList.toggle('selected', input.checked);
+            }
+            briefCommitLive(curKey);
+        };
+    });
+    document.querySelectorAll('#briefStep .bf-rule').forEach(row => {
+        row.onclick = (e) => {
+            if (e.target.tagName === 'BUTTON') return;
+            const input = row.querySelector('input');
+            input.checked = !input.checked;
+            row.classList.toggle('on', input.checked);
+            briefCommitLive(curKey);
+        };
+    });
+    document.querySelectorAll('#briefStep .bf-switch').forEach(sw => {
+        sw.onclick = () => {
+            const input = sw.querySelector('input');
+            input.checked = !input.checked;
+            sw.classList.toggle('on', input.checked);
+            briefCommitLive(curKey);
+        };
+    });
+    document.querySelectorAll('#briefStep input[type="text"], #briefStep textarea').forEach(inp => {
+        if (inp.id === 'briefHint') return;
+        inp.addEventListener('change', () => briefCommitLive(curKey));
+    });
+}
+
+function briefEntitiesToText(e) {
+    if (!e || typeof e !== 'object') return '';
+    const lines = [];
+    for (const k of Object.keys(e)) {
+        const v = e[k];
+        if (Array.isArray(v)) v.forEach(x => lines.push(String(x)));
+        else if (v) lines.push(String(v));
+    }
+    return lines.join('\n');
+}
+
+function briefStepHtml(step, data) {
+    const saved = step.key === 'usp' ? (briefState.usps || null) : (briefState[step.key] || null);
     if (step.key === 'classify') {
-        return `<div style="display:grid;gap:8px;font-size:.88rem">
-            <div><b>Ниша:</b> <input type="text" id="bf_classify_niche" value="${esc(raw.niche || '')}" style="width:100%"></div>
-            <div><b>Язык:</b> <input type="text" id="bf_classify_lang" value="${esc(raw.language || 'ru')}" style="width:120px"></div>
-            <div><b>Регулируемая ниша?</b>
-                <label style="margin-left:8px"><input type="checkbox" id="bf_classify_reg" ${raw.regulated ? 'checked' : ''}> да</label>
-                <input type="text" id="bf_classify_regdom" value="${esc(raw.regulatory_domain || 'none')}" style="width:140px;margin-left:8px" placeholder="finance|medical|legal|...">
+        const c = saved || data;
+        const entities = c.detected_entities || data.detected_entities || {};
+        const questions = (c.clarifying_questions && c.clarifying_questions.length ? c.clarifying_questions : (data.clarifying_questions || []));
+        return briefHintHtml() + `<div class="bf-classify-grid">
+            <div class="bf-field"><label>Ниша проекта</label><input type="text" id="bf_niche" value="${esc(c.niche || '')}"></div>
+            <div class="bf-switch ${c.regulated ? 'on' : ''}">
+                <input type="checkbox" id="bf_reg" ${c.regulated ? 'checked' : ''}>
+                <div class="bf-switch-toggle"></div>
+                <div class="bf-switch-text">Регулируемая ниша<div class="bf-switch-sub">финансы / медицина / юриспруденция / крипто — доп. ограничения</div></div>
             </div>
-            ${raw.clarifying_questions ? `<div style="margin-top:8px"><b>Уточнить:</b><ul style="margin:4px 0 0 20px">${raw.clarifying_questions.map(q => `<li style="font-size:.82rem">${esc(q)}</li>`).join('')}</ul></div>` : ''}
+            <div class="bf-field"><label>Тип регулирования</label><input type="text" id="bf_regdom" value="${esc(c.regulatory_domain || 'none')}" placeholder="finance | medical | legal | crypto | none"></div>
+            <div class="bf-field"><label>Язык контента</label><input type="text" id="bf_lang" value="${esc(c.language || 'ru')}" placeholder="ru | en | uk"></div>
+            <div class="bf-field"><label>Ключевые сущности (по одной на строку)</label><textarea id="bf_entities" rows="3" placeholder="Бренд X&#10;Продукт Y&#10;Регион Z">${esc(briefEntitiesToText(entities))}</textarea></div>
+            <div class="bf-field"><label>Уточняющие вопросы (по одному на строку)</label><textarea id="bf_questions" rows="3">${esc((questions || []).join('\n'))}</textarea></div>
+            ${questions && questions.length ? `<div class="bf-group"><div class="bf-group-title" style="color:#a78bfa">💡 Уточни для лучшего брифа</div>${questions.map(q => `<div style="font-size:12.5px;color:#cbd5e1;padding:4px 0">• ${esc(q)}</div>`).join('')}</div>` : ''}
         </div>`;
     }
     if (step.key === 'rules') {
-        const doList = raw.do || [];
-        const dontList = raw.dont || [];
-        return `<div style="display:grid;gap:12px;font-size:.85rem">
-            <div><b>DO (делай):</b><div style="margin-top:4px">${doList.map((r, i) => `
-                <label style="display:flex;gap:6px;align-items:flex-start;margin-bottom:4px">
-                    <input type="checkbox" class="bf_do_check" data-idx="${i}" checked>
-                    <span><b>${esc(r.rule || '')}</b>${r.check ? ` <span style="color:#64748b">— ${esc(r.check)}</span>` : ''}</span>
-                </label>`).join('')}</div></div>
-            <div><b>DON'T (не делай):</b><div style="margin-top:4px">${dontList.map((r, i) => `
-                <label style="display:flex;gap:6px;align-items:flex-start;margin-bottom:4px">
-                    <input type="checkbox" class="bf_dont_check" data-idx="${i}" checked>
-                    <span><b>${esc(r.rule || '')}</b>${r.check ? ` <span style="color:#64748b">— ${esc(r.check)}</span>` : ''}</span>
-                </label>`).join('')}</div></div>
-        </div>`;
+        data.do = data.do || []; data.dont = data.dont || [];
+        const doKeep = saved && saved.do ? new Set(saved.do.map(r => r.rule || '')) : null;
+        const dontKeep = saved && saved.dont ? new Set(saved.dont.map(r => r.rule || '')) : null;
+        const renderRules = (list, cls, keep, group) => list.map((r, i) => {
+            const on = keep ? keep.has(r.rule || '') : true;
+            return `<div class="bf-rule ${on ? 'on' : ''}">
+                <input type="checkbox" class="${cls}" data-idx="${i}" ${on ? 'checked' : ''}>
+                <div class="bf-rule-tick">✓</div>
+                <div class="bf-rule-body">${esc(r.rule || '')}${r.check ? `<div class="bf-rule-check">${esc(r.check)}</div>` : ''}</div>
+                <button class="bf-rule-del" onclick="event.stopPropagation();briefDelRule('${group}', ${i})" title="Удалить">✕</button>
+            </div>`;
+        }).join('');
+        return briefHintHtml() + `
+            <div class="bf-group do">
+                <div class="bf-group-title">✓ Делать</div>
+                ${renderRules(data.do, 'bf_do', doKeep, 'do')}
+                <div class="bf-add-row">
+                    <input type="text" id="bf_add_do_rule" placeholder="Своё правило DO">
+                    <input type="text" id="bf_add_do_check" placeholder="Как проверить (опц.)">
+                    <button class="btn btn-ghost btn-sm" onclick="briefAddRule('do')">+ Добавить</button>
+                </div>
+            </div>
+            <div class="bf-group dont">
+                <div class="bf-group-title">✕ Не делать</div>
+                ${renderRules(data.dont, 'bf_dont', dontKeep, 'dont')}
+                <div class="bf-add-row">
+                    <input type="text" id="bf_add_dont_rule" placeholder="Своё правило DON'T">
+                    <input type="text" id="bf_add_dont_check" placeholder="Как проверить (опц.)">
+                    <button class="btn btn-ghost btn-sm" onclick="briefAddRule('dont')">+ Добавить</button>
+                </div>
+            </div>`;
     }
     if (step.key === 'compliance') {
-        return `<pre style="background:#0f172a;padding:12px;border-radius:6px;font-size:.78rem;color:#cbd5e1;max-height:400px;overflow:auto" id="bf_compliance_raw">${esc(JSON.stringify(raw, null, 2))}</pre>
-        <div style="color:#94a3b8;font-size:.78rem;margin-top:8px">Редактировать JSON напрямую, потом «Далее».</div>`;
+        const payload = saved || data || {};
+        const fc = Array.isArray(payload.forbidden_claims) ? payload.forbidden_claims : [];
+        const rd = Array.isArray(payload.required_disclaimers) ? payload.required_disclaimers : [];
+        const rw = Array.isArray(payload.risk_warnings) ? payload.risk_warnings : [];
+        const fcRows = fc.map((c, i) => `
+            <div class="bf-cmp-item" data-i="${i}">
+                <input type="text" class="cmp-fc-phrase" value="${esc(c.phrase || '')}" placeholder="Запрещённая формулировка">
+                <div class="bf-cmp-item-row"><input type="text" class="cmp-fc-reason" value="${esc(c.reason || '')}" placeholder="Почему нельзя"><button class="bf-cmp-del" onclick="briefCmpDel(this)" title="Удалить">✕</button></div>
+            </div>`).join('');
+        const rdRows = rd.map((t, i) => `
+            <div class="bf-cmp-item" data-i="${i}"><div class="bf-cmp-item-row"><input type="text" class="cmp-rd" value="${esc(t)}" placeholder="Обязательная оговорка"><button class="bf-cmp-del" onclick="briefCmpDel(this)" title="Удалить">✕</button></div></div>`).join('');
+        const rwRows = rw.map((t, i) => `
+            <div class="bf-cmp-item" data-i="${i}"><div class="bf-cmp-item-row"><input type="text" class="cmp-rw" value="${esc(t)}" placeholder="Предупреждение о риске"><button class="bf-cmp-del" onclick="briefCmpDel(this)" title="Удалить">✕</button></div></div>`).join('');
+        return `<div style="font-size:12.5px;color:#cbd5e1;margin-bottom:12px;line-height:1.5">⚖️ Compliance для регулируемой ниши. Редактируйте, удаляйте и добавляйте свои.</div>
+            <div class="bf-cmp">
+                <div class="bf-cmp-group" id="cmp-fc-group"><div class="bf-cmp-group-title">🚫 Запрещённые формулировки</div><div id="cmp-fc-list">${fcRows}</div><button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="briefCmpAdd('fc')">+ Добавить</button></div>
+                <div class="bf-cmp-group" id="cmp-rd-group"><div class="bf-cmp-group-title">📋 Обязательные оговорки</div><div id="cmp-rd-list">${rdRows}</div><button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="briefCmpAdd('rd')">+ Добавить</button></div>
+                <div class="bf-cmp-group" id="cmp-rw-group"><div class="bf-cmp-group-title">⚠️ Предупреждения о рисках</div><div id="cmp-rw-list">${rwRows}</div><button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="briefCmpAdd('rw')">+ Добавить</button></div>
+            </div>`;
     }
     if (step.key === 'voice') {
-        // Single-pick radio
-        return (options || []).map((o, i) => `
-            <label class="preview-card" style="display:block;cursor:pointer;margin-bottom:8px;padding:12px">
-                <div style="display:flex;gap:8px;align-items:flex-start">
-                    <input type="radio" name="bf_voice_pick" value="${i}" ${i === 0 ? 'checked' : ''} style="margin-top:4px">
-                    <div style="flex:1">
-                        <div><b>${esc(o.label || o.archetype)}</b> <span style="color:#64748b;font-size:.78rem">[${esc(o.archetype)}]</span></div>
-                        <div style="margin-top:6px;font-size:.82rem;color:#cbd5e1">«${esc(o.sample_explanation || '')}»</div>
-                        <div style="margin-top:4px;font-size:.8rem;color:#a78bfa">CTA: «${esc(o.sample_cta || '')}»</div>
-                        ${o.vocabulary_hints ? `<div style="margin-top:4px;font-size:.76rem;color:#64748b">Обороты: ${esc((o.vocabulary_hints || []).join(', '))}</div>` : ''}
+        const opts = data.options || (data.options = []);
+        if (saved && opts.findIndex(o => briefOptKey(o) === briefOptKey(saved)) < 0) opts.unshift(saved);
+        const savedKey = saved ? briefOptKey(saved) : null;
+        let selIdx = savedKey ? opts.findIndex(o => briefOptKey(o) === savedKey) : 0;
+        if (selIdx < 0) selIdx = 0;
+        return briefHintHtml() + `<div class="bf-options">` + opts.map((o, i) => `
+            <div class="bf-card ${i === selIdx ? 'selected' : ''}" data-vi="${i}">
+                <button class="bf-card-del" onclick="event.stopPropagation();briefDelOption(${i})" title="Удалить">✕</button>
+                <input type="radio" name="bf_voice" value="${i}" ${i === selIdx ? 'checked' : ''}>
+                <div class="bf-card-tick">✓</div>
+                <div class="bf-card-body">
+                    <div class="bf-card-title"><span class="bf-card-tag">${esc(o.archetype || '')}</span>${esc(o.label || o.archetype || '')}</div>
+                    ${o.sample_explanation ? `<div class="bf-card-quote">${esc(o.sample_explanation)}</div>` : ''}
+                    ${o.sample_cta ? `<div class="bf-card-cta">↳ CTA: «${esc(o.sample_cta)}»</div>` : ''}
+                    ${o.vocabulary_hints && o.vocabulary_hints.length ? `<div class="bf-card-vocab">· ${esc(o.vocabulary_hints.join(' · '))}</div>` : ''}
+                    <div class="bf-voice-edit">
+                        <label class="bf-voice-lbl">Архетип</label><input type="text" class="bf_voice_archetype" value="${esc(o.archetype || '')}">
+                        <label class="bf-voice-lbl">Название</label><input type="text" class="bf_voice_label" value="${esc(o.label || '')}">
+                        <label class="bf-voice-lbl">Пример фразы</label><textarea class="bf_voice_sample" rows="2">${esc(o.sample_explanation || '')}</textarea>
+                        <label class="bf-voice-lbl">CTA</label><input type="text" class="bf_voice_cta" value="${esc(o.sample_cta || '')}">
+                        <label class="bf-voice-lbl">Словарь (через запятую)</label><input type="text" class="bf_voice_vocab" value="${esc((o.vocabulary_hints || []).join(', '))}">
                     </div>
                 </div>
-            </label>`).join('');
+            </div>`).join('') + `</div>
+            <div class="bf-add-row single">
+                <input type="text" id="bf_add_voice_archetype" placeholder="Свой архетип (например: Ментор)">
+                <button class="btn btn-ghost btn-sm" onclick="briefAddVoice()">+ Добавить архетип</button>
+            </div>`;
     }
     if (step.key === 'phrases') {
-        return (options || []).map((o, i) => `
-            <label class="preview-card" style="display:block;cursor:pointer;margin-bottom:8px;padding:12px">
-                <div style="display:flex;gap:8px;align-items:flex-start">
-                    <input type="checkbox" class="bf_phrase_check" value="${i}" checked style="margin-top:4px">
-                    <div style="flex:1">
-                        <div style="color:#64748b;font-size:.76rem">${esc(o.context || '')}</div>
-                        <div style="margin-top:4px;font-size:.86rem">${esc(o.text || '')}</div>
-                    </div>
-                </div>
-            </label>`).join('');
+        const opts = data.options || (data.options = []);
+        const savedKeys = Array.isArray(saved) ? new Set(saved.map(briefOptKey)) : null;
+        const cards = opts.map((o, i) => {
+            const on = savedKeys ? savedKeys.has(briefOptKey(o)) : true;
+            return `<div class="bf-card ${on ? 'selected' : ''}">
+                <button class="bf-card-del" onclick="event.stopPropagation();briefDelOption(${i})" title="Удалить">✕</button>
+                <input type="checkbox" class="bf_phrase" value="${i}" ${on ? 'checked' : ''}>
+                <div class="bf-card-tick">✓</div>
+                <div class="bf-card-body"><div class="bf-card-phrase"><div class="bf-card-phrase-ctx">${esc(o.context || 'пробный фрагмент')}</div>${esc(o.text || '')}</div></div>
+            </div>`;
+        }).join('');
+        return briefHintHtml() + `<div class="bf-options">${cards}</div>
+            <div class="bf-add-row">
+                <input type="text" id="bf_add_phrase_ctx" placeholder="Контекст (hero / FAQ / CTA...)">
+                <textarea id="bf_add_phrase_text" placeholder="Ваш текст в голосе бренда..." rows="2"></textarea>
+                <button class="btn btn-ghost btn-sm" onclick="briefAddOption('phrases')">+ Добавить</button>
+            </div>`;
     }
-    // Default: multi-select cards (audience, usp, competitors)
-    return (options || []).map((o, i) => {
+    // audience / usp / competitors
+    const opts = data.options || (data.options = []);
+    let savedKeys = null;
+    if (saved) {
+        const arr = Array.isArray(saved) ? saved : [saved];
+        savedKeys = new Set(arr.map(briefOptKey));
+    }
+    return briefHintHtml() + `<div class="bf-options">` + opts.map((o, i) => {
         const primary = o.label || o.headline || o.name || ('Вариант ' + (i + 1));
-        const details = [];
-        if (o.demographics) details.push(`<div><b>Демография:</b> ${esc(o.demographics)}</div>`);
-        if (o.pains)        details.push(`<div><b>Боли:</b> ${esc((o.pains || []).join('; '))}</div>`);
-        if (o.goals)        details.push(`<div><b>Цели:</b> ${esc((o.goals || []).join('; '))}</div>`);
-        if (o.triggers)     details.push(`<div><b>Триггер:</b> ${esc(o.triggers)}</div>`);
-        if (o.proof)        details.push(`<div><b>Подтверждение:</b> ${esc(o.proof)}</div>`);
-        if (o.differentiator) details.push(`<div><b>Отличие:</b> ${esc(o.differentiator)}</div>`);
-        if (o.weaknesses)   details.push(`<div><b>Слабости:</b> ${esc((o.weaknesses || []).join(', '))}</div>`);
-        if (o.angle)        details.push(`<div><b>Угол:</b> ${esc(o.angle)}</div>`);
-        return `
-            <label class="preview-card" style="display:block;cursor:pointer;margin-bottom:8px;padding:12px">
-                <div style="display:flex;gap:8px;align-items:flex-start">
-                    <input type="checkbox" class="bf_pick" value="${i}" ${i < 2 ? 'checked' : ''} style="margin-top:4px">
-                    <div style="flex:1;font-size:.84rem">
-                        <div><b>${esc(primary)}</b></div>
-                        <div style="margin-top:6px;display:grid;gap:4px;color:#cbd5e1">${details.join('')}</div>
-                    </div>
-                </div>
-            </label>`;
-    }).join('');
+        const tag = o.type ? `<span class="bf-card-tag">${esc(o.type)}</span>` : '';
+        const facts = [];
+        if (o.demographics)   facts.push(['👥', 'Демография', o.demographics]);
+        if (o.pains)          facts.push(['🔥', 'Боли', (o.pains || []).join(' · ')]);
+        if (o.goals)          facts.push(['🎯', 'Цели', (o.goals || []).join(' · ')]);
+        if (o.triggers)       facts.push(['⚡', 'Триггер', o.triggers]);
+        if (o.proof)          facts.push(['📊', 'Подтверждение', o.proof]);
+        if (o.differentiator) facts.push(['✨', 'Отличие', o.differentiator]);
+        if (o.weaknesses)     facts.push(['⚠️', 'Слабости', (o.weaknesses || []).join(', ')]);
+        if (o.angle)          facts.push(['🎯', 'Угол атаки', o.angle]);
+        const on = savedKeys ? savedKeys.has(briefOptKey(o)) : (i < 2);
+        return `<div class="bf-card ${on ? 'selected' : ''}">
+            <button class="bf-card-del" onclick="event.stopPropagation();briefDelOption(${i})" title="Удалить">✕</button>
+            <input type="checkbox" class="bf_pick" value="${i}" ${on ? 'checked' : ''}>
+            <div class="bf-card-tick">✓</div>
+            <div class="bf-card-body">
+                <div class="bf-card-title">${tag}${esc(primary)}</div>
+                ${facts.length ? `<div class="bf-card-facts">${facts.map(f => `<div class="bf-fact"><div class="bf-fact-icon">${f[0]}</div><div><b style="color:#e2e8f0;font-weight:600">${esc(f[1])}:</b> ${esc(f[2])}</div></div>`).join('')}</div>` : ''}
+            </div>
+        </div>`;
+    }).join('') + `</div>
+        <div class="bf-add-row single">
+            <input type="text" id="bf_add_label" placeholder="${esc(step.key === 'competitors' ? 'Название конкурента' : step.key === 'usp' ? 'Своё УТП — заголовок' : 'Своя ICP — название')}">
+            <button class="btn btn-ghost btn-sm" onclick="briefAddOption('${step.key}')">+ Добавить</button>
+        </div>`;
 }
 
-async function briefGenerate(stepKey) {
-    if (!currentProfile || !currentProfile.description) {
-        toast('Заполните описание проекта в Настройках', true);
-        return;
-    }
-    $('briefGenBtn').disabled = true;
-    $('briefGenStatus').style.display = '';
-    try {
-        const res = await api('profiles/brief', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                step: stepKey,
-                description: currentProfile.description,
-                brief: briefState || {},
-            }),
-        });
-        if (!res.success) { toast(res.error || 'Ошибка AI', true); return; }
-        const data = res.data.data || {};
-        briefStepData[stepKey] = { options: data.options || [], raw: data };
-        briefRender();
-    } catch(e) {
-        toast('Ошибка сети', true);
-    } finally {
-        if ($('briefGenBtn')) $('briefGenBtn').disabled = false;
-        if ($('briefGenStatus')) $('briefGenStatus').style.display = 'none';
-    }
+function briefHintHtml() {
+    const steps = briefVisibleSteps();
+    const step = steps[briefIdx];
+    const v = briefHints[step.key] || '';
+    return `<div class="bf-hint-row">
+        <input type="text" id="briefHint" class="bf-hint-input" value="${esc(v)}" placeholder="Уточнение для AI (опц.) — «ближе к B2B», «мягче», «добавь креатива»" oninput="briefHints['${step.key}']=this.value">
+        <button class="btn btn-ghost btn-sm" type="button" onclick="briefRegen()" title="Новые варианты с учётом уточнения">↻ Ещё варианты</button>
+    </div>`;
 }
 
-function briefCollectStep(stepKey) {
-    const data = briefStepData[stepKey];
+function briefAddOption(stepKey) {
+    const data = briefCur[stepKey];
+    if (!data) return;
+    data.options = data.options || [];
+    let item = null;
+    if (stepKey === 'phrases') {
+        const ctx = $('bf_add_phrase_ctx').value.trim() || 'custom';
+        const text = $('bf_add_phrase_text').value.trim();
+        if (!text) { toast('Введите текст', true); return; }
+        item = { context: ctx, text };
+    } else {
+        const label = $('bf_add_label').value.trim();
+        if (!label) { toast('Введите вариант', true); return; }
+        if (stepKey === 'usp') item = { headline: label, label };
+        else if (stepKey === 'competitors') item = { name: label, label };
+        else item = { label, name: label };
+    }
+    briefCommitLive(stepKey);
+    data.options.push(item);
+    const key = stepKey === 'usp' ? 'usps' : stepKey;
+    if (stepKey === 'audience') briefState.audience = item;
+    else if (stepKey === 'usp') briefState.usps = [...(briefState.usps || []), item];
+    else briefState[key] = [...(briefState[key] || []), item];
+    briefRenderBody();
+    briefAutoSave();
+}
+
+function briefAddVoice() {
+    const inp = $('bf_add_voice_archetype');
+    const v = inp ? inp.value.trim() : '';
+    if (!v) { toast('Введите архетип', true); return; }
+    const data = briefCur.voice;
+    if (!data) return;
+    data.options = data.options || [];
+    briefCommitLive('voice');
+    const item = { archetype: v, label: v, sample_explanation: '', sample_cta: '', vocabulary_hints: [] };
+    data.options.push(item);
+    briefState.voice = item;
+    briefRenderBody();
+    briefAutoSave();
+}
+
+function briefAddRule(group) {
+    const rule = $('bf_add_' + group + '_rule').value.trim();
+    if (!rule) { toast('Введите правило', true); return; }
+    const check = $('bf_add_' + group + '_check').value.trim();
+    const data = briefCur.rules;
+    if (!data) return;
+    data[group] = data[group] || [];
+    briefCommitLive('rules');
+    const item = check ? { rule, check } : { rule };
+    data[group].push(item);
+    briefState.rules = briefState.rules || { do: [], dont: [] };
+    briefState.rules[group] = [...(briefState.rules[group] || []), item];
+    briefRenderBody();
+    briefAutoSave();
+}
+
+function briefCmpAdd(kind) {
+    const list = $('cmp-' + kind + '-list');
+    let html = '';
+    if (kind === 'fc') html = `<div class="bf-cmp-item"><input type="text" class="cmp-fc-phrase" placeholder="Запрещённая формулировка"><div class="bf-cmp-item-row"><input type="text" class="cmp-fc-reason" placeholder="Почему нельзя"><button class="bf-cmp-del" onclick="briefCmpDel(this)" title="Удалить">✕</button></div></div>`;
+    else html = `<div class="bf-cmp-item"><div class="bf-cmp-item-row"><input type="text" class="cmp-${kind}" placeholder="${kind === 'rd' ? 'Обязательная оговорка' : 'Предупреждение о риске'}"><button class="bf-cmp-del" onclick="briefCmpDel(this)" title="Удалить">✕</button></div></div>`;
+    list.insertAdjacentHTML('beforeend', html);
+}
+
+function briefCmpDel(btn) { btn.closest('.bf-cmp-item').remove(); briefCommitLive('compliance'); briefAutoSave(); }
+
+function briefCollect(stepKey) {
+    const data = briefCur[stepKey];
     if (!data) return null;
     if (stepKey === 'classify') {
+        const nicheEl = $('bf_niche');
+        if (!nicheEl) return briefCollectFromCur(stepKey); // JSON view active
+        const entitiesEl = $('bf_entities');
+        const questionsEl = $('bf_questions');
+        const entities = entitiesEl ? { items: entitiesEl.value.split('\n').map(s => s.trim()).filter(Boolean) } : (data.detected_entities || {});
+        const questions = questionsEl ? questionsEl.value.split('\n').map(s => s.trim()).filter(Boolean) : (data.clarifying_questions || []);
         return {
-            niche: $('bf_classify_niche').value,
-            language: $('bf_classify_lang').value,
-            regulated: $('bf_classify_reg').checked,
-            regulatory_domain: $('bf_classify_regdom').value,
-            detected_entities: data.raw.detected_entities || {},
-            clarifying_questions: data.raw.clarifying_questions || [],
+            niche: nicheEl.value,
+            regulated: $('bf_reg').checked,
+            regulatory_domain: $('bf_regdom').value,
+            language: $('bf_lang') ? ($('bf_lang').value || 'ru') : (data.language || 'ru'),
+            detected_entities: entities,
+            clarifying_questions: questions,
         };
     }
     if (stepKey === 'rules') {
-        const doChecked = [...document.querySelectorAll('.bf_do_check')].filter(c => c.checked).map(c => data.raw.do[+c.dataset.idx]);
-        const dontChecked = [...document.querySelectorAll('.bf_dont_check')].filter(c => c.checked).map(c => data.raw.dont[+c.dataset.idx]);
-        return { do: doChecked, dont: dontChecked };
+        const doEls = document.querySelectorAll('#briefStep .bf_do');
+        if (!doEls.length) return briefCollectFromCur(stepKey);
+        const doList = [...doEls].filter(c => c.checked).map(c => data.do[+c.dataset.idx]);
+        const dontList = [...document.querySelectorAll('#briefStep .bf_dont')].filter(c => c.checked).map(c => data.dont[+c.dataset.idx]);
+        return { do: doList, dont: dontList };
     }
     if (stepKey === 'compliance') {
-        try { return JSON.parse($('bf_compliance_raw').textContent); } catch(e) { return data.raw; }
+        if (!$('cmp-fc-list')) return briefCollectFromCur(stepKey);
+        const fcList = [...document.querySelectorAll('#cmp-fc-list .bf-cmp-item')].map(row => ({
+            phrase: row.querySelector('.cmp-fc-phrase').value.trim(),
+            reason: row.querySelector('.cmp-fc-reason').value.trim(),
+        })).filter(x => x.phrase);
+        const rdList = [...document.querySelectorAll('#cmp-rd-list .cmp-rd')].map(i => i.value.trim()).filter(Boolean);
+        const rwList = [...document.querySelectorAll('#cmp-rw-list .cmp-rw')].map(i => i.value.trim()).filter(Boolean);
+        return { forbidden_claims: fcList, required_disclaimers: rdList, risk_warnings: rwList };
     }
     if (stepKey === 'voice') {
-        const pick = document.querySelector('input[name="bf_voice_pick"]:checked');
-        return pick ? (data.options[+pick.value] || null) : (data.options[0] || null);
+        const pick = document.querySelector('#briefStep input[name="bf_voice"]:checked');
+        if (!pick) return briefCollectFromCur(stepKey);
+        const idx = +pick.value;
+        const base = data.options[idx] || null;
+        if (!base) return null;
+        const card = document.querySelector('#briefStep .bf-card[data-vi="' + idx + '"]');
+        if (!card) return base;
+        const getv = sel => { const n = card.querySelector(sel); return n ? n.value.trim() : ''; };
+        return {
+            ...base,
+            archetype: getv('.bf_voice_archetype') || base.archetype || '',
+            label: getv('.bf_voice_label') || base.label || '',
+            sample_explanation: getv('.bf_voice_sample') || base.sample_explanation || '',
+            sample_cta: getv('.bf_voice_cta') || base.sample_cta || '',
+            vocabulary_hints: getv('.bf_voice_vocab').split(',').map(s => s.trim()).filter(Boolean),
+        };
     }
     if (stepKey === 'phrases') {
-        return [...document.querySelectorAll('.bf_phrase_check')].filter(c => c.checked).map(c => data.options[+c.value]);
+        const els = document.querySelectorAll('#briefStep .bf_phrase');
+        if (!els.length) return briefCollectFromCur(stepKey);
+        return [...els].filter(c => c.checked).map(c => data.options[+c.value]);
     }
-    // Multi-pick
-    const picks = [...document.querySelectorAll('.bf_pick')].filter(c => c.checked).map(c => data.options[+c.value]);
-    if (stepKey === 'audience') return picks[0] || null; // audience = single primary ICP
-    if (stepKey === 'usp') return { usps: picks };       // container
+    const picks = [...document.querySelectorAll('#briefStep .bf_pick')].filter(c => c.checked).map(c => data.options[+c.value]);
+    if (!document.querySelector('#briefStep .bf_pick')) return briefCollectFromCur(stepKey);
+    if (stepKey === 'audience') return picks[0] || null;
+    if (stepKey === 'usp') return { usps: picks };
     if (stepKey === 'competitors') return picks;
     return picks;
 }
 
-function briefCommitStep() {
+function briefCommitLive(stepKey) {
+    if (!briefCur[stepKey]) return;
+    const val = briefCollect(stepKey);
+    if (val === null || val === undefined) return;
+    if (stepKey === 'usp') briefState.usps = val.usps;
+    else briefState[stepKey] = val;
+    briefAutoSave();
+    briefRenderFullJson();
+}
+
+function briefCommit() {
     const steps = briefVisibleSteps();
-    const cur = steps[briefStepIdx];
-    if (cur.key === 'review') return true;
-    if (!briefStepData[cur.key]) return true; // user skipped generation — keep existing state
-    const val = briefCollectStep(cur.key);
-    if (val === null || val === undefined) return false;
-    if (cur.key === 'usp') {
-        briefState.usps = val.usps;
-    } else {
-        briefState[cur.key] = val;
-    }
+    const step = steps[briefIdx];
+    if (!briefCur[step.key]) return true;
+    const val = briefCollect(step.key);
+    if (val === null) return false;
+    if (step.key === 'usp') briefState.usps = val.usps;
+    else briefState[step.key] = val;
+    briefAutoSave();
     return true;
 }
 
 function briefPrev() {
-    briefCommitStep();
-    if (briefStepIdx > 0) { briefStepIdx--; briefRender(); }
+    briefCommit();
+    if (briefIdx > 0) { briefIdx--; briefRender(); }
 }
 
 function briefNext() {
-    if (!briefCommitStep()) { toast('Выберите вариант', true); return; }
+    if (!briefCommit()) { toast('Выберите вариант', true); return; }
     const steps = briefVisibleSteps();
-    if (briefStepIdx < steps.length - 1) { briefStepIdx++; briefRender(); }
-}
-
-function briefRenderReview() {
-    return `
-        <h3>Ревью брифа перед сохранением</h3>
-        <div style="color:#94a3b8;font-size:.82rem;margin-bottom:8px">Проверь финальный JSON. После сохранения из него детерминированно собираются gpt_persona и gpt_rules профиля.</div>
-        <textarea id="bf_review_json" rows="20" style="width:100%;font-family:monospace;font-size:.78rem">${esc(JSON.stringify(briefState, null, 2))}</textarea>
-        <div style="display:flex;gap:8px;margin-top:12px">
-            <button class="btn btn-ghost btn-sm" onclick="briefPrev()">&larr; Назад</button>
-            <button class="btn btn-primary btn-sm" onclick="briefSave()">Сохранить бриф</button>
-        </div>
-    `;
+    if (briefIdx < steps.length - 1) { briefIdx++; briefRender(); return; }
+    briefSave();
 }
 
 async function briefSave() {
     try {
-        const ta = $('bf_review_json');
-        if (ta) {
-            try { briefState = JSON.parse(ta.value); } catch(e) { toast('JSON невалиден: ' + e.message, true); return; }
-        } else {
-            briefCommitStep();
-        }
-        const res = await api(`profiles/${currentProfile.id}/brief`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ brief: briefState }),
-        });
-        if (!res.success) { toast(res.error || 'Ошибка сохранения', true); return; }
-        currentProfile = res.data;
-        toast('Бриф сохранён, persona/rules обновлены');
-    } catch(e) { toast('Ошибка сети', true); }
+        briefCommit();
+        const res = await briefApi(`profiles/${currentProfile.id}/brief`, 'POST', { brief: briefState });
+        currentProfile = res.data || currentProfile;
+        briefRenderFullJson();
+        toast('Бриф сохранён — persona/rules обновлены');
+    } catch(e) {
+        toast('Ошибка: ' + e.message, true);
+    }
 }
 
+// ── Full-brief JSON editor (bottom section) ──
+function briefRenderFullJson() {
+    const host = $('briefFullJsonWrap');
+    if (!host) return;
+    const val = JSON.stringify(briefState || {}, null, 2);
+    if (!briefFullEditor) {
+        host.innerHTML = '';
+        briefFullEditor = CodeMirror(host, {
+            value: val,
+            mode: { name: 'javascript', json: true },
+            theme: 'dracula',
+            lineNumbers: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            tabSize: 2,
+            lineWrapping: true,
+        });
+    } else {
+        if (briefFullEditor.getValue() !== val) briefFullEditor.setValue(val);
+    }
+}
+
+function briefFullJsonFormat() {
+    if (!briefFullEditor) return;
+    try { briefFullEditor.setValue(JSON.stringify(JSON.parse(briefFullEditor.getValue()), null, 2)); }
+    catch(e) { toast('Невалидный JSON: ' + e.message, true); }
+}
+
+function briefFullJsonApply() {
+    if (!briefFullEditor) return;
+    let parsed;
+    try { parsed = JSON.parse(briefFullEditor.getValue()); }
+    catch(e) { toast('Невалидный JSON: ' + e.message, true); return; }
+    briefState = parsed || {};
+    briefCur = {};
+    briefRender();
+    briefAutoSave();
+    toast('JSON брифа применён');
+}
+
+function briefFullJsonReload() {
+    if (!briefFullEditor) return;
+    briefFullEditor.setValue(JSON.stringify(briefState || {}, null, 2));
+}
 // ── Init ──
 loadProfiles();
 </script>

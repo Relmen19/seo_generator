@@ -171,6 +171,12 @@ class PageAssembler
             ? '<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>'
             : '';
 
+        $prismAssets = strpos($bodyHtml, 'language-') !== false
+            ? '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">'
+              . '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>'
+              . '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>'
+            : '';
+
         $fonts = $this->theme->getFontLinks();
 
         $logo = '/uploads/' . ($this->siteProfile['icon_path'] ?? '') ?: (defined('SEO_DEFAULT_LOGO_URL') ? SEO_DEFAULT_LOGO_URL : '');
@@ -191,6 +197,7 @@ class PageAssembler
             . '<link rel="icon" href="' . $logo . '">'
             . $fonts
             . $chartJs
+            . $prismAssets
             . $assets->buildStyleTag()
             . '</head><body class="' . $bodyClass . '">'
             . $parallaxHtml
@@ -232,10 +239,17 @@ class PageAssembler
             ? '<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>'
             : '';
 
+        $prismAssets = strpos($blockHtml, 'language-') !== false
+            ? '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">'
+              . '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>'
+              . '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>'
+            : '';
+
         return '<!DOCTYPE html><html lang="ru"><head>'
             . '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">'
             . $fonts
             . $chartJs
+            . $prismAssets
             . $assets->buildStyleTag()
             . '<style>.reveal{opacity:1!important;transform:none!important}section{padding:24px 0!important}body{margin:0;padding:0}</style>'
             . '</head><body' . ($themeClass !== '' ? ' class="' . $themeClass . '"' : '') . '>'

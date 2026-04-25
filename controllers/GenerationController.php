@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Seo\Controller;
 
 use Seo\Service\ArticleGeneratorService;
+use Seo\Service\ArticleOutlineService;
+use Seo\Service\ArticleResearchService;
+use Seo\Database;
+use Seo\Entity\SeoArticle;
 use Seo\Service\GptClient;
 use Throwable;
 
@@ -51,6 +55,16 @@ class GenerationController extends AbstractController {
             return;
         }
 
+        if ($id !== null && $action === 'research') {
+            $this->buildResearch($id);
+            return;
+        }
+
+        if ($id !== null && $action === 'outline') {
+            $this->buildOutline($id);
+            return;
+        }
+
         if ($id !== null && $action === 'block') {
             $this->generateBlock($id);
             return;
@@ -61,7 +75,7 @@ class GenerationController extends AbstractController {
             return;
         }
 
-        $this->error('Укажите article_id: POST /generate/{articleId}[/sse|/meta|/block]');
+        $this->error('Укажите article_id: POST /generate/{articleId}[/sse|/meta|/research|/outline|/block]');
     }
 
     private function generateAll(int $articleId): void {
@@ -148,6 +162,79 @@ class GenerationController extends AbstractController {
                 'temperature' => $body['temperature'] ?? null,
             ]);
 
+            $this->success($result);
+        } catch (Throwable $e) {
+            $this->error($e->getMessage(), 500);
+        }
+    }
+
+    private function buildResearch(int $articleId): void {
+        $body = $this->getJsonBody();
+
+        // Manual save: client posts {dossier: "..."} to overwrite without GPT call
+        if (array_key_exists('dossier', $body)) {
+            try {
+                $svc = new ArticleResearchService(new GptClient());
+                $dossier = (string)($body['dossier'] ?? '');
+                $svc->saveManual($articleId, $dossier, $body['status'] ?? 'ready');
+                $row = Database::getInstance()->fetchOne(
+                    "SELECT research_dossier, research_status, research_at FROM "
+                    . SeoArticle::SEO_ARTICLE_TABLE . " WHERE id = ?", [$articleId]
+                );
+                $this->success([
+                    'mode' => 'manual_save',
+                    'dossier' => $row['research_dossier'] ?? null,
+                    'status'  => $row['research_status'] ?? 'none',
+                    'at'      => $row['research_at'] ?? null,
+                ]);
+            } catch (Throwable $e) {
+                $this->error($e->getMessage(), 500);
+            }
+            return;
+        }
+
+        try {
+            $svc = new ArticleResearchService(new GptClient());
+            $result = $svc->buildDossier($articleId, [
+                'model' => $body['model'] ?? null,
+                'force' => !empty($body['force']),
+            ]);
+            $this->success($result);
+        } catch (Throwable $e) {
+            $this->error($e->getMessage(), 500);
+        }
+    }
+
+    private function buildOutline(int $articleId): void {
+        $body = $this->getJsonBody();
+
+        // Manual save: client posts {outline: "<json>"} to overwrite without GPT call
+        if (array_key_exists('outline', $body)) {
+            try {
+                $svc = new ArticleOutlineService(new GptClient());
+                $outline = (string)($body['outline'] ?? '');
+                $svc->saveManual($articleId, $outline, $body['status'] ?? 'ready');
+                $row = Database::getInstance()->fetchOne(
+                    "SELECT article_outline, outline_status FROM "
+                    . SeoArticle::SEO_ARTICLE_TABLE . " WHERE id = ?", [$articleId]
+                );
+                $this->success([
+                    'mode'    => 'manual_save',
+                    'outline' => $row['article_outline'] ?? null,
+                    'status'  => $row['outline_status'] ?? 'none',
+                ]);
+            } catch (Throwable $e) {
+                $this->error($e->getMessage(), 500);
+            }
+            return;
+        }
+
+        try {
+            $svc = new ArticleOutlineService(new GptClient());
+            $result = $svc->buildOutline($articleId, [
+                'model' => $body['model'] ?? null,
+                'force' => !empty($body['force']),
+            ]);
             $this->success($result);
         } catch (Throwable $e) {
             $this->error($e->getMessage(), 500);

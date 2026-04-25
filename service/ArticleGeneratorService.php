@@ -202,21 +202,101 @@ class ArticleGeneratorService {
             $article['slug'] = $slug;
         }
         $article = $this->enrichArticleWithIntent($article);
+
+        $researchResult = null;
+        if (empty($options['skip_research'])) {
+            $researchResult = $this->ensureResearch($articleId, $options);
+            $article = $this->loadArticle($articleId);
+            $article = $this->enrichArticleWithIntent($article);
+        }
+
+        $outlineResult = null;
+        if (empty($options['skip_outline'])) {
+            $outlineResult = $this->ensureOutline($articleId, $options);
+            $article = $this->loadArticle($articleId);
+            $article = $this->enrichArticleWithIntent($article);
+        }
+
         $metaResult = $this->generateMeta($articleId, $options, $article);
         $article = $this->loadArticle($articleId);
         $blocksResult = $this->generateAllBlocks($articleId, $options);
         $this->writeAudit($articleId, 'generate', [
             'mode' => 'full_pipeline',
+            'research_tokens' => $researchResult['usage'] ?? null,
+            'outline_tokens' => $outlineResult['usage'] ?? null,
             'meta_tokens' => $metaResult['usage'],
             'blocks_tokens' => $blocksResult['usage'],
             'blocks_count' => $blocksResult['blocks_generated'],
         ]);
 
         return [
-            'pipeline' => 'meta → blocks',
+            'pipeline' => 'research → outline → meta → blocks',
             'slug' => $article['slug'],
+            'research' => $researchResult,
+            'outline' => $outlineResult,
             'meta' => $metaResult,
             'blocks' => $blocksResult,
+        ];
+    }
+
+    private function ensureResearch(int $articleId, array $options): ?array {
+        $article = $this->loadArticle($articleId);
+        $status = $article['research_status'] ?? 'none';
+        $hasBody = !empty($article['research_dossier']);
+        $force = !empty($options['force_research']);
+        if (!$force && $hasBody && $status === 'ready') {
+            return ['status' => 'skipped', 'reason' => 'already_ready'];
+        }
+        $svc = new ArticleResearchService($this->gpt);
+        return $svc->buildDossier($articleId, [
+            'model' => $options['research_model'] ?? null,
+            'force' => $force,
+        ]);
+    }
+
+    private function ensureOutline(int $articleId, array $options): ?array {
+        $article = $this->loadArticle($articleId);
+        $status = $article['outline_status'] ?? 'none';
+        $hasBody = !empty($article['article_outline']);
+        $force = !empty($options['force_outline']);
+        if (!$force && $hasBody && $status === 'ready') {
+            return ['status' => 'skipped', 'reason' => 'already_ready'];
+        }
+        $svc = new ArticleOutlineService($this->gpt);
+        return $svc->buildOutline($articleId, [
+            'model' => $options['outline_model'] ?? null,
+            'force' => $force,
+        ]);
+    }
+
+    /**
+     * Decode persisted outline JSON. Returns array of section dicts or [] if empty/invalid.
+     */
+    private function loadOutlineSections(array $article): array {
+        if (($article['outline_status'] ?? 'none') !== 'ready') return [];
+        $raw = (string)($article['article_outline'] ?? '');
+        if ($raw === '') return [];
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) return [];
+        $sections = $decoded['sections'] ?? [];
+        return is_array($sections) ? $sections : [];
+    }
+
+    /**
+     * Convert outline section to a synthetic template-block dict
+     * compatible with PromptBuilder/findExistingBlock/insert flow.
+     */
+    private function sectionToTemplateBlock(array $section, int $index): array {
+        $type = (string)($section['block_type'] ?? 'richtext');
+        $name = (string)($section['h2_title'] ?? ($section['id'] ?? ('section_' . $index)));
+        return [
+            'type'        => $type,
+            'name'        => $name,
+            'sort_order'  => $index,
+            'config'      => json_encode([
+                'hint'   => (string)($section['content_brief'] ?? ''),
+                'fields' => [],
+            ], JSON_UNESCAPED_UNICODE),
         ];
     }
 
@@ -228,6 +308,34 @@ class ArticleGeneratorService {
             $this->db->update(SeoArticle::SEO_ARTICLE_TABLE,
                 'id = :id', ['slug' => $slug], [':id' => $articleId]);
             $this->sendSSE('slug_generated', ['slug' => $slug]);
+        }
+
+        if (empty($options['skip_research'])) {
+            $this->sendSSE('research_start', ['article_id' => $articleId]);
+            try {
+                $researchResult = $this->ensureResearch($articleId, $options);
+                $this->sendSSE('research_done', [
+                    'status' => $researchResult['status'] ?? 'ok',
+                    'usage'  => $researchResult['usage'] ?? null,
+                    'length' => isset($researchResult['dossier']) ? strlen($researchResult['dossier']) : null,
+                ]);
+            } catch (Throwable $e) {
+                $this->sendSSE('research_error', ['error' => $e->getMessage()]);
+            }
+        }
+
+        if (empty($options['skip_outline'])) {
+            $this->sendSSE('outline_start', ['article_id' => $articleId]);
+            try {
+                $outlineResult = $this->ensureOutline($articleId, $options);
+                $this->sendSSE('outline_done', [
+                    'status'   => $outlineResult['status'] ?? 'ok',
+                    'usage'    => $outlineResult['usage'] ?? null,
+                    'sections' => $outlineResult['sections'] ?? null,
+                ]);
+            } catch (Throwable $e) {
+                $this->sendSSE('outline_error', ['error' => $e->getMessage()]);
+            }
         }
 
         $this->sendSSE('meta_start', ['article_id' => $articleId]);
@@ -308,9 +416,22 @@ class ArticleGeneratorService {
     }
 
     public function generateAllBlocks(int $articleId, array $options = []): array {
+        if (empty($options['skip_research'])) {
+            $this->ensureResearch($articleId, $options);
+        }
+        if (empty($options['skip_outline'])) {
+            try { $this->ensureOutline($articleId, $options); }
+            catch (Throwable $e) { /* fallback to template */ }
+        }
         $article = $this->loadArticle($articleId);
         $this->applyProfileToPrompts($article['profile_id'] ?? null);
         $article = $this->enrichArticleWithIntent($article);
+
+        $outlineSections = $this->loadOutlineSections($article);
+        if (!empty($outlineSections)) {
+            return $this->generateAllBlocksFromOutline($articleId, $article, $outlineSections, $options);
+        }
+
         $template = $this->loadTemplate((int)$article['template_id']);
         $templateBlocks = $this->loadTemplateBlocks((int)$article['template_id']);
 
@@ -388,6 +509,96 @@ class ArticleGeneratorService {
             'blocks_generated' => $blocksGenerated,
             'usage' => $result['usage'],
             'model' => $result['model'],
+        ];
+    }
+
+    /**
+     * Outline-driven block generation. One GPT call per section,
+     * persisted as article blocks with sort_order = section index.
+     * Section's content_brief lands in gpt_prompt of the persisted block.
+     */
+    private function generateAllBlocksFromOutline(int $articleId, array $article, array $sections, array $options): array {
+        $template = !empty($article['template_id']) ? $this->loadTemplate((int)$article['template_id']) : null;
+        $systemPrompt = $template['gpt_system_prompt'] ?? null;
+
+        $allTypes = array_map(fn($s) => (string)($s['block_type'] ?? ''), $sections);
+
+        // Wipe stale template-driven blocks so outline becomes the single source of truth
+        $overwrite = $options['overwrite'] ?? true;
+        if ($overwrite) {
+            $this->db->delete(SeoArticleBlock::SEO_ART_BLOCK_TABLE, 'article_id = :aid', [':aid' => $articleId]);
+        }
+        $existingBlocks = $this->loadArticleBlocks($articleId);
+
+        $totalUsage = ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0];
+        $blocksGenerated = 0;
+        $modelUsed = null;
+
+        foreach ($sections as $i => $section) {
+            $tb = $this->sectionToTemplateBlock($section, $i);
+            $messages = $this->prompts->buildBlockPrompt(
+                $article, $tb, [], $systemPrompt, $allTypes, $section
+            );
+
+            $gptOptions = [
+                'model'       => $options['model']       ?? $article['gpt_model'] ?? GPT_DEFAULT_MODEL,
+                'temperature' => $options['temperature'] ?? 0.7,
+                'max_tokens'  => $options['max_tokens']  ?? 4000,
+            ];
+
+            $this->gpt->setLogContext([
+                'category'    => TokenUsageLogger::CATEGORY_ARTICLE_CREATE,
+                'operation'   => 'generate_block_outline',
+                'profile_id'  => $article['profile_id'] ?? null,
+                'entity_type' => 'article',
+                'entity_id'   => $articleId,
+            ]);
+            $result = $this->gpt->chatJson($messages, $gptOptions);
+            $modelUsed = $result['model'] ?? $modelUsed;
+
+            foreach (['prompt_tokens', 'completion_tokens', 'total_tokens'] as $k) {
+                $totalUsage[$k] += ($result['usage'][$k] ?? 0);
+            }
+
+            $unwrapped = $this->unwrapBlockContent($result['data'], $tb['type']);
+            $contentJson = json_encode($unwrapped, JSON_UNESCAPED_UNICODE);
+
+            $existing = $this->findExistingBlock($existingBlocks, $tb);
+            if ($existing && $overwrite) {
+                $this->db->update(SeoArticleBlock::SEO_ART_BLOCK_TABLE, 'id = :id', [
+                    'content'    => $contentJson,
+                    'name'       => $tb['name'],
+                    'gpt_prompt' => (string)($section['content_brief'] ?? ''),
+                ], [':id' => $existing['id']]);
+            } elseif (!$existing) {
+                $this->db->insert(SeoArticleBlock::SEO_ART_BLOCK_TABLE, [
+                    'article_id' => $articleId,
+                    'type'       => $tb['type'],
+                    'name'       => $tb['name'],
+                    'content'    => $contentJson,
+                    'sort_order' => $tb['sort_order'],
+                    'is_visible' => 1,
+                    'gpt_prompt' => (string)($section['content_brief'] ?? ''),
+                ]);
+            }
+            $blocksGenerated++;
+        }
+
+        $this->updateGenerationLog($articleId, [
+            'mode' => 'outline_blocks', 'model' => $modelUsed,
+            'usage' => $totalUsage, 'blocks' => $blocksGenerated,
+            'timestamp' => date('c'),
+        ]);
+        $this->writeAudit($articleId, 'generate', [
+            'mode' => 'outline_blocks', 'blocks' => $blocksGenerated,
+            'model' => $modelUsed, 'tokens' => $totalUsage,
+        ]);
+
+        return [
+            'blocks_generated' => $blocksGenerated,
+            'usage' => $totalUsage,
+            'model' => $modelUsed,
+            'source' => 'outline',
         ];
     }
 
@@ -469,9 +680,42 @@ class ArticleGeneratorService {
     }
 
     public function generateAllBlocksSSE(int $articleId, array $options = []): void {
+        if (empty($options['skip_research'])) {
+            $this->sendSSE('research_start', ['article_id' => $articleId]);
+            try {
+                $r = $this->ensureResearch($articleId, $options);
+                $this->sendSSE('research_done', [
+                    'status' => $r['status'] ?? 'ok',
+                    'usage'  => $r['usage'] ?? null,
+                    'length' => isset($r['dossier']) ? strlen($r['dossier']) : null,
+                ]);
+            } catch (Throwable $e) {
+                $this->sendSSE('research_error', ['error' => $e->getMessage()]);
+            }
+        }
+        if (empty($options['skip_outline'])) {
+            $this->sendSSE('outline_start', ['article_id' => $articleId]);
+            try {
+                $o = $this->ensureOutline($articleId, $options);
+                $this->sendSSE('outline_done', [
+                    'status'   => $o['status'] ?? 'ok',
+                    'usage'    => $o['usage'] ?? null,
+                    'sections' => $o['sections'] ?? null,
+                ]);
+            } catch (Throwable $e) {
+                $this->sendSSE('outline_error', ['error' => $e->getMessage()]);
+            }
+        }
         $article = $this->loadArticle($articleId);
         $this->applyProfileToPrompts($article['profile_id'] ?? null);
         $article = $this->enrichArticleWithIntent($article);
+
+        $outlineSections = $this->loadOutlineSections($article);
+        if (!empty($outlineSections)) {
+            $this->generateAllBlocksSSEFromOutline($articleId, $article, $outlineSections, $options);
+            return;
+        }
+
         $template = $this->loadTemplate((int)$article['template_id']);
         $templateBlocks = $this->loadTemplateBlocks((int)$article['template_id']);
 
@@ -568,6 +812,111 @@ class ArticleGeneratorService {
         ]);
         $this->sendSSE('done', [
             'total_blocks' => $totalBlocks, 'total_usage' => $totalUsage,
+        ]);
+    }
+
+    private function generateAllBlocksSSEFromOutline(int $articleId, array $article, array $sections, array $options): void {
+        $template = !empty($article['template_id']) ? $this->loadTemplate((int)$article['template_id']) : null;
+        $systemPrompt = $template['gpt_system_prompt'] ?? null;
+        $allTypes = array_map(fn($s) => (string)($s['block_type'] ?? ''), $sections);
+
+        $overwrite = $options['overwrite'] ?? true;
+        if ($overwrite) {
+            $this->db->delete(SeoArticleBlock::SEO_ART_BLOCK_TABLE, 'article_id = :aid', [':aid' => $articleId]);
+        }
+        $existingBlocks = $this->loadArticleBlocks($articleId);
+        $totalSections = count($sections);
+        $totalUsage = ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0];
+
+        $this->sendSSE('start', [
+            'total_blocks' => $totalSections,
+            'article_id'   => $articleId,
+            'source'       => 'outline',
+            'model'        => $options['model'] ?? $article['gpt_model'] ?? GPT_DEFAULT_MODEL,
+        ]);
+
+        foreach ($sections as $i => $section) {
+            $tb = $this->sectionToTemplateBlock($section, $i);
+            $this->sendSSE('block_start', [
+                'index' => $i, 'type' => $tb['type'], 'name' => $tb['name'],
+                'narrative_role' => $section['narrative_role'] ?? null,
+                'total' => $totalSections,
+            ]);
+
+            try {
+                $messages = $this->prompts->buildBlockPrompt(
+                    $article, $tb, [], $systemPrompt, $allTypes, $section
+                );
+                $gptOptions = [
+                    'model'       => $options['model']       ?? $article['gpt_model'] ?? GPT_DEFAULT_MODEL,
+                    'temperature' => $options['temperature'] ?? 0.7,
+                    'max_tokens'  => $options['max_tokens']  ?? 4000,
+                ];
+                $this->gpt->setLogContext([
+                    'category'    => TokenUsageLogger::CATEGORY_ARTICLE_CREATE,
+                    'operation'   => 'generate_block_outline_sse',
+                    'profile_id'  => $article['profile_id'] ?? null,
+                    'entity_type' => 'article',
+                    'entity_id'   => $articleId,
+                ]);
+                $result = $this->gpt->chatJson($messages, $gptOptions);
+
+                foreach (['prompt_tokens', 'completion_tokens', 'total_tokens'] as $k) {
+                    $totalUsage[$k] += ($result['usage'][$k] ?? 0);
+                }
+
+                $unwrapped = $this->unwrapBlockContent($result['data'], $tb['type']);
+                $contentJson = json_encode($unwrapped, JSON_UNESCAPED_UNICODE);
+                $existing = $this->findExistingBlock($existingBlocks, $tb);
+
+                if ($existing && $overwrite) {
+                    $this->db->update(SeoArticleBlock::SEO_ART_BLOCK_TABLE, 'id = :abid', [
+                        'content'    => $contentJson,
+                        'name'       => $tb['name'],
+                        'gpt_prompt' => (string)($section['content_brief'] ?? ''),
+                    ], [':abid' => $existing['id']]);
+                    $savedId = (int)$existing['id'];
+                } elseif (!$existing) {
+                    $this->db->insert(SeoArticleBlock::SEO_ART_BLOCK_TABLE, [
+                        'article_id' => $articleId,
+                        'type'       => $tb['type'],
+                        'name'       => $tb['name'],
+                        'content'    => $contentJson,
+                        'sort_order' => $tb['sort_order'],
+                        'is_visible' => 1,
+                        'gpt_prompt' => (string)($section['content_brief'] ?? ''),
+                    ]);
+                    $savedId = (int)$this->db->getPdo()->lastInsertId();
+                } else {
+                    $savedId = (int)$existing['id'];
+                }
+
+                $this->sendSSE('block_done', [
+                    'index' => $i, 'block_id' => $savedId,
+                    'type' => $tb['type'], 'name' => $tb['name'],
+                    'content' => $unwrapped, 'usage' => $result['usage'],
+                ]);
+            } catch (Throwable $e) {
+                $this->sendSSE('block_error', [
+                    'index' => $i, 'type' => $tb['type'],
+                    'name' => $tb['name'], 'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $this->updateGenerationLog($articleId, [
+            'mode' => 'outline_sse',
+            'model' => $options['model'] ?? $article['gpt_model'] ?? GPT_DEFAULT_MODEL,
+            'usage' => $totalUsage, 'blocks' => $totalSections,
+            'timestamp' => date('c'),
+        ]);
+        $this->writeAudit($articleId, 'generate', [
+            'mode' => 'outline_sse', 'blocks' => $totalSections,
+            'model' => $options['model'] ?? $article['gpt_model'] ?? GPT_DEFAULT_MODEL,
+            'tokens' => $totalUsage,
+        ]);
+        $this->sendSSE('done', [
+            'total_blocks' => $totalSections, 'total_usage' => $totalUsage, 'source' => 'outline',
         ]);
     }
 

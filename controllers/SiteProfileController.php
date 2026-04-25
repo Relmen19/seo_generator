@@ -652,6 +652,8 @@ EOT;
         $description = trim((string)($data['description'] ?? ''));
         $brief = is_array($data['brief'] ?? null) ? $data['brief'] : [];
         $profileId = isset($data['profile_id']) ? (int)$data['profile_id'] : null;
+        $hint = trim((string)($data['hint'] ?? ''));
+        $existingOptions = is_array($data['existing_options'] ?? null) ? $data['existing_options'] : [];
 
         if ($description === '') {
             $this->error('Поле description обязательно', 422);
@@ -678,6 +680,13 @@ EOT;
         } else {
             $briefJson = json_encode($brief, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) ?: '{}';
             $userContent = sprintf(BriefPrompt::USER_WITH_BRIEF, $description, $briefJson);
+        }
+        if ($hint !== '') {
+            $userContent .= "\n\nДополнительные пожелания пользователя: " . $hint;
+        }
+        if (!empty($existingOptions)) {
+            $existJson = json_encode($existingOptions, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) ?: '[]';
+            $userContent .= "\n\nУже предложены следующие варианты (НЕ повторяй их, предложи новые):\n" . $existJson;
         }
 
         $temperature = $step === 'classify' || $step === 'compliance'

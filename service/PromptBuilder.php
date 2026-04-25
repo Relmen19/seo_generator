@@ -22,9 +22,10 @@ class PromptBuilder {
     }
 
     public function buildBlockPrompt(array $article, array $templateBlock, array $articleBlock = [],
-                                     ?string $systemPrompt = null, array $allBlockTypes = []): array {
+                                     ?string $systemPrompt = null, array $allBlockTypes = [],
+                                     ?array $outlineSection = null): array {
         $system = $this->buildSystemMessage($systemPrompt, $article);
-        $user   = $this->buildBlockUserMessage($templateBlock, $articleBlock, $allBlockTypes);
+        $user   = $this->buildBlockUserMessage($templateBlock, $articleBlock, $allBlockTypes, $outlineSection);
 
         return [
             ['role' => 'system', 'content' => $system],
@@ -44,6 +45,8 @@ class PromptBuilder {
         $user = "Тема: {$article['title']}\n";
         if (!empty($article['slug']))     $user .= "Slug: {$article['slug']}\n";
         if (!empty($article['keywords'])) $user .= "Ключевые слова: {$article['keywords']}\n";
+
+        $user .= $this->buildResearchSection($article, "Опирайся на досье ниже — план должен покрывать его факты, не выдумывай вне досье.");
 
         if (!empty($templateBlocks)) {
             $user .= "\nБлоки шаблона:\n";
@@ -124,6 +127,8 @@ class PromptBuilder {
         if (!empty($article['article_plan']))    $system .= "\nПлан: {$article['article_plan']}";
         if (!empty($article['meta_description'])) $system .= "\nОписание: {$article['meta_description']}";
 
+        $system .= $this->buildResearchSection($article, "Используй ТОЛЬКО факты, цифры и сравнения из досье. Если факта в досье нет — не выдумывай.");
+
         // ── Intent context injection ──
         // Если статья привязана к кластеру с интентом, добавляем тон и стиль
         if (!empty($article['_intent_tone'])) {
@@ -136,7 +141,7 @@ class PromptBuilder {
         return $system;
     }
 
-    private function buildBlockUserMessage(array $templateBlock, array $articleBlock, array $allBlockTypes): string {
+    private function buildBlockUserMessage(array $templateBlock, array $articleBlock, array $allBlockTypes, ?array $outlineSection = null): string {
         $config = $this->decodeConfig($templateBlock['config'] ?? null);
         $type   = $templateBlock['type'] ?? 'unknown';
         $name   = $templateBlock['name'] ?? $type;
@@ -165,6 +170,26 @@ class PromptBuilder {
         if ($hint)            $user .= "Описание: {$hint}\n";
         if (!empty($fields))  $user .= "Поля JSON: " . implode(', ', $fields) . "\n";
 
+        // Outline section context — где блок в нарративе и что должен сказать
+        if ($outlineSection !== null) {
+            $h2    = (string)($outlineSection['h2_title'] ?? '');
+            $role  = (string)($outlineSection['narrative_role'] ?? '');
+            $brief = (string)($outlineSection['content_brief'] ?? '');
+            $facts = $outlineSection['source_facts'] ?? [];
+            $user .= "\n── Секция статьи (контекст из outline) ──\n";
+            if ($h2 !== '')    $user .= "H2: {$h2}\n";
+            if ($role !== '')  $user .= "Роль в нарративе: {$role}\n";
+            if ($brief !== '') $user .= "Что должна сказать секция: {$brief}\n";
+            if (is_array($facts) && !empty($facts)) {
+                $user .= "Опорные факты из досье (ОБЯЗАТЕЛЬНО используй):\n";
+                foreach ($facts as $f) {
+                    $user .= "  - " . trim((string)$f) . "\n";
+                }
+            }
+            $user .= "Блок не существует сам по себе — он часть сквозного рассказа. "
+                  . "Не повторяй то, что должно быть в соседних секциях.\n";
+        }
+
         if ($type === 'richtext') $user .= $this->getRichtextHint($config);
 
         // Доп. поля (компактно)
@@ -190,7 +215,10 @@ class PromptBuilder {
     }
 
     private function getRichtextHint(array $config): string {
-        $allowed = $config['block_types'] ?? ['paragraph', 'heading', 'list', 'highlight', 'quote'];
+        $allowed = $config['block_types'] ?? [
+            'paragraph', 'heading', 'list', 'highlight', 'quote',
+            'callout', 'code', 'figure', 'table', 'footnote',
+        ];
 
         return "\nФормат richtext: " . ArticlePrompt::RICHTEXT_FORMAT . "\n"
             . "Допустимые type: " . implode(', ', $allowed) . "\n"
@@ -210,6 +238,22 @@ class PromptBuilder {
             return $this->siteProfile['gpt_persona'];
         }
         return ArticlePrompt::DEFAULT_PERSONA;
+    }
+
+    /**
+     * Returns "\n\nRESEARCH DOSSIER (...):\n<markdown>" or "" if absent.
+     * Truncated to keep prompt size sane.
+     */
+    private function buildResearchSection(array $article, string $usageRule): string {
+        $dossier = $article['research_dossier'] ?? null;
+        if ($dossier === null || trim((string)$dossier) === '') return '';
+
+        $maxLen = 8000;
+        $body = (string)$dossier;
+        if (strlen($body) > $maxLen) {
+            $body = substr($body, 0, $maxLen) . "\n…[усечено]";
+        }
+        return "\n\nRESEARCH DOSSIER (фактическая база). " . $usageRule . "\n\n" . $body;
     }
 
     private function decodeConfig($config): array {

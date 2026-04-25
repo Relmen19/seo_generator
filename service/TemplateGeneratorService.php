@@ -167,6 +167,7 @@ class TemplateGeneratorService {
             $systemPrompt = $this->buildSingleTemplateSystemPrompt($profile, $blockTypes, $purpose);
             $userPrompt = $this->buildSingleTemplateUserPrompt($profile, $purpose, $options['hints'] ?? null);
 
+            $this->gpt->setLogContext(['category' => TokenUsageLogger::CATEGORY_TEMPLATE_CREATE, 'operation' => 'generate_single_sse', 'profile_id' => $profileId]);
             $result = $this->gpt->chatJson([
                 ['role' => 'system', 'content' => $systemPrompt],
                 ['role' => 'user', 'content' => $userPrompt],

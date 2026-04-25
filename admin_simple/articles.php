@@ -97,7 +97,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .ed-info { flex: 1; min-width: 0; }
 .ed-title { font-size: 17px; font-weight: 700; color: var(--text); }
 .ed-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
-.ed-actions { display: flex; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+.ed-actions { display: flex; gap: 10px; flex-shrink: 0; flex-wrap: wrap; align-items: center; }
+.ed-status-group { display: inline-flex; flex-direction: column; gap: 4px; align-items: flex-end; padding-right: 10px; border-right: 1px solid var(--border); margin-right: 2px; }
+.ed-btn-group { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--surface); }
+.ed-btn-group > button { border: none; border-radius: 0; background: transparent; padding: 7px 12px; font-size: 12.5px; color: var(--text-2); cursor: pointer; transition: .15s; display: inline-flex; align-items: center; gap: 6px; }
+.ed-btn-group > button:hover { background: var(--bg); color: var(--text); }
+.ed-btn-group > button + button { border-left: 1px solid var(--border); }
+.ed-actions-primary { display: inline-flex; gap: 8px; margin-left: auto; }
+.ed-actions-sep { width: 1px; height: 28px; background: var(--border); margin: 0 2px; }
 
 /* ─── Section ─── */
 .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); margin-bottom: 16px; overflow: hidden; }
@@ -476,11 +483,18 @@ body.advanced .section.adv-only { display: block !important; }
             <div class="ed-meta" id="edMeta">—</div>
         </div>
         <div class="ed-actions">
-            <span class="save-state saved" id="saveState"><span class="save-state-dot"></span><span id="saveStateText">Сохранено</span></span>
-            <span class="status-pill draft" id="statusPill"><span class="status-pill-dot"></span><span id="statusPillText">Черновик</span></span>
-            <button class="btn btn-secondary btn-sm" onclick="openFullPreview()" id="btnFullPreview" title="Предпросмотр всей статьи">👁 Превью</button>
-            <button class="btn btn-primary btn-sm" onclick="openPublishModal()" id="btnPublish">📤 Опубликовать</button>
-            <button class="btn btn-secondary btn-sm" onclick="openPublicPage()" id="btnViewPage" style="display:none">👁 Открыть</button>
+            <div class="ed-status-group">
+                <span class="status-pill draft" id="statusPill"><span class="status-pill-dot"></span><span id="statusPillText">Черновик</span></span>
+                <span class="save-state saved" id="saveState"><span class="save-state-dot"></span><span id="saveStateText">Сохранено</span></span>
+            </div>
+            <div class="ed-btn-group" title="Предпросмотр">
+                <button onclick="openFullPreview()" id="btnFullPreview" title="Предпросмотр всей статьи (модальное окно)">👁 Превью</button>
+                <button onclick="openPublicPage()" id="btnViewPage" style="display:none" title="Открыть опубликованную страницу">🔗 На сайте</button>
+            </div>
+            <div class="ed-actions-primary">
+                <button class="btn btn-primary btn-sm" onclick="openPublishModal()" id="btnPublish">📤 Опубликовать</button>
+            </div>
+            <div class="ed-actions-sep"></div>
             <div class="adv-toggle" id="advToggle" onclick="toggleAdvanced()">
                 <span>Расширенный режим</span>
                 <span class="adv-switch"></span>
@@ -530,12 +544,64 @@ body.advanced .section.adv-only { display: block !important; }
         </div>
     </div>
 
+    <!-- Research dossier -->
+    <div class="section">
+        <div class="section-head" style="display:flex;align-items:center;gap:10px;justify-content:space-between">
+            <span class="section-head-title">Research dossier
+                <span id="researchStatusBadge" class="badge badge-muted" style="margin-left:8px">none</span>
+                <span id="researchAt" style="margin-left:8px;color:var(--text-3);font-size:11px"></span>
+            </span>
+            <span style="display:flex;gap:8px">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnResearchSave" onclick="saveResearchManual()" title="Сохранить как есть (без GPT)">💾 Сохранить</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnResearchBuild" onclick="buildResearch(false)" title="Собрать через GPT">🔍 Собрать research</button>
+            </span>
+        </div>
+        <div class="section-body">
+            <div class="field">
+                <label>Markdown досье (факты, цифры, сравнения, термины)</label>
+                <textarea id="fResearch" rows="14" placeholder="Будет заполнено автоматически после нажатия «Собрать research», или впишите вручную."
+                          style="font-family:'SF Mono',Menlo,monospace;font-size:12px;line-height:1.55"></textarea>
+            </div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:6px">
+                Досье — фактическая база. Используется в meta + блоках. Если пусто — генерация идёт «всухую».
+                Кнопка «Собрать» запускает отдельный GPT-вызов (категория токенов: <b>article_research</b>).
+            </div>
+        </div>
+    </div>
+
+    <!-- Outline -->
+    <div class="section">
+        <div class="section-head" style="display:flex;align-items:center;gap:10px;justify-content:space-between">
+            <span class="section-head-title">Outline (структура статьи)
+                <span id="outlineStatusBadge" class="badge badge-muted" style="margin-left:8px">none</span>
+            </span>
+            <span style="display:flex;gap:8px">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnOutlineSave" onclick="saveOutlineManual()" title="Сохранить как есть (без GPT)">💾 Сохранить</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnOutlineBuild" onclick="buildOutline(false)" title="Построить через GPT">🧭 Построить outline</button>
+            </span>
+        </div>
+        <div class="section-body">
+            <div id="outlineSections" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
+            <details>
+                <summary style="cursor:pointer;font-size:12px;color:var(--text-3)">JSON outline (правится вручную)</summary>
+                <div class="field" style="margin-top:8px">
+                    <textarea id="fOutline" rows="12" placeholder='{"sections":[{"id":"s1","h2_title":"...","narrative_role":"hook","block_type":"richtext","content_brief":"...","source_facts":["..."]}]}'
+                              style="font-family:'SF Mono',Menlo,monospace;font-size:12px;line-height:1.55"></textarea>
+                </div>
+            </details>
+            <div style="font-size:11px;color:var(--text-3);margin-top:6px">
+                Outline — источник истины: блоки строятся по секциям. Шаблон используется только если outline пуст.
+                Требуется готовый research dossier. Категория токенов: <b>article_outline</b>.
+            </div>
+        </div>
+    </div>
+
     <!-- Generate -->
     <div class="gen-card">
         <div class="gen-card-icon">✨</div>
         <div class="gen-card-body">
             <div class="gen-card-title">AI-генерация контента</div>
-            <div class="gen-card-desc">Одна кнопка сгенерирует все блоки и SEO meta-теги статьи.</div>
+            <div class="gen-card-desc">Одна кнопка сгенерирует все блоки и SEO meta-теги статьи. Если research/outline пусты — соберёт их первыми шагами.</div>
         </div>
         <button class="btn btn-primary" id="btnGenerate" onclick="generateAll()">
             <span id="genSpin"></span> Сгенерировать всё
@@ -776,6 +842,14 @@ function renderEditor() {
 
     el('fMetaTitle').value = a.meta_title || '';
     el('fMetaDesc').value = a.meta_description || '';
+
+    // Research dossier
+    el('fResearch').value = a.research_dossier || '';
+    renderResearchStatus(a.research_status || 'none', a.research_at || null);
+
+    // Outline
+    el('fOutline').value = a.article_outline || '';
+    renderOutline(a.article_outline || '', a.outline_status || 'none');
 
     el('metaPubUrl').textContent = a.published_url || '—';
     el('metaVersion').textContent = a.version || 1;
@@ -1121,6 +1195,173 @@ function sumTokens(log) {
 function openPublicPage() {
     if (S.article && S.article.published_url) {
         window.open(S.article.published_url, '_blank');
+    }
+}
+
+// ─── Research dossier ───
+function renderResearchStatus(status, at) {
+    const badge = el('researchStatusBadge');
+    const map = {
+        none:  ['Нет',     'badge-muted'],
+        draft: ['Draft',   'badge-info'],
+        ready: ['Готово',  'badge-success'],
+        stale: ['Устарел', 'badge-muted'],
+    };
+    const [label, cls] = map[status] || ['—', 'badge-muted'];
+    badge.className = 'badge ' + cls;
+    badge.textContent = label;
+    el('researchAt').textContent = at ? ('обновлено ' + new Date(at.replace(' ', 'T')).toLocaleString('ru-RU')) : '';
+}
+
+async function buildResearch(force) {
+    if (!S.article) return;
+    const cur = (el('fResearch').value || '').trim();
+    if (cur && !force && !confirm('Досье непустое. Перезаписать через GPT?')) return;
+    const btn = el('btnResearchBuild');
+    btn.disabled = true;
+    const oldText = btn.innerHTML;
+    btn.innerHTML = '⏳ Собираю…';
+    try {
+        const res = await fetch(API + 'generate/' + S.article.id + '/research', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ force: !!cur || force })
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.error || ('HTTP ' + res.status));
+        const d = json.data || {};
+        el('fResearch').value = d.dossier || '';
+        S.article.research_dossier = d.dossier || '';
+        S.article.research_status  = 'ready';
+        S.article.research_at      = d.at || new Date().toISOString().replace('T', ' ').slice(0, 19);
+        renderResearchStatus('ready', S.article.research_at);
+        toast('Research собран', 'ok');
+    } catch (e) {
+        toast('Ошибка research: ' + e.message, 'err');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = oldText;
+    }
+}
+
+async function saveResearchManual() {
+    if (!S.article) return;
+    const dossier = el('fResearch').value;
+    const btn = el('btnResearchSave');
+    btn.disabled = true;
+    try {
+        const res = await fetch(API + 'generate/' + S.article.id + '/research', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dossier: dossier })
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.error || ('HTTP ' + res.status));
+        const d = json.data || {};
+        S.article.research_dossier = d.dossier || '';
+        S.article.research_status  = d.status || 'none';
+        S.article.research_at      = d.at || null;
+        renderResearchStatus(S.article.research_status, S.article.research_at);
+        toast('Research сохранён', 'ok');
+    } catch (e) {
+        toast('Ошибка сохранения: ' + e.message, 'err');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// ─── Outline ───
+function renderOutline(outlineJson, status) {
+    const badge = el('outlineStatusBadge');
+    if (badge) {
+        badge.className = 'badge ' + ({
+            ready: 'badge-success', stale: 'badge-warn', draft: 'badge-muted', none: 'badge-muted',
+        }[status] || 'badge-muted');
+        badge.textContent = status || 'none';
+    }
+    const list = el('outlineSections');
+    list.innerHTML = '';
+    let sections = [];
+    try {
+        const parsed = outlineJson ? JSON.parse(outlineJson) : null;
+        if (parsed && Array.isArray(parsed.sections)) sections = parsed.sections;
+    } catch (e) { /* invalid json — show nothing */ }
+
+    if (!sections.length) {
+        list.innerHTML = '<div style="font-size:12px;color:var(--text-3)">Outline ещё не построен.</div>';
+        return;
+    }
+    sections.forEach((s, i) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'border:1px solid var(--border);border-radius:6px;padding:8px 10px;background:var(--bg-2)';
+        const facts = Array.isArray(s.source_facts) ? s.source_facts : [];
+        row.innerHTML =
+            '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+            + '<b>' + (i+1) + '. ' + escapeHtml(s.h2_title || '—') + '</b>'
+            + '<span class="badge badge-muted" style="font-size:10px">' + escapeHtml(s.narrative_role || '?') + '</span>'
+            + '<span class="badge" style="font-size:10px;background:var(--accent-soft)">' + escapeHtml(s.block_type || '?') + '</span>'
+            + '</div>'
+            + (s.content_brief ? '<div style="font-size:12px;color:var(--text-2);margin-top:4px">' + escapeHtml(s.content_brief) + '</div>' : '')
+            + (facts.length ? '<div style="font-size:11px;color:var(--text-3);margin-top:4px">факты: ' + facts.map(escapeHtml).join('; ') + '</div>' : '');
+        list.appendChild(row);
+    });
+}
+
+function escapeHtml(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+async function buildOutline(force) {
+    if (!S.article) return;
+    const btn = el('btnOutlineBuild');
+    const oldText = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '⏳ Строю outline…';
+    try {
+        const res = await fetch(API + 'generate/' + S.article.id + '/outline', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ force: !!force })
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.error || ('HTTP ' + res.status));
+        const d = json.data || {};
+        const outlineStr = d.outline || (d.sections ? JSON.stringify({sections: d.sections}) : '');
+        el('fOutline').value = outlineStr;
+        S.article.article_outline = outlineStr;
+        S.article.outline_status  = 'ready';
+        renderOutline(outlineStr, 'ready');
+        toast('Outline построен', 'ok');
+    } catch (e) {
+        toast('Ошибка outline: ' + e.message, 'err');
+    } finally {
+        btn.disabled = false; btn.innerHTML = oldText;
+    }
+}
+
+async function saveOutlineManual() {
+    if (!S.article) return;
+    const outline = el('fOutline').value;
+    const btn = el('btnOutlineSave');
+    btn.disabled = true;
+    try {
+        const res = await fetch(API + 'generate/' + S.article.id + '/outline', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ outline: outline })
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.error || ('HTTP ' + res.status));
+        const d = json.data || {};
+        S.article.article_outline = d.outline || '';
+        S.article.outline_status  = d.status || 'none';
+        renderOutline(S.article.article_outline, S.article.outline_status);
+        toast('Outline сохранён', 'ok');
+    } catch (e) {
+        toast('Ошибка сохранения: ' + e.message, 'err');
+    } finally {
+        btn.disabled = false;
     }
 }
 

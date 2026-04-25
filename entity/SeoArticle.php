@@ -29,6 +29,11 @@ class SeoArticle extends AbstractEntity {
     protected ?string $metaTitle = null;
     protected ?string $metaDescription = null;
     protected ?string $article_plan = null;
+    protected ?string $researchDossier = null;
+    protected string $researchStatus = 'none';
+    protected ?string $researchAt = null;
+    protected ?string $articleOutline = null;
+    protected string $outlineStatus = 'none';
     protected ?string $metaKeywords = null;
     protected string $status = self::STATUS_DRAFT;
     protected bool $isActive = true;
@@ -72,6 +77,21 @@ class SeoArticle extends AbstractEntity {
         }
         if (array_key_exists('article_plan', $data)) {
             $this->article_plan = $this->toNullableString($data['article_plan']);
+        }
+        if (array_key_exists('research_dossier', $data)) {
+            $this->researchDossier = $this->toNullableString($data['research_dossier']);
+        }
+        if (array_key_exists('research_status', $data)) {
+            $this->researchStatus = (string)$data['research_status'];
+        }
+        if (array_key_exists('research_at', $data)) {
+            $this->researchAt = $this->toNullableString($data['research_at']);
+        }
+        if (array_key_exists('article_outline', $data)) {
+            $this->articleOutline = $this->toNullableString($data['article_outline']);
+        }
+        if (array_key_exists('outline_status', $data)) {
+            $this->outlineStatus = (string)$data['outline_status'];
         }
         if (array_key_exists('meta_description', $data)) {
             $this->metaDescription = $this->toNullableString($data['meta_description']);
@@ -122,6 +142,11 @@ class SeoArticle extends AbstractEntity {
             'keywords'         => $this->keywords,
             'meta_title'       => $this->metaTitle,
             'article_plan'     => $this->article_plan,
+            'research_dossier' => $this->researchDossier,
+            'research_status'  => $this->researchStatus,
+            'research_at'      => $this->researchAt,
+            'article_outline'  => $this->articleOutline,
+            'outline_status'   => $this->outlineStatus,
             'meta_description'  => $this->metaDescription,
             'meta_keywords'    => $this->metaKeywords,
             'status'           => $this->status,
@@ -246,6 +271,29 @@ class SeoArticle extends AbstractEntity {
     public function setArticlePlan(?string $article_plan): self {
         $this->article_plan = $article_plan;
         return $this;
+    }
+
+    public function getResearchDossier(): ?string { return $this->researchDossier; }
+    public function setResearchDossier(?string $v): self { $this->researchDossier = $v; return $this; }
+
+    public function getResearchStatus(): string { return $this->researchStatus; }
+    public function setResearchStatus(string $v): self { $this->researchStatus = $v; return $this; }
+
+    public function getResearchAt(): ?string { return $this->researchAt; }
+    public function setResearchAt(?string $v): self { $this->researchAt = $v; return $this; }
+
+    public function getArticleOutline(): ?string { return $this->articleOutline; }
+    public function setArticleOutline(?string $v): self { $this->articleOutline = $v; return $this; }
+
+    public function getOutlineStatus(): string { return $this->outlineStatus; }
+    public function setOutlineStatus(string $v): self { $this->outlineStatus = $v; return $this; }
+
+    public function getOutlineSections(): array {
+        if ($this->articleOutline === null || $this->articleOutline === '') return [];
+        $decoded = json_decode($this->articleOutline, true);
+        if (!is_array($decoded)) return [];
+        $sections = $decoded['sections'] ?? [];
+        return is_array($sections) ? $sections : [];
     }
 
     public function getMetaDescription(): ?string {

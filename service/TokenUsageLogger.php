@@ -14,6 +14,8 @@ class TokenUsageLogger
     public const CATEGORY_TEMPLATE_CREATE    = 'template_create';
     public const CATEGORY_TEMPLATE_REVIEW    = 'template_review';
     public const CATEGORY_ARTICLE_CREATE     = 'article_create';
+    public const CATEGORY_ARTICLE_RESEARCH   = 'article_research';
+    public const CATEGORY_ARTICLE_OUTLINE    = 'article_outline';
     public const CATEGORY_TELEGRAM_AGGREGATE = 'telegram_aggregate';
 
     public const CATEGORIES = [
@@ -22,6 +24,8 @@ class TokenUsageLogger
         self::CATEGORY_TEMPLATE_CREATE,
         self::CATEGORY_TEMPLATE_REVIEW,
         self::CATEGORY_ARTICLE_CREATE,
+        self::CATEGORY_ARTICLE_RESEARCH,
+        self::CATEGORY_ARTICLE_OUTLINE,
         self::CATEGORY_TELEGRAM_AGGREGATE,
     ];
 
