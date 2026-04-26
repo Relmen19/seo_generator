@@ -53,6 +53,7 @@ class SeoArticle extends AbstractEntity {
     protected ?string $publishedPath = null;
     protected ?string $publishedUrl = null;
     protected bool $tgExport = false;
+    protected ?string $themeCode = null;
     protected ?string $gptModel = 'gpt-4o';
     protected ?array $generationLog = null;
     protected int $version = 1;
@@ -129,6 +130,9 @@ class SeoArticle extends AbstractEntity {
         if (array_key_exists('tg_export', $data)) {
             $this->tgExport = $this->toBool($data['tg_export']);
         }
+        if (array_key_exists('theme_code', $data)) {
+            $this->themeCode = $this->toNullableString($data['theme_code']);
+        }
         if (array_key_exists('gpt_model', $data)) {
             $this->gptModel = $this->toNullableString($data['gpt_model']);
         }
@@ -167,6 +171,7 @@ class SeoArticle extends AbstractEntity {
             'published_path'   => $this->publishedPath,
             'published_url'    => $this->publishedUrl,
             'tg_export'        => (int)$this->tgExport,
+            'theme_code'       => $this->themeCode,
             'gpt_model'        => $this->gptModel,
             'generation_log'   => $this->encodeJson($this->generationLog),
             'version'          => $this->version,
@@ -377,6 +382,15 @@ class SeoArticle extends AbstractEntity {
 
     public function setGptModel(?string $gptModel): self {
         $this->gptModel = $gptModel;
+        return $this;
+    }
+
+    public function getThemeCode(): ?string {
+        return $this->themeCode;
+    }
+
+    public function setThemeCode(?string $themeCode): self {
+        $this->themeCode = $themeCode;
         return $this;
     }
 

@@ -588,6 +588,10 @@ body.advanced .section.adv-only { display: block !important; }
                     <option value="review">Готов к публикации</option>
                     <option value="archived">Архив</option>
                 </select>
+                <label style="font-size:12px;color:var(--text-3);margin-left:12px">Тема:</label>
+                <select id="artTheme" onchange="changeArticleTheme(this.value)" style="font-size:13px;padding:4px 8px">
+                    <option value="">— наследовать от профиля —</option>
+                </select>
             </span>
         </div>
     </div>
@@ -860,6 +864,33 @@ function renderEditor() {
     refreshQaIssues();
     const wf = el('wfStatus');
     if (wf) wf.value = a.status || 'draft';
+    populateThemeSelect(a.theme_code || '');
+}
+
+async function populateThemeSelect(currentCode) {
+    const sel = el('artTheme');
+    if (!sel) return;
+    if (!S.themes) {
+        try {
+            const res = await api('themes');
+            S.themes = (res.data || []).filter(t => t.is_active != 0);
+        } catch (e) { S.themes = []; }
+    }
+    sel.innerHTML = '<option value="">— наследовать от профиля —</option>'
+        + S.themes.map(t => '<option value="' + esc(t.code) + '">' + esc(t.name || t.code) + '</option>').join('');
+    sel.value = currentCode || '';
+}
+
+async function changeArticleTheme(code) {
+    if (!S.article) return;
+    try {
+        await api('articles/' + S.article.id, 'PUT', { theme_code: code === '' ? null : code });
+        S.article.theme_code = code === '' ? null : code;
+        toast('Тема обновлена', 'ok');
+    } catch (e) {
+        toast(e.message, 'err');
+        el('artTheme').value = S.article.theme_code || '';
+    }
 }
 
 async function changeWorkflowStatus(newStatus) {
