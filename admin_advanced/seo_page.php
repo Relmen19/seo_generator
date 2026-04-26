@@ -924,6 +924,7 @@ requireAuth();
         <a href="/admin_advanced/seo_page.php" class="active">SEO</a>
         <a href="/admin_advanced/seo_clustering_page.php" id="navSemLink">Семантика</a>
         <a href="/admin_advanced/seo_profile_page.php">Профили</a>
+        <a href="/admin_advanced/seo_themes_page.php">Темы</a>
         <a href="/admin_simple/articles.php" title="Упрощённая версия" style="color:#fbbf24">◐ Simple</a>
         <a href="/logout.php" class="btn-logout">Выйти</a>
     </nav>

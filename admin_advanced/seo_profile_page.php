@@ -365,6 +365,7 @@ requireAuth();
     <h1>SEO Generator</h1>
     <nav>
         <a href="/admin_advanced/seo_profile_page.php" class="active">Профили</a>
+        <a href="/admin_advanced/seo_themes_page.php">Темы</a>
         <a href="/admin_simple/profiles.php" title="Упрощённая версия" style="color:#fbbf24">◐ Simple</a>
         <a href="/logout.php" class="btn-logout">Выйти</a>
     </nav>
@@ -384,6 +385,7 @@ requireAuth();
         <a href="/admin_advanced/seo_page.php" id="navSeoLink">SEO</a>
         <a href="/admin_advanced/seo_clustering_page.php" id="navSemLink">Семантика</a>
         <a href="/admin_advanced/seo_profile_page.php" class="active">Профили</a>
+        <a href="/admin_advanced/seo_themes_page.php">Темы</a>
         <a href="/admin_simple/profiles.php" title="Упрощённая версия" style="color:#fbbf24">◐ Simple</a>
         <a href="/logout.php" class="btn-logout">Выйти</a>
     </nav>
@@ -521,6 +523,11 @@ requireAuth();
         <div class="settings-section">
             <h3>Тема оформления</h3>
             <div class="theme-picker" id="brandThemePicker"></div>
+            <div class="form-row" style="margin-top:14px">
+                <label>Тема по умолчанию (token-based)</label>
+                <select id="bDefaultThemeCode"><option value="">— использовать legacy theme —</option></select>
+                <small style="display:block;color:#64748b;margin-top:4px">Имеет приоритет над «Тема оформления». Управление темами: <a href="/admin_advanced/seo_themes_page.php" style="color:#a5b4fc">/admin_advanced/seo_themes_page.php</a></small>
+            </div>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
             <button class="btn btn-primary" onclick="saveBranding()">Сохранить брендинг</button>
@@ -1300,6 +1307,7 @@ function fillBranding() {
     $('bLogo').value = p.logo_url || '';
     $('bBaseUrl').value = p.base_url || '';
     renderThemePicker('brandThemePicker', p.theme || 'default');
+    populateDefaultThemeCodeSelect('bDefaultThemeCode', p.default_theme_code || '');
 
     const upload = $('brandIconUpload');
     if (p.icon_path) {
@@ -1351,12 +1359,27 @@ async function removeBrandIcon() {
     } catch(e) { toast('Ошибка сети', true); }
 }
 
+async function populateDefaultThemeCodeSelect(elId, current) {
+    const sel = document.getElementById(elId);
+    if (!sel) return;
+    try {
+        const r = await fetch('/controllers/router.php?r=themes');
+        const j = await r.json();
+        if (!j.success) return;
+        const opts = ['<option value="">— использовать legacy theme —</option>']
+            .concat((j.data || []).filter(t => t.is_active).map(t =>
+                `<option value="${t.code}" ${t.code === current ? 'selected' : ''}>${esc(t.name)} (${t.code})</option>`));
+        sel.innerHTML = opts.join('');
+    } catch (e) {}
+}
+
 async function saveBranding() {
     const body = {
         color_scheme: $('bColorText').value || '#6366f1',
         logo_url: $('bLogo').value || null,
         base_url: $('bBaseUrl').value || null,
         theme: getSelectedTheme('brandThemePicker'),
+        default_theme_code: ($('bDefaultThemeCode') && $('bDefaultThemeCode').value) || null,
     };
     try {
         const res = await api(`profiles/${currentProfile.id}`, {
