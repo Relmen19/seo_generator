@@ -213,7 +213,11 @@ class ArticleResearchService
             $questions = $outlineData['questions'][$sec] ?? [];
             if (!is_array($questions) || empty($questions)) continue;
 
-            $useSearch = ($strategy === 'split_search') && in_array($sec, ['benchmarks', 'sources'], true);
+            $search = new WebSearchClient();
+            $useSearch = ($strategy === 'split_search')
+                && in_array($sec, ['benchmarks', 'sources'], true)
+                && !$search->disabled();
+
             $this->gpt->setLogContext([
                 'category'    => TokenUsageLogger::CATEGORY_ARTICLE_RESEARCH,
                 'operation'   => $useSearch ? "research_fill_search_{$sec}" : "research_fill_{$sec}",
@@ -222,10 +226,48 @@ class ArticleResearchService
                 'entity_id'   => $articleId,
             ]);
 
-            $fillResult = $this->gpt->chatJson(
-                $this->buildFillMessages($title, $angle, $sec, $questions),
-                ['model' => $fillModel, 'temperature' => 0.4, 'max_tokens' => 1200]
-            );
+            $messages = $this->buildFillMessages($title, $angle, $sec, $questions);
+
+            if ($useSearch) {
+                $tools = [[
+                    'type' => 'function',
+                    'function' => [
+                        'name' => 'web_search',
+                        'description' => 'Поиск свежих фактов и источников по запросу. Возвращает массив {title,url,description}.',
+                        'parameters' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'query' => ['type' => 'string', 'description' => 'Поисковый запрос на русском или английском'],
+                                'count' => ['type' => 'integer', 'description' => 'Сколько результатов (1-10)', 'default' => 5],
+                            ],
+                            'required' => ['query'],
+                        ],
+                    ],
+                ]];
+                $handler = function (string $name, array $args) use ($search) {
+                    if ($name !== 'web_search') {
+                        return json_encode(['error' => "unknown tool: {$name}"], JSON_UNESCAPED_UNICODE);
+                    }
+                    $q = (string)($args['query'] ?? '');
+                    $cnt = (int)($args['count'] ?? 5);
+                    if ($q === '') return json_encode(['results' => []], JSON_UNESCAPED_UNICODE);
+                    try {
+                        $results = $search->search($q, max(1, min($cnt, 10)));
+                    } catch (\Throwable $e) {
+                        return json_encode(['error' => $e->getMessage(), 'results' => []], JSON_UNESCAPED_UNICODE);
+                    }
+                    return json_encode(['results' => $results], JSON_UNESCAPED_UNICODE);
+                };
+                $fillResult = $this->gpt->chatJsonWithTools(
+                    $messages, $tools, $handler,
+                    ['model' => $fillModel, 'temperature' => 0.4, 'max_tokens' => 1500]
+                );
+            } else {
+                $fillResult = $this->gpt->chatJson(
+                    $messages,
+                    ['model' => $fillModel, 'temperature' => 0.4, 'max_tokens' => 1200]
+                );
+            }
             $usages[] = $fillResult['usage'] ?? [];
             if (!empty($fillResult['model']) && !in_array($fillResult['model'], $models, true)) {
                 $models[] = $fillResult['model'];

@@ -139,6 +139,103 @@ class GptClient {
     }
 
 
+    /**
+     * Like chatJson() but supports OpenAI tools/function-calling.
+     * Loops while the model emits tool_calls — invokes $handler(name,args)→string,
+     * then re-feeds tool messages until a final assistant message arrives.
+     * Each round is logged individually under the current logContext.
+     *
+     * @param callable $handler fn(string $name, array $args): string  (returns plain text or JSON)
+     */
+    public function chatJsonWithTools(array $messages, array $tools, callable $handler, array $options = [], int $maxRounds = 4): array {
+        $model = $options['model'] ?? $this->defaultModel;
+        $payloadBase = [
+            'model' => $model,
+            'tools' => $tools,
+            'tool_choice' => $options['tool_choice'] ?? 'auto',
+        ];
+        if (isset($options['temperature'])) $payloadBase['temperature'] = (float)$options['temperature'];
+        if (isset($options['max_tokens'])) $payloadBase['max_tokens'] = (int)$options['max_tokens'];
+
+        $hasJsonHint = false;
+        foreach ($messages as $m) {
+            if (($m['role'] ?? '') === 'system' && stripos((string)$m['content'], 'json') !== false) {
+                $hasJsonHint = true; break;
+            }
+        }
+        if ($hasJsonHint) {
+            $payloadBase['response_format'] = ['type' => 'json_object'];
+        }
+
+        $convo = $messages;
+        $aggUsage = ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0];
+        $lastModel = $model;
+
+        for ($round = 0; $round < $maxRounds; $round++) {
+            $payload = $payloadBase + ['messages' => $convo];
+            $resp = $this->request('/chat/completions', $payload);
+
+            $choice = $resp['choices'][0] ?? [];
+            $msg = $choice['message'] ?? [];
+            $finish = $choice['finish_reason'] ?? 'unknown';
+            $usage = $resp['usage'] ?? [];
+            $lastModel = $resp['model'] ?? $lastModel;
+
+            $this->lastUsage = $usage;
+            $this->recordUsage($usage, $lastModel);
+            foreach (['prompt_tokens', 'completion_tokens', 'total_tokens'] as $k) {
+                $aggUsage[$k] += (int)($usage[$k] ?? 0);
+            }
+
+            $toolCalls = $msg['tool_calls'] ?? [];
+            if (empty($toolCalls)) {
+                $content = (string)($msg['content'] ?? '');
+                $decoded = json_decode($content, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    if (preg_match('/\{[\s\S]*\}/u', $content, $mm)) {
+                        $decoded = json_decode($mm[0], true);
+                    }
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        throw new RuntimeException('GPT (tools) вернул невалидный JSON: ' . json_last_error_msg()
+                            . "\nОтвет: " . mb_substr($content, 0, 500));
+                    }
+                }
+                return [
+                    'data'          => $decoded,
+                    'usage'         => $aggUsage,
+                    'finish_reason' => $finish,
+                    'model'         => $lastModel,
+                    'rounds'        => $round + 1,
+                ];
+            }
+
+            $convo[] = [
+                'role'       => 'assistant',
+                'content'    => $msg['content'] ?? null,
+                'tool_calls' => $toolCalls,
+            ];
+
+            foreach ($toolCalls as $tc) {
+                $name = (string)($tc['function']['name'] ?? '');
+                $argsRaw = (string)($tc['function']['arguments'] ?? '{}');
+                $args = json_decode($argsRaw, true);
+                if (!is_array($args)) $args = [];
+                try {
+                    $result = $handler($name, $args);
+                } catch (\Throwable $e) {
+                    $result = json_encode(['error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+                }
+                $convo[] = [
+                    'role'         => 'tool',
+                    'tool_call_id' => (string)($tc['id'] ?? ''),
+                    'content'      => is_string($result) ? $result : json_encode($result, JSON_UNESCAPED_UNICODE),
+                ];
+            }
+        }
+
+        throw new RuntimeException("GPT tool-loop не сошёлся за {$maxRounds} раундов");
+    }
+
     private function request(string $endpoint, array $payload, int $retries = 2): array {
         $url  = $this->baseUrl . $endpoint;
         $json = json_encode($payload, JSON_UNESCAPED_UNICODE);
