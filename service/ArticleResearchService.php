@@ -209,13 +209,14 @@ class ArticleResearchService
         $collected['sources'] = [];
         $collected['open_questions'] = [];
 
+        $search = new WebSearchClient();
+
         foreach ($sectionsOrder as $sec) {
             $questions = $outlineData['questions'][$sec] ?? [];
             if (!is_array($questions) || empty($questions)) continue;
 
-            $search = new WebSearchClient();
             $useSearch = ($strategy === 'split_search')
-                && in_array($sec, ['benchmarks', 'sources'], true)
+                && $sec === 'benchmarks'
                 && !$search->disabled();
 
             $this->gpt->setLogContext([
@@ -287,8 +288,51 @@ class ArticleResearchService
             }
         }
 
+        $this->deriveSourcesFromItems($collected);
+
         $normalised = $this->validateDossier($collected, $title);
         return [$normalised, $usages, $models];
+    }
+
+    /**
+     * Split pipeline does not call a separate "sources" fill — derive sources[]
+     * from URL fields collected in facts/benchmarks. Dedupes by url, assigns
+     * fresh src{n} ids, preserves any sources that may already be present.
+     */
+    private function deriveSourcesFromItems(array &$collected): void {
+        $existing = is_array($collected['sources'] ?? null) ? $collected['sources'] : [];
+        $byUrl = [];
+        foreach ($existing as $row) {
+            if (!is_array($row)) continue;
+            $url = trim((string)($row['url'] ?? ''));
+            if ($url === '') continue;
+            $byUrl[$url] = $row;
+        }
+
+        foreach (['facts', 'benchmarks'] as $sec) {
+            if (empty($collected[$sec]) || !is_array($collected[$sec])) continue;
+            foreach ($collected[$sec] as $item) {
+                if (!is_array($item)) continue;
+                $src = $item['source'] ?? null;
+                if (!is_string($src)) continue;
+                $url = trim($src);
+                if ($url === '' || stripos($url, 'http') !== 0) continue;
+                if (!isset($byUrl[$url])) {
+                    $byUrl[$url] = ['url' => $url, 'title' => ''];
+                }
+            }
+        }
+
+        $out = [];
+        $i = 0;
+        foreach ($byUrl as $row) {
+            $i++;
+            $row['id'] = (!empty($row['id']) && trim((string)$row['id']) !== '')
+                ? trim((string)$row['id'])
+                : ('src' . $i);
+            $out[] = $row;
+        }
+        $collected['sources'] = $out;
     }
 
     private function mergeUsage(array &$agg, array $u): void {
