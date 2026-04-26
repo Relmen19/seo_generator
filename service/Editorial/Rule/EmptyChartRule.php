@@ -8,35 +8,49 @@ use Seo\Service\Editorial\TextExtractor;
 
 class EmptyChartRule implements RuleInterface
 {
-    private const CHART_TYPES = [
-        'chart', 'gauge_chart', 'gauge', 'radar_chart', 'radar',
-        'score_rings', 'rings', 'heatmap', 'funnel',
-        'stacked_area', 'spark_metrics', 'stats', 'timeline',
+    /**
+     * Map block_type → data keys, по которым проверяем наличие данных.
+     * Источник правды — seo_block_types.json_schema (см. 020_block_type_schemas.sql).
+     * Для каждого типа достаточно одного непустого ключа из списка.
+     */
+    private const TYPE_DATA_KEYS = [
+        'chart'         => ['items', 'data'],
+        'gauge_chart'   => ['items'],
+        'gauge'         => ['items'],
+        'radar_chart'   => ['metrics', 'items'],
+        'radar'         => ['metrics', 'items'],
+        'score_rings'   => ['rings', 'items'],
+        'rings'         => ['rings', 'items'],
+        'heatmap'       => ['rows', 'columns', 'data'],
+        'funnel'        => ['items', 'stages'],
+        'stacked_area'  => ['series', 'labels'],
+        'spark_metrics' => ['items', 'metrics'],
+        'stats'         => ['items', 'stats', 'metrics'],
+        'timeline'      => ['items', 'events'],
     ];
-
-    private const DATA_KEYS = ['items', 'data', 'datasets', 'rings', 'axes', 'rows', 'columns'];
 
     public function run(array $article, array $blocks): array
     {
         $issues = [];
         foreach ($blocks as $b) {
-            if (!in_array($b['type'] ?? '', self::CHART_TYPES, true)) continue;
+            $type = (string)($b['type'] ?? '');
+            if (!isset(self::TYPE_DATA_KEYS[$type])) continue;
             $blockId = isset($b['id']) ? (int)$b['id'] : null;
             $content = TextExtractor::blockContent($b);
-            if ($this->hasData($content)) continue;
+            if ($this->hasData($content, self::TYPE_DATA_KEYS[$type])) continue;
             $issues[] = [
                 'severity' => 'error',
                 'code'     => 'empty_chart',
-                'message'  => "Блок-график без данных: {$b['type']} (блок #{$blockId})",
+                'message'  => "Блок-график без данных: {$type} (блок #{$blockId})",
                 'block_id' => $blockId,
             ];
         }
         return $issues;
     }
 
-    private function hasData(array $content): bool
+    private function hasData(array $content, array $keys): bool
     {
-        foreach (self::DATA_KEYS as $k) {
+        foreach ($keys as $k) {
             if (!empty($content[$k]) && is_array($content[$k]) && count($content[$k]) > 0) {
                 return true;
             }
