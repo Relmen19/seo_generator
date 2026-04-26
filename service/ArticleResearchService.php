@@ -471,8 +471,8 @@ class ArticleResearchService
             }
         }
 
-        if (count($out['facts']) < 3) {
-            throw new RuntimeException("Research: facts < 3 — досье слишком бедное");
+        if (count($out['facts']) < 5) {
+            throw new RuntimeException("Research: facts < 5 — досье слишком бедное (промпт требует ≥ 8)");
         }
 
         $seen = [];
