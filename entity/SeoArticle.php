@@ -8,16 +8,28 @@ class SeoArticle extends AbstractEntity {
 
     public const SEO_ARTICLE_TABLE = 'seo_articles';
 
-    public const STATUS_DRAFT       = 'draft';
-    public const STATUS_REVIEW      = 'review';
-    public const STATUS_PUBLISHED   = 'published';
-    public const STATUS_UNPUBLISHED = 'unpublished';
+    public const STATUS_DRAFT          = 'draft';
+    public const STATUS_RESEARCH_DONE  = 'research_done';
+    public const STATUS_OUTLINE_DONE   = 'outline_done';
+    public const STATUS_BLOCKS_DONE    = 'blocks_done';
+    public const STATUS_AI_REVIEW      = 'ai_review';
+    public const STATUS_HUMAN_REVIEW   = 'human_review';
+    public const STATUS_REVIEW         = 'review';
+    public const STATUS_PUBLISHED      = 'published';
+    public const STATUS_UNPUBLISHED    = 'unpublished';
+    public const STATUS_ARCHIVED       = 'archived';
 
     public const STATUSES = [
         self::STATUS_DRAFT,
+        self::STATUS_RESEARCH_DONE,
+        self::STATUS_OUTLINE_DONE,
+        self::STATUS_BLOCKS_DONE,
+        self::STATUS_AI_REVIEW,
+        self::STATUS_HUMAN_REVIEW,
         self::STATUS_REVIEW,
         self::STATUS_PUBLISHED,
         self::STATUS_UNPUBLISHED,
+        self::STATUS_ARCHIVED,
     ];
 
     protected ?int $profileId = null;
