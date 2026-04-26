@@ -119,7 +119,7 @@ $content = is_string($block['content']) ? json_decode($block['content'], true) :
 
 ---
 
-### Prompt 7 — Block Fixer: автокоррекция QA-замечаний (M)
+### Prompt 7 — Block Fixer: автокоррекция QA-замечаний (M) ✅ closed (`3b912c6`)
 
 **Цель:** замкнуть петлю QA — после `runChecks` есть кнопка «Исправить автоматически», которая регенерит проблемные блоки под constraints.
 
