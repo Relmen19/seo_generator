@@ -79,18 +79,38 @@ class BrokenLinksRule implements RuleInterface
     private function checkUrl(string $url): ?int
     {
         if (!function_exists('curl_init')) return null;
+        $code = $this->probe($url, true);
+        // Many CDNs/lambdas reject HEAD with 4xx/5xx — повторим GET с маленьким Range,
+        // чтобы не считать живые ссылки битыми. 404 пробрасываем как есть.
+        if ($code !== null && $code >= 400 && $code !== 404) {
+            $getCode = $this->probe($url, false);
+            if ($getCode !== null) return $getCode;
+        }
+        return $code;
+    }
+
+    private function probe(string $url, bool $head): ?int
+    {
         $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_NOBODY         => true,
+        $opts = [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS      => 3,
             CURLOPT_TIMEOUT        => $this->timeout,
             CURLOPT_CONNECTTIMEOUT => $this->timeout,
             CURLOPT_USERAGENT      => 'SeoGenerator-LinkChecker/1.0',
+            // SSL_VERIFYPEER=0: link-checker ходит на любые внешние домены, цена
+            // отказа от MITM-защиты приемлема (мы только читаем HTTP-код).
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => 0,
-        ]);
+        ];
+        if ($head) {
+            $opts[CURLOPT_NOBODY] = true;
+        } else {
+            $opts[CURLOPT_HTTPHEADER] = ['Range: bytes=0-1024'];
+            $opts[CURLOPT_WRITEFUNCTION] = function ($_, $data) { return strlen($data); };
+        }
+        curl_setopt_array($ch, $opts);
         curl_exec($ch);
         $err = curl_errno($ch);
         $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
