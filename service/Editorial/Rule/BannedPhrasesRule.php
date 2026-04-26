@@ -33,7 +33,8 @@ class BannedPhrasesRule implements RuleInterface
 
     public function run(array $article, array $blocks): array
     {
-        $issues = [];
+        // phrase => [block_id, ...]
+        $hits = [];
         foreach ($blocks as $b) {
             $blockId = isset($b['id']) ? (int)$b['id'] : null;
             $content = TextExtractor::blockContent($b);
@@ -42,14 +43,24 @@ class BannedPhrasesRule implements RuleInterface
             foreach ($this->phrases as $p) {
                 $needle = mb_strtolower($p);
                 if (mb_strpos($text, $needle) !== false) {
-                    $issues[] = [
-                        'severity' => 'info',
-                        'code'     => 'banned_phrase',
-                        'message'  => "Штамп: «{$p}» (блок #{$blockId} {$b['type']})",
-                        'block_id' => $blockId,
-                    ];
+                    if (!isset($hits[$p])) $hits[$p] = [];
+                    if ($blockId !== null) $hits[$p][] = $blockId;
                 }
             }
+        }
+
+        $issues = [];
+        foreach ($hits as $phrase => $blockIds) {
+            $blockIds = array_values(array_unique($blockIds));
+            $count = count($blockIds);
+            $first = $blockIds[0] ?? null;
+            $list  = $count > 1 ? " (блоки: " . implode(', ', $blockIds) . ")" : " (блок #{$first})";
+            $issues[] = [
+                'severity' => 'info',
+                'code'     => 'banned_phrase',
+                'message'  => "Штамп «{$phrase}» в {$count} " . ($count === 1 ? 'блоке' : 'блоках') . $list,
+                'block_id' => $count === 1 ? $first : null,
+            ];
         }
         return $issues;
     }
