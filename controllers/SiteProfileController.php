@@ -148,6 +148,9 @@ class SiteProfileController extends AbstractController {
 
     private function create(): void {
         $data = $this->getJsonBody();
+        // icon_path / icon_url управляется только uploadIcon — нельзя подсунуть через JSON
+        // (иначе path traversal при serveIcon: UPLOADS_DIR . $iconPath).
+        unset($data['icon_path'], $data['icon_url']);
         $this->abortIfErrors($this->validateRequired($data, ['name', 'slug']));
 
         $slug = trim((string)($data['slug'] ?? ''));
@@ -178,6 +181,8 @@ class SiteProfileController extends AbstractController {
         if ($existing === null) $this->notFound('Профиль');
 
         $data = $this->getJsonBody();
+        // icon_path / icon_url управляется только uploadIcon (см. create()).
+        unset($data['icon_path'], $data['icon_url']);
 
         // Validate slug uniqueness if changing
         if (isset($data['slug']) && $data['slug'] !== $existing['slug']) {
@@ -365,8 +370,8 @@ class SiteProfileController extends AbstractController {
 
         // Remove old icon if exists
         if ($existing['icon_path']) {
-            $oldFile = UPLOADS_DIR . $existing['icon_path'];
-            if (is_file($oldFile)) {
+            $oldFile = $this->resolveSafeUploadPath($existing['icon_path']);
+            if ($oldFile !== null && is_file($oldFile)) {
                 unlink($oldFile);
             }
         }
@@ -407,8 +412,8 @@ class SiteProfileController extends AbstractController {
             exit;
         }
 
-        $absPath = UPLOADS_DIR . $iconPath;
-        if (!is_file($absPath)) {
+        $absPath = $this->resolveSafeUploadPath($iconPath);
+        if ($absPath === null || !is_file($absPath)) {
             http_response_code(204);
             exit;
         }
@@ -421,6 +426,21 @@ class SiteProfileController extends AbstractController {
         exit;
     }
 
+    /**
+     * Defense-in-depth: даже если в БД попал traversal-путь, realpath() приведёт
+     * к canonical-форме и проверка префикса отбросит выход за UPLOADS_DIR.
+     * Возвращает абсолютный путь или null если файл вне разрешённой директории.
+     */
+    private function resolveSafeUploadPath(string $relPath): ?string {
+        $base = realpath(UPLOADS_DIR);
+        if ($base === false) return null;
+        $abs = realpath(UPLOADS_DIR . $relPath);
+        if ($abs === false) return null;
+        $baseWithSep = rtrim($base, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        if (strpos($abs, $baseWithSep) !== 0) return null;
+        return $abs;
+    }
+
     private function deleteIcon(int $id): void {
         $existing = $this->db->fetchOne(
             "SELECT * FROM " . SeoSiteProfile::TABLE . " WHERE id = :id",
@@ -429,8 +449,8 @@ class SiteProfileController extends AbstractController {
         if ($existing === null) $this->notFound('Профиль');
 
         if ($existing['icon_path']) {
-            $absPath = UPLOADS_DIR . $existing['icon_path'];
-            if (is_file($absPath)) {
+            $absPath = $this->resolveSafeUploadPath($existing['icon_path']);
+            if ($absPath !== null && is_file($absPath)) {
                 unlink($absPath);
             }
         }
