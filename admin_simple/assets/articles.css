@@ -322,6 +322,36 @@ body.advanced .adv-only.inline-flex { display: inline-flex !important; }
 .img-card-del { background: transparent; border: 1px solid var(--border); color: var(--danger); padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
 .img-card-del:hover { background: var(--danger-light); }
 
+/* ─── Telegram sidebar ─── */
+.tg-sidebar {
+    position: fixed; top: 56px; right: 0; bottom: 0; width: 360px;
+    background: var(--surface); border-left: 1px solid var(--border);
+    box-shadow: -4px 0 16px rgba(0,0,0,.06);
+    transform: translateX(100%); transition: transform .2s ease;
+    z-index: 90; display: flex; flex-direction: column;
+}
+body.tg-open .tg-sidebar { transform: translateX(0); }
+body.tg-open .page { margin-right: 360px; transition: margin-right .2s ease; }
+.tg-sidebar-head {
+    padding: 14px 18px; border-bottom: 1px solid var(--border-light);
+    display: flex; align-items: center; justify-content: space-between;
+}
+.tg-sidebar-title { font-size: 14px; font-weight: 700; }
+.tg-sidebar-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.tg-empty { text-align: center; color: var(--text-3); padding: 30px 0; }
+.tg-post-text { width: 100%; min-height: 160px; font-size: 13px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; resize: vertical; font-family: inherit; }
+.tg-post-imgs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.tg-post-img { aspect-ratio: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; position: relative; }
+.tg-post-img img { width: 100%; height: 100%; object-fit: cover; }
+.tg-img-del { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,.55); color: #fff; border: 0; width: 18px; height: 18px; border-radius: 50%; cursor: pointer; font-size: 11px; line-height: 1; }
+.tg-actions { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px solid var(--border-light); }
+.tg-actions .btn { width: 100%; }
+.tg-meta { font-size: 11px; color: var(--text-3); }
+.tg-status-pill { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 600; }
+.tg-status-draft     { background: var(--bg); color: var(--text-2); border: 1px solid var(--border); }
+.tg-status-scheduled { background: var(--accent-light); color: var(--accent); }
+.tg-status-sent      { background: var(--success-light); color: var(--success); }
+
 /* ─── Block thumbnail ─── */
 .block-thumb {
     width: 48px; height: 48px; object-fit: cover; border-radius: 6px;

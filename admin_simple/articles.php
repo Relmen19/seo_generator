@@ -196,6 +196,7 @@ requireAuth();
                 <button onclick="openPublicPage()" id="btnViewPage" style="display:none" title="Открыть опубликованную страницу">🔗 На сайте</button>
             </div>
             <div class="ed-actions-primary">
+                <button class="btn btn-secondary btn-sm" onclick="toggleTgSidebar()" id="btnTgToggle" title="Telegram пост">✈ Telegram</button>
                 <button class="btn btn-primary btn-sm" onclick="openPublishModal()" id="btnPublish">📤 Опубликовать</button>
             </div>
             <div class="ed-actions-sep"></div>
@@ -353,6 +354,17 @@ requireAuth();
     </div>
 </div>
 
+<!-- ─── Telegram sidebar (push-content) ─── -->
+<aside id="tgSidebar" class="tg-sidebar">
+    <div class="tg-sidebar-head">
+        <span class="tg-sidebar-title">✈ Telegram пост</span>
+        <button class="modal-close" onclick="toggleTgSidebar()">×</button>
+    </div>
+    <div class="tg-sidebar-body" id="tgSidebarBody">
+        <div class="empty"><div class="spin"></div></div>
+    </div>
+</aside>
+
 <script src="assets/articles/core.js"></script>
 <script src="assets/articles/progress.js"></script>
 <script src="assets/articles/list.js"></script>
@@ -366,6 +378,7 @@ requireAuth();
 <script src="assets/articles/blocks_schema.js"></script>
 <script src="assets/articles/blocks_actions.js"></script>
 <script src="assets/articles/images.js"></script>
+<script src="assets/articles/tg.js"></script>
 <script src="assets/articles/init.js"></script>
 </body>
 </html>
