@@ -607,10 +607,11 @@ class ArticleGeneratorService {
         $blocksGenerated = 0;
         $modelUsed = null;
 
+        $previousSummaries = [];
         foreach ($sections as $i => $section) {
             $tb = $this->sectionToTemplateBlock($section, $i);
             $messages = $this->prompts->buildBlockPrompt(
-                $article, $tb, [], $systemPrompt, $allTypes, $section
+                $article, $tb, [], $systemPrompt, $allTypes, $section, $previousSummaries
             );
 
             $gptOptions = [
@@ -655,6 +656,14 @@ class ArticleGeneratorService {
                 ]);
             }
             $blocksGenerated++;
+
+            $previousSummaries[] = [
+                'h2'      => (string)($section['h2_title'] ?? $tb['name'] ?? ''),
+                'summary' => $this->buildSectionSummary($unwrapped),
+            ];
+            if (count($previousSummaries) > 2) {
+                $previousSummaries = array_slice($previousSummaries, -2);
+            }
         }
 
         $this->updateGenerationLog($articleId, [
@@ -731,6 +740,36 @@ class ArticleGeneratorService {
             'usage' => $result['usage'],
             'model' => $result['model'],
         ];
+    }
+
+    /**
+     * Naive summary: walks the block content array and grabs the first
+     * non-empty paragraph/text/heading, trimmed to ~220 chars. No GPT call.
+     */
+    private function buildSectionSummary($content): string {
+        $text = $this->extractFirstText($content);
+        $text = trim(preg_replace('/\s+/u', ' ', (string)$text));
+        if ($text === '') return '';
+        if (mb_strlen($text) > 220) {
+            $text = mb_substr($text, 0, 220);
+            $text = preg_replace('/\s+\S*$/u', '', $text) . '…';
+        }
+        return $text;
+    }
+
+    private function extractFirstText($node): string {
+        if (is_string($node)) return $node;
+        if (!is_array($node)) return '';
+        foreach (['text', 'content', 'paragraph', 'body', 'description', 'lead', 'subtitle', 'title'] as $k) {
+            if (isset($node[$k]) && is_string($node[$k]) && trim($node[$k]) !== '') {
+                return $node[$k];
+            }
+        }
+        foreach ($node as $v) {
+            $found = $this->extractFirstText($v);
+            if ($found !== '') return $found;
+        }
+        return '';
     }
 
     /**
@@ -908,6 +947,7 @@ class ArticleGeneratorService {
             'model'        => $options['model'] ?? $article['gpt_model'] ?? GPT_DEFAULT_MODEL,
         ]);
 
+        $previousSummaries = [];
         foreach ($sections as $i => $section) {
             $tb = $this->sectionToTemplateBlock($section, $i);
             $this->sendSSE('block_start', [
@@ -918,7 +958,7 @@ class ArticleGeneratorService {
 
             try {
                 $messages = $this->prompts->buildBlockPrompt(
-                    $article, $tb, [], $systemPrompt, $allTypes, $section
+                    $article, $tb, [], $systemPrompt, $allTypes, $section, $previousSummaries
                 );
                 $gptOptions = [
                     'model'       => $options['model']       ?? $article['gpt_model'] ?? GPT_DEFAULT_MODEL,
@@ -969,6 +1009,14 @@ class ArticleGeneratorService {
                     'type' => $tb['type'], 'name' => $tb['name'],
                     'content' => $unwrapped, 'usage' => $result['usage'],
                 ]);
+
+                $previousSummaries[] = [
+                    'h2'      => (string)($section['h2_title'] ?? $tb['name'] ?? ''),
+                    'summary' => $this->buildSectionSummary($unwrapped),
+                ];
+                if (count($previousSummaries) > 2) {
+                    $previousSummaries = array_slice($previousSummaries, -2);
+                }
             } catch (Throwable $e) {
                 $this->sendSSE('block_error', [
                     'index' => $i, 'type' => $tb['type'],

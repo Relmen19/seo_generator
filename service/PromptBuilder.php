@@ -23,9 +23,9 @@ class PromptBuilder {
 
     public function buildBlockPrompt(array $article, array $templateBlock, array $articleBlock = [],
                                      ?string $systemPrompt = null, array $allBlockTypes = [],
-                                     ?array $outlineSection = null): array {
+                                     ?array $outlineSection = null, array $previousSummaries = []): array {
         $system = $this->buildSystemMessage($systemPrompt, $article);
-        $user   = $this->buildBlockUserMessage($templateBlock, $articleBlock, $allBlockTypes, $outlineSection);
+        $user   = $this->buildBlockUserMessage($templateBlock, $articleBlock, $allBlockTypes, $outlineSection, $previousSummaries);
 
         return [
             ['role' => 'system', 'content' => $system],
@@ -141,7 +141,7 @@ class PromptBuilder {
         return $system;
     }
 
-    private function buildBlockUserMessage(array $templateBlock, array $articleBlock, array $allBlockTypes, ?array $outlineSection = null): string {
+    private function buildBlockUserMessage(array $templateBlock, array $articleBlock, array $allBlockTypes, ?array $outlineSection = null, array $previousSummaries = []): string {
         $config = $this->decodeConfig($templateBlock['config'] ?? null);
         $type   = $templateBlock['type'] ?? 'unknown';
         $name   = $templateBlock['name'] ?? $type;
@@ -188,6 +188,16 @@ class PromptBuilder {
             }
             $user .= "Блок не существует сам по себе — он часть сквозного рассказа. "
                   . "Не повторяй то, что должно быть в соседних секциях.\n";
+        }
+
+        if (!empty($previousSummaries)) {
+            $user .= "\n── Что уже сказано в предыдущих секциях (НЕ повторяй; можешь ссылаться: «как мы видели выше…») ──\n";
+            foreach ($previousSummaries as $ps) {
+                $h2  = trim((string)($ps['h2'] ?? ''));
+                $sum = trim((string)($ps['summary'] ?? ''));
+                if ($h2 === '' && $sum === '') continue;
+                $user .= "• " . ($h2 !== '' ? "[{$h2}] " : '') . $sum . "\n";
+            }
         }
 
         if ($type === 'richtext') $user .= $this->getRichtextHint($config);
