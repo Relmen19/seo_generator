@@ -211,6 +211,14 @@ class PageAssembler
 
         $fonts = $this->theme->getFontLinks();
 
+        // Token-based theme vars (new system) + brand overrides from profile.
+        $themeService = new ThemeService($this->db);
+        $resolved = $themeService->resolveForArticle($article, $this->siteProfile);
+        $themeVarsCss = $themeService->renderCssVars($resolved['tokens']);
+        $brandCss = $themeService->renderBrandOverrides($this->siteProfile);
+        $themeVarsTag = $themeVarsCss !== '' ? '<style id="theme-vars">' . $themeVarsCss . '</style>' : '';
+        $brandTag = $brandCss !== '' ? '<style id="brand-overrides">' . $brandCss . '</style>' : '';
+
         $logo = '/uploads/' . ($this->siteProfile['icon_path'] ?? '') ?: (defined('SEO_DEFAULT_LOGO_URL') ? SEO_DEFAULT_LOGO_URL : '');
 
         $themeClass = $this->theme->getBodyClass();
@@ -231,7 +239,9 @@ class PageAssembler
             . $fonts
             . $chartJs
             . $prismAssets
+            . $themeVarsTag
             . $assets->buildStyleTag()
+            . $brandTag
             . '</head><body class="' . $bodyClass . '">'
             . $parallaxHtml
             . $navbarHtml
