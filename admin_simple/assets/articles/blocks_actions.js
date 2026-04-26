@@ -253,3 +253,58 @@ async function genImage(blockId) {
     btn.disabled = false;
     sp.innerHTML = '';
 }
+
+// ─── Inline thumbnail modal ───
+let _imgModalBlockId = null;
+
+function openImageModal(blockId) {
+    const b = (S.article.blocks || []).find(x => x.id === blockId);
+    if (!b) return;
+    const imgId = b.content && b.content.image_id;
+    _imgModalBlockId = blockId;
+    const prev = el('imgModalPreview');
+    if (imgId) {
+        prev.innerHTML = '<img src="' + API + 'images/' + imgId + '/raw&_=' + Date.now() + '" alt="" style="max-width:100%;max-height:60vh;border-radius:6px">';
+    } else {
+        prev.innerHTML = '<div style="color:var(--text-3);padding:40px 0">Нет изображения</div>';
+    }
+    el('imgModalPrompt').value = (b.content && b.content.image_prompt) || '';
+    el('imgModal').classList.add('show');
+}
+
+function closeImageModal() {
+    el('imgModal').classList.remove('show');
+    _imgModalBlockId = null;
+}
+
+async function regenImageFromModal() {
+    if (_imgModalBlockId == null) return;
+    const blockId = _imgModalBlockId;
+    const b = (S.article.blocks || []).find(x => x.id === blockId);
+    if (!b) return;
+    const prompt = el('imgModalPrompt').value.trim();
+    const btn = el('imgModalRegen');
+    const sp  = el('imgModalSpin');
+    btn.disabled = true;
+    sp.innerHTML = '<span class="spin spin-white"></span>';
+    try {
+        const existing = b.content && b.content.image_id;
+        if (existing) {
+            await api('images/' + existing + '/regenerate', 'POST', { custom_prompt: prompt || null, model: IMAGE_MODEL });
+        } else {
+            await api('images/generate', 'POST', { article_id: S.article.id, block_id: blockId, model: IMAGE_MODEL, custom_prompt: prompt || null });
+        }
+        const art = await api('articles/' + S.article.id);
+        S.article = normalizeArticle(art.data);
+        renderBlocks(S.article.blocks || []);
+        // refresh preview in modal
+        const newB = (S.article.blocks || []).find(x => x.id === blockId);
+        const newId = newB && newB.content && newB.content.image_id;
+        if (newId) {
+            el('imgModalPreview').innerHTML = '<img src="' + API + 'images/' + newId + '/raw&_=' + Date.now() + '" alt="" style="max-width:100%;max-height:60vh;border-radius:6px">';
+        }
+        toast('Изображение обновлено', 'ok');
+    } catch(e) { toast(e.message, 'err'); }
+    btn.disabled = false;
+    sp.innerHTML = '';
+}

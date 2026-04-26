@@ -151,6 +151,29 @@ requireAuth();
     </div>
 </div>
 
+<!-- ─── Image preview modal ─── -->
+<div class="modal-backdrop" id="imgModal">
+    <div class="modal" style="max-width:760px">
+        <div class="modal-head">
+            <span class="modal-title">Изображение блока</span>
+            <button class="modal-close" onclick="closeImageModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div id="imgModalPreview" style="text-align:center;background:var(--bg);padding:12px;border-radius:8px;margin-bottom:12px;min-height:120px"></div>
+            <div class="field">
+                <label>Промпт</label>
+                <textarea id="imgModalPrompt" rows="3" placeholder="Опишите изображение..."></textarea>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeImageModal()">Закрыть</button>
+            <button class="btn btn-primary" id="imgModalRegen" onclick="regenImageFromModal()">
+                <span id="imgModalSpin"></span> 🍌 Перегенерировать
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- ─── Editor view ─── -->
 <div class="page" id="editorView" style="display:none">
     <div class="ed-header">

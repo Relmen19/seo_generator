@@ -12,7 +12,11 @@ function renderBlockCard(b, idx) {
     const meta = blockTypeMeta(b.type);
     const displayName = (meta && meta.display_name) || b.type;
     const name = b.name || displayName;
-    const isImageBlock = b.type === 'image' || (b.content && (b.content.image_id || b.content.image_layout));
+    const isImageBlock = b.type === 'image' || b.type === 'hero' || (b.content && (b.content.image_id || b.content.image_layout));
+    const imgId = b.content && b.content.image_id;
+    const thumb = imgId
+        ? `<img class="block-thumb" src="${API}images/${imgId}/raw&_=${Date.now()}" alt="" onclick="event.stopPropagation(); openImageModal(${b.id})">`
+        : '';
 
     return `
     <div class="block-card ${S.openBlockId === b.id ? 'open' : ''}" id="block-${b.id}">
@@ -20,6 +24,7 @@ function renderBlockCard(b, idx) {
             <div class="block-sort">${idx + 1}</div>
             <span class="block-type">${esc(displayName)}</span>
             <span class="block-name">${esc(name)}</span>
+            ${thumb}
             <span class="block-arrow">▼</span>
         </div>
         <div class="block-body">
