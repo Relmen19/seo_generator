@@ -60,10 +60,7 @@ class RichtextBlockRenderer extends AbstractBlockRenderer
         $imageHPos = 'center';
         $imageVPos = 'center';
         if (!empty($c['image_id'])) {
-            $img = $this->db->fetchOne(
-                "SELECT mime_type, data_base64 FROM seo_images WHERE id = ?",
-                [(int)$c['image_id']]
-            );
+            $img = $this->loadImage((int)$c['image_id']);
             if ($img && !empty($img['data_base64'])) {
                 $imageLayout = $this->getImageLayout($c, 'center');
                 [$imageHPos, $imageVPos] = $this->parseImageLayout($imageLayout);
@@ -371,10 +368,7 @@ class RichtextBlockRenderer extends AbstractBlockRenderer
             $alt = $this->e((string)($b['alt'] ?? ''));
             $caption = (string)($b['caption'] ?? '');
             if (!empty($b['image_id'])) {
-                $img = $this->db->fetchOne(
-                    "SELECT mime_type, data_base64 FROM seo_images WHERE id = ?",
-                    [(int)$b['image_id']]
-                );
+                $img = $this->loadImage((int)$b['image_id']);
                 if ($img && !empty($img['data_base64'])) {
                     $mime = $this->e($img['mime_type'] ?? 'image/jpeg');
                     $imgSrc = 'data:'.$mime.';base64,'.$img['data_base64'];

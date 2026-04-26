@@ -90,6 +90,14 @@ class PageAssembler
         $assets->addComponent($divider);
         $assets->addComponent($tracking);
 
+        // Prefetch all block images in a single query → kills N+1 across renderers.
+        $imageCache = new ImageCache();
+        $imageIds = $this->collectBlockImageIds($blocks, (int)$articleId);
+        if (!empty($imageIds)) {
+            $imageCache->prime($this->db, $imageIds);
+        }
+        $this->registry->setImageCache($imageCache);
+
         // Render blocks
         $visibleBlocks = [];
         $bodyHtml = '';
@@ -425,6 +433,48 @@ class PageAssembler
     private function loadTemplate(int $id): array
     {
         return $this->db->fetchOne("SELECT * FROM " . SeoTemplate::TABLE . " WHERE id = ?", [$id]) ?? [];
+    }
+
+    /**
+     * Collect every seo_images id referenced by the article's blocks
+     * (top-level image_id, richtext figure subblocks, hero illustrations).
+     * @return int[]
+     */
+    private function collectBlockImageIds(array $blocks, int $articleId): array
+    {
+        $ids = [];
+        foreach ($blocks as $block) {
+            if (!(int)($block['is_visible'] ?? 1)) continue;
+            $content = TextExtractor::blockContent($block);
+            if (!empty($content['image_id'])) {
+                $ids[] = (int)$content['image_id'];
+            }
+            // richtext: figure subblocks may carry their own image_id
+            if (isset($content['blocks']) && is_array($content['blocks'])) {
+                foreach ($content['blocks'] as $sub) {
+                    if (is_array($sub) && !empty($sub['image_id'])) {
+                        $ids[] = (int)$sub['image_id'];
+                    }
+                }
+            }
+        }
+
+        // Hero illustration is resolved at render time via seo_article_illustrations →
+        // include its image_id in the prefetch so HeroBlockRenderer also hits cache.
+        if ($articleId > 0) {
+            $rows = $this->db->fetchAll(
+                "SELECT image_id FROM seo_article_illustrations
+                 WHERE article_id = ? AND status = 'ready' AND image_id IS NOT NULL",
+                [$articleId]
+            );
+            foreach ($rows as $r) {
+                if (!empty($r['image_id'])) {
+                    $ids[] = (int)$r['image_id'];
+                }
+            }
+        }
+
+        return array_values(array_unique(array_filter($ids, fn($v) => $v > 0)));
     }
 
     private function e(string $s): string

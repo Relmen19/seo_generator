@@ -44,10 +44,7 @@ class HeroBlockRenderer extends AbstractBlockRenderer
 
         $imgH = '';
         if ($imageId) {
-            $img = $this->db->fetchOne(
-                "SELECT mime_type, data_base64 FROM seo_images WHERE id = ?",
-                [$imageId]
-            );
+            $img = $this->loadImage($imageId);
             if ($img) {
                 $alt  = $this->e($c['image_alt'] ?? $c['title'] ?? '');
                 $imgH = '<div class="hero-visual">'

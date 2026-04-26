@@ -9,10 +9,33 @@ use Seo\Database;
 abstract class AbstractBlockRenderer implements BlockRendererInterface
 {
     protected Database $db;
+    protected ?ImageCache $imageCache = null;
 
     public function __construct(Database $db)
     {
         $this->db = $db;
+    }
+
+    public function setImageCache(?ImageCache $cache): void
+    {
+        $this->imageCache = $cache;
+    }
+
+    /**
+     * Load an image row, preferring the per-render cache over a DB hit.
+     * @return array{mime_type: string, data_base64: string}|null
+     */
+    protected function loadImage(int $id): ?array
+    {
+        if ($id <= 0) return null;
+        if ($this->imageCache !== null && $this->imageCache->has($id)) {
+            return $this->imageCache->get($id);
+        }
+        $row = $this->db->fetchOne(
+            "SELECT mime_type, data_base64 FROM seo_images WHERE id = ?",
+            [$id]
+        );
+        return $row ?: null;
     }
 
     public function getCss(): string
@@ -74,10 +97,7 @@ abstract class AbstractBlockRenderer implements BlockRendererInterface
         if ($hPos === 'full' && ($vPos === 'top' || $vPos === 'bottom')) return '';
         if ($hPos === 'background') return '';
 
-        $img = $this->db->fetchOne(
-            "SELECT mime_type, data_base64 FROM seo_images WHERE id = ?",
-            [$c['image_id']]
-        );
+        $img = $this->loadImage((int)$c['image_id']);
         if (!$img) return '';
 
         $alt     = $this->e($c['image_alt'] ?? $c['title'] ?? '');
@@ -108,10 +128,7 @@ abstract class AbstractBlockRenderer implements BlockRendererInterface
 
         if (!($hPos === 'full' && in_array($vPos, ['top', 'bottom']))) return '';
 
-        $img = $this->db->fetchOne(
-            "SELECT mime_type, data_base64 FROM seo_images WHERE id = ?",
-            [$c['image_id']]
-        );
+        $img = $this->loadImage((int)$c['image_id']);
         if (!$img) return '';
 
         $alt     = $this->e($c['image_alt'] ?? $c['title'] ?? '');
@@ -154,10 +171,7 @@ abstract class AbstractBlockRenderer implements BlockRendererInterface
         } elseif ($hPos === 'full' && $vPos === 'bottom') {
             $imgBot = $this->renderBlockImageOnly($c);
         } elseif ($hPos === 'background') {
-            $img = $this->db->fetchOne(
-                "SELECT mime_type, data_base64 FROM seo_images WHERE id = ?",
-                [$c['image_id']]
-            );
+            $img = $this->loadImage((int)$c['image_id']);
             if ($img) {
                 $bgStyle = 'background-image:url(data:' . $img['mime_type'] . ';base64,' . $img['data_base64'] . ')';
             }

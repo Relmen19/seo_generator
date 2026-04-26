@@ -29,10 +29,7 @@ class ImageSectionBlockRenderer extends AbstractBlockRenderer
 
         $imgSrc = '';
         if (!empty($c['image_id'])) {
-            $img = $this->db->fetchOne(
-                "SELECT mime_type, data_base64 FROM seo_images WHERE id = ?",
-                [$c['image_id']]
-            );
+            $img = $this->loadImage((int)$c['image_id']);
             if ($img) {
                 $imgSrc = 'data:' . $img['mime_type'] . ';base64,' . $img['data_base64'];
             }

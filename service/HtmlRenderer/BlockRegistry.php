@@ -16,6 +16,8 @@ class BlockRegistry
 
     private Database $db;
 
+    private ?ImageCache $imageCache = null;
+
     public function __construct(Database $db)
     {
         $this->db = $db;
@@ -68,10 +70,24 @@ class BlockRegistry
 
         if (!isset($this->instances[$type])) {
             $class = $this->map[$type];
-            $this->instances[$type] = new $class($this->db);
+            $instance = new $class($this->db);
+            if ($this->imageCache !== null && $instance instanceof AbstractBlockRenderer) {
+                $instance->setImageCache($this->imageCache);
+            }
+            $this->instances[$type] = $instance;
         }
 
         return $this->instances[$type];
+    }
+
+    public function setImageCache(ImageCache $cache): void
+    {
+        $this->imageCache = $cache;
+        foreach ($this->instances as $instance) {
+            if ($instance instanceof AbstractBlockRenderer) {
+                $instance->setImageCache($cache);
+            }
+        }
     }
 
     public function has(string $type): bool
