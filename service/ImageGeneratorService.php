@@ -418,10 +418,10 @@ class ImageGeneratorService {
 
 
     private function saveImage(array $data): int {
-        $binary = base64_decode($data['data_base64']);
+        $binary = base64_decode((string)($data['data_base64'] ?? ''), true);
         $width = null;
         $height = null;
-        if ($binary !== false) {
+        if ($binary !== false && $binary !== '') {
             $info = @getimagesizefromstring($binary);
             if ($info !== false) {
                 $width = $info[0];

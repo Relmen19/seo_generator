@@ -136,7 +136,11 @@ class ImageController extends AbstractController {
             exit;
         }
 
-        $binary = base64_decode($row['data_base64']);
+        $binary = base64_decode((string)$row['data_base64'], true);
+        if ($binary === false) {
+            http_response_code(500);
+            exit;
+        }
         header('Content-Type: ' . $row['mime_type']);
         header('Content-Length: ' . strlen($binary));
         header('Cache-Control: public, max-age=31536000');
@@ -340,8 +344,8 @@ class ImageController extends AbstractController {
     }
 
     private function detectDimensions(SeoImage $image): void {
-        $binary = base64_decode($image->getDataBase64());
-        if ($binary === false) {
+        $binary = base64_decode((string)$image->getDataBase64(), true);
+        if ($binary === false || $binary === '') {
             return;
         }
 
