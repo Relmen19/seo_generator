@@ -359,7 +359,7 @@ $content = is_string($block['content']) ? json_decode($block['content'], true) :
 
 ---
 
-### Prompt 17 — Метрики стоимости research до/после (S)
+### Prompt 17 — Метрики стоимости research до/после (S) ✅ closed
 
 **Цель:** проверить тезис плана 6: «⩽30% рост стоимости при существенно меньше галлюцинаций».
 
