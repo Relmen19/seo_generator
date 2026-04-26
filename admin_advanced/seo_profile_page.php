@@ -528,6 +528,15 @@ requireAuth();
                 <select id="bDefaultThemeCode"><option value="">— использовать legacy theme —</option></select>
                 <small style="display:block;color:#64748b;margin-top:4px">Имеет приоритет над «Тема оформления». Управление темами: <a href="/admin_advanced/seo_themes_page.php" style="color:#a5b4fc">/admin_advanced/seo_themes_page.php</a></small>
             </div>
+            <div class="form-row" style="margin-top:14px">
+                <label>Стратегия research</label>
+                <select id="bResearchStrategy">
+                    <option value="single">Single — один большой вызов (legacy)</option>
+                    <option value="split">Split — outline + fill по секциям</option>
+                    <option value="split_search">Split + Web Search — fill бенчмарков через Brave</option>
+                </select>
+                <small style="display:block;color:#64748b;margin-top:4px">Split дешевле + меньше галлюцинаций. Split+Search требует BRAVE_SEARCH_API_KEY.</small>
+            </div>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
             <button class="btn btn-primary" onclick="saveBranding()">Сохранить брендинг</button>
@@ -1308,6 +1317,7 @@ function fillBranding() {
     $('bBaseUrl').value = p.base_url || '';
     renderThemePicker('brandThemePicker', p.theme || 'default');
     populateDefaultThemeCodeSelect('bDefaultThemeCode', p.default_theme_code || '');
+    if ($('bResearchStrategy')) $('bResearchStrategy').value = p.research_strategy || 'single';
 
     const upload = $('brandIconUpload');
     if (p.icon_path) {
@@ -1380,6 +1390,7 @@ async function saveBranding() {
         base_url: $('bBaseUrl').value || null,
         theme: getSelectedTheme('brandThemePicker'),
         default_theme_code: ($('bDefaultThemeCode') && $('bDefaultThemeCode').value) || null,
+        research_strategy: ($('bResearchStrategy') && $('bResearchStrategy').value) || 'single',
     };
     try {
         const res = await api(`profiles/${currentProfile.id}`, {
