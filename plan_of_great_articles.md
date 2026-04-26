@@ -202,7 +202,7 @@ $content = is_string($block['content']) ? json_decode($block['content'], true) :
 
 ---
 
-### Prompt 10 — Theming closure: миграция legacy CSS vars (M)
+### Prompt 10 — Theming closure: миграция legacy CSS vars (M) ✅ closed (`9164dd2`)
 
 **Цель:** закрыть 2.2 — все рендеры используют только новые токены, `ThemeService` bridge удаляется.
 
@@ -235,7 +235,7 @@ $content = is_string($block['content']) ? json_decode($block['content'], true) :
 
 ---
 
-### Prompt 11 — Per-article theme override (S)
+### Prompt 11 — Per-article theme override (S) ✅ closed (`9966876`)
 
 **Цель:** закрыть Stage 4 — на статью можно поставить тему отдельно от профильной.
 
