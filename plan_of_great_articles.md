@@ -155,7 +155,7 @@ $content = is_string($block['content']) ? json_decode($block['content'], true) :
 
 ---
 
-### Prompt 8 — UI декомпозиция admin_simple (L)
+### Prompt 8 — UI декомпозиция admin_simple (L) ✅ closed
 
 **Цель:** разбить `admin_simple/articles.php` (2234 LOC) на отдельные JS-модули + единый CSS-файл.
 
