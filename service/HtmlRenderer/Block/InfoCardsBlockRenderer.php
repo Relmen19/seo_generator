@@ -32,7 +32,7 @@ class InfoCardsBlockRenderer extends AbstractBlockRenderer
             . ($title ? '<h2 class="sec-title">' . $title . '</h2>' : '')
             . '<div class="ic-grid ' . $cols . '">';
         foreach ($items as $i => $it) {
-            $color = $this->e($it['color'] ?? 'var(--blue)');
+            $color = $this->e($it['color'] ?? 'var(--color-accent)');
             $icon  = $this->e($it['icon'] ?? '📋');
             $h .= '<div class="ic-card" style="--ic-c:' . $color . '">'
                 . '<div class="ic-icon">' . $icon . '</div>'
@@ -52,12 +52,11 @@ class InfoCardsBlockRenderer extends AbstractBlockRenderer
         return '.ic-grid{display:grid;gap:16px}'
             . "\n" . '.ic-grid--3{grid-template-columns:repeat(3,1fr)}'
             . "\n" . '.ic-grid--2{grid-template-columns:repeat(2,1fr)}'
-            . "\n" . '.ic-card{padding:24px 20px;border-radius:16px;background:rgba(255,255,255,.6);backdrop-filter:blur(10px);border:1px solid var(--border);border-left:4px solid var(--ic-c,var(--blue));transition:all .3s;cursor:default}'
-            . "\n" . '[data-theme="dark"] .ic-card{background:rgba(255,255,255,.03)}'
-            . "\n" . '.ic-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(15,23,42,.08);border-color:rgba(37,99,235,.15)}'
+            . "\n" . '.ic-card{padding:24px 20px;border-radius:var(--radius-lg);background:var(--color-surface);border:1px solid var(--color-border);border-left:4px solid var(--ic-c,var(--color-accent));transition:all .3s;cursor:default}'
+            . "\n" . '.ic-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.06);border-color:var(--color-accent)}'
             . "\n" . '.ic-icon{font-size:1.8rem;margin-bottom:10px}'
-            . "\n" . '.ic-title{font-family:var(--fh);font-size:15px;font-weight:700;color:var(--dark);margin-bottom:6px}'
-            . "\n" . '.ic-text{font-size:13px;color:var(--slate);line-height:1.55}'
+            . "\n" . '.ic-title{font-family:var(--type-font-heading);font-size:15px;font-weight:700;color:var(--color-text);margin-bottom:6px}'
+            . "\n" . '.ic-text{font-size:13px;color:var(--color-text-2);line-height:1.55}'
             . "\n" . '@media(max-width:700px){.ic-grid--3{grid-template-columns:1fr 1fr}.ic-grid--2{grid-template-columns:1fr}}'
             ;
     }

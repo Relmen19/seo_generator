@@ -69,17 +69,16 @@ class FaqBlockRenderer extends AbstractBlockRenderer
     {
         return '.block-faq { }'
             . "\n" . '.faq-list { display:flex; flex-direction:column; gap:10px; max-width:780px }'
-            . "\n" . '.faq-item { border:1px solid var(--border); border-radius:var(--r); overflow:hidden; transition:border-color .25s; background:rgba(255,255,255,.5); backdrop-filter:blur(8px) }'
-            . "\n" . '[data-theme="dark"] .faq-item { background:rgba(255,255,255,.04) }'
-            . "\n" . '.faq-item:hover,.faq-item.open { border-color:rgba(37,99,235,.3) }'
-            . "\n" . '.faq-q { width:100%; background:transparent; color:var(--dark); font-family:var(--fb); font-size:15px; font-weight:500; padding:18px 22px; text-align:left; border:none; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:16px; transition:background .2s }'
-            . "\n" . '.faq-q:hover { background:var(--blue-light) }'
-            . "\n" . '.faq-arr { font-size:20px; color:var(--blue); transition:transform .3s; flex-shrink:0; font-weight:300 }'
+            . "\n" . '.faq-item { border:1px solid var(--color-border); border-radius:var(--radius-md); overflow:hidden; transition:border-color .25s; background:var(--color-surface) }'
+            . "\n" . '.faq-item:hover,.faq-item.open { border-color:var(--color-accent) }'
+            . "\n" . '.faq-q { width:100%; background:transparent; color:var(--color-text); font-family:var(--type-font-text); font-size:15px; font-weight:500; padding:18px 22px; text-align:left; border:none; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:16px; transition:background .2s }'
+            . "\n" . '.faq-q:hover { background:var(--color-accent-soft) }'
+            . "\n" . '.faq-arr { font-size:20px; color:var(--color-accent); transition:transform .3s; flex-shrink:0; font-weight:300 }'
             . "\n" . '.faq-a { max-height:0; overflow:hidden; transition:max-height .4s ease }'
-            . "\n" . '.faq-a-in { padding:18px 22px; border-top:1px solid var(--border); color:var(--slate); line-height:1.65; font-size:.95rem }'
+            . "\n" . '.faq-a-in { padding:18px 22px; border-top:1px solid var(--color-border); color:var(--color-text-2); line-height:1.65; font-size:.95rem }'
             . "\n" . '.faq-item.open .faq-arr { transform:rotate(45deg) }'
             . "\n" . '.faq-item.open .faq-a { max-height:600px }'
-            . "\n" . '.faq-item.open .faq-q { background:var(--blue-light) }';
+            . "\n" . '.faq-item.open .faq-q { background:var(--color-accent-soft) }';
     }
 
     public function getJs(): string

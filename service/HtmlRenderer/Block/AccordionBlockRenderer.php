@@ -49,15 +49,14 @@ class AccordionBlockRenderer extends AbstractBlockRenderer
     public function getCss(): string
     {
         return '.block-accordion { }'
-            . "\n" . 'details { border:1px solid var(--border); border-radius:var(--r); margin-bottom:10px; overflow:hidden; background:rgba(255,255,255,.55); backdrop-filter:blur(8px); transition:all .25s }'
-            . "\n" . '[data-theme="dark"] details { background:rgba(255,255,255,.04) }'
-            . "\n" . 'details[open],details:hover { box-shadow:0 4px 20px rgba(37,99,235,.06); border-color:rgba(37,99,235,.25) }'
-            . "\n" . 'summary { padding:18px 22px; font-family:var(--fh); font-weight:700; font-size:.95rem; cursor:pointer; background:transparent; list-style:none; display:flex; align-items:center; gap:10px; color:var(--dark); transition:background .2s }'
-            . "\n" . 'details[open] summary { background:var(--blue-light) }'
+            . "\n" . 'details { border:1px solid var(--color-border); border-radius:var(--radius-md); margin-bottom:10px; overflow:hidden; background:var(--color-surface); transition:all .25s }'
+            . "\n" . 'details[open],details:hover { box-shadow:0 4px 20px rgba(0,0,0,.04); border-color:var(--color-accent) }'
+            . "\n" . 'summary { padding:18px 22px; font-family:var(--type-font-heading); font-weight:700; font-size:.95rem; cursor:pointer; background:transparent; list-style:none; display:flex; align-items:center; gap:10px; color:var(--color-text); transition:background .2s }'
+            . "\n" . 'details[open] summary { background:var(--color-accent-soft) }'
             . "\n" . 'summary::-webkit-details-marker { display:none }'
-            . "\n" . 'summary::before { content:""; flex-shrink:0; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg,var(--blue),var(--teal)); transition:transform .25s }'
+            . "\n" . 'summary::before { content:""; flex-shrink:0; width:18px; height:18px; border-radius:50%; background:var(--color-accent); transition:transform .25s }'
             . "\n" . 'details[open] summary::before { transform:rotate(90deg) }'
-            . "\n" . '.acc-body { padding:18px 22px; border-top:1px solid var(--border); color:var(--slate); line-height:1.65; font-size:.95rem }';
+            . "\n" . '.acc-body { padding:18px 22px; border-top:1px solid var(--color-border); color:var(--color-text-2); line-height:1.65; font-size:.95rem }';
     }
 
     public function getJs(): string

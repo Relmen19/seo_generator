@@ -68,24 +68,20 @@ class WarningBlockRenderer extends AbstractBlockRenderer
 
     public function getCss(): string
     {
-        return '.wb-card{border-radius:20px;padding:28px;border:2px solid var(--border)}'
-            . "\n" . '.wb--red{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.04)}'
-            . "\n" . '.wb--caution{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.04)}'
-            . "\n" . '.wb--good{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.04)}'
-            . "\n" . '[data-theme="dark"] .wb--red{background:rgba(239,68,68,.06)}'
-            . "\n" . '[data-theme="dark"] .wb--caution{background:rgba(245,158,11,.06)}'
-            . "\n" . '[data-theme="dark"] .wb--good{background:rgba(16,185,129,.06)}'
+        return '.wb-card{border-radius:var(--radius-lg);padding:28px;border:2px solid var(--color-border)}'
+            . "\n" . '.wb--red{border-color:var(--color-danger);background:color-mix(in srgb,var(--color-danger) 6%,transparent)}'
+            . "\n" . '.wb--caution{border-color:var(--color-warn);background:color-mix(in srgb,var(--color-warn) 6%,transparent)}'
+            . "\n" . '.wb--good{border-color:var(--color-success);background:color-mix(in srgb,var(--color-success) 6%,transparent)}'
             . "\n" . '.wb-header{display:flex;align-items:center;gap:14px;margin-bottom:18px}'
             . "\n" . '.wb-icon{font-size:2rem}'
-            . "\n" . '.wb-title{font-family:var(--fh);font-size:18px;font-weight:900;color:var(--dark)}'
-            . "\n" . '.wb-subtitle{font-size:13px;color:var(--muted);margin-top:2px}'
+            . "\n" . '.wb-title{font-family:var(--type-font-heading);font-size:18px;font-weight:900;color:var(--color-text)}'
+            . "\n" . '.wb-subtitle{font-size:13px;color:var(--color-text-3);margin-top:2px}'
             . "\n" . '.wb-items{display:grid;gap:8px}'
-            . "\n" . '.wb-item{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.5);border:1px solid var(--border)}'
-            . "\n" . '[data-theme="dark"] .wb-item{background:rgba(255,255,255,.03)}'
-            . "\n" . '.wb-item--emergency{border-color:rgba(239,68,68,.3);animation:pulseRing 2s infinite;--pulse-c:rgba(239,68,68,.2)}'
+            . "\n" . '.wb-item{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border)}'
+            . "\n" . '.wb-item--emergency{border-color:var(--color-danger);animation:pulseRing 2s infinite;--pulse-c:color-mix(in srgb,var(--color-danger) 30%,transparent)}'
             . "\n" . '.wb-item-icon{font-size:1.2em;flex-shrink:0}'
-            . "\n" . '.wb-item-text{font-size:14px;color:var(--slate);line-height:1.4}'
-            . "\n" . '.wb-footer{margin-top:16px;padding-top:14px;border-top:1px solid var(--border);font-size:13px;font-weight:700;color:var(--red);text-align:center}'
+            . "\n" . '.wb-item-text{font-size:14px;color:var(--color-text-2);line-height:1.4}'
+            . "\n" . '.wb-footer{margin-top:16px;padding-top:14px;border-top:1px solid var(--color-border);font-size:13px;font-weight:700;color:var(--color-danger);text-align:center}'
             ;
     }
 

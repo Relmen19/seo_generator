@@ -47,15 +47,14 @@ class KeyTakeawaysBlockRenderer extends AbstractBlockRenderer
 
     public function getCss(): string
     {
-        return '.kt-card{border-radius:20px;background:linear-gradient(135deg,rgba(37,99,235,.06),rgba(13,148,136,.04));border:1px solid rgba(37,99,235,.12);padding:28px 32px}'
-            . "\n" . '[data-theme="dark"] .kt-card{background:linear-gradient(135deg,rgba(37,99,235,.1),rgba(13,148,136,.06))}'
+        return '.kt-card{border-radius:var(--radius-lg);background:var(--color-accent-soft);border:1px solid var(--color-border);padding:28px 32px}'
             . "\n" . '.kt-header{display:flex;align-items:center;gap:10px;margin-bottom:18px}'
             . "\n" . '.kt-icon{font-size:1.5rem}'
-            . "\n" . '.kt-title{font-family:var(--fh);font-size:18px;font-weight:900;color:var(--dark)}'
+            . "\n" . '.kt-title{font-family:var(--type-font-heading);font-size:18px;font-weight:900;color:var(--color-text)}'
             . "\n" . '.kt-items{display:grid;gap:10px}'
-            . "\n" . '.kt-item{display:flex;align-items:flex-start;gap:12px;font-size:14px;color:var(--slate);line-height:1.6}'
-            . "\n" . '.kt-num{width:28px;height:28px;border-radius:8px;background:var(--blue);color:#fff;font-family:var(--fh);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}'
-            . "\n" . '.kt-bullet{width:8px;height:8px;border-radius:50%;background:var(--blue);flex-shrink:0;margin-top:7px}'
+            . "\n" . '.kt-item{display:flex;align-items:flex-start;gap:12px;font-size:14px;color:var(--color-text-2);line-height:1.6}'
+            . "\n" . '.kt-num{width:28px;height:28px;border-radius:var(--radius-sm);background:var(--color-accent);color:#fff;font-family:var(--type-font-heading);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}'
+            . "\n" . '.kt-bullet{width:8px;height:8px;border-radius:50%;background:var(--color-accent);flex-shrink:0;margin-top:7px}'
             . "\n" . '.kt-text{flex:1}'
             ;
     }
