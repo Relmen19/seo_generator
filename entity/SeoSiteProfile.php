@@ -25,6 +25,7 @@ class SeoSiteProfile extends AbstractEntity {
     protected string $colorScheme = '#6366f1';
     protected string $theme = 'default';
     protected ?string $defaultThemeCode = null;
+    protected string $researchStrategy = 'single';
     protected ?string $tgBotToken = null;
     protected ?string $tgChannelId = null;
     protected string $tgPostFormat = 'auto';
@@ -90,6 +91,10 @@ class SeoSiteProfile extends AbstractEntity {
         if (array_key_exists('default_theme_code', $data)) {
             $this->defaultThemeCode = $this->toNullableString($data['default_theme_code']);
         }
+        if (array_key_exists('research_strategy', $data)) {
+            $v = (string)$data['research_strategy'];
+            $this->researchStrategy = in_array($v, ['single','split','split_search'], true) ? $v : 'single';
+        }
         if (array_key_exists('tg_bot_token', $data)) {
             $this->tgBotToken = $this->toNullableString($data['tg_bot_token']);
         }
@@ -144,6 +149,7 @@ class SeoSiteProfile extends AbstractEntity {
             'color_scheme'  => $this->colorScheme,
             'theme'             => $this->theme,
             'default_theme_code' => $this->defaultThemeCode,
+            'research_strategy' => $this->researchStrategy,
             'tg_bot_token'      => $this->tgBotToken,
             'tg_channel_id'     => $this->tgChannelId,
             'tg_post_format'    => $this->tgPostFormat,
@@ -223,6 +229,11 @@ class SeoSiteProfile extends AbstractEntity {
 
     public function getDefaultThemeCode(): ?string { return $this->defaultThemeCode; }
     public function setDefaultThemeCode(?string $v): self { $this->defaultThemeCode = $v; return $this; }
+    public function getResearchStrategy(): string { return $this->researchStrategy; }
+    public function setResearchStrategy(string $v): self {
+        $this->researchStrategy = in_array($v, ['single','split','split_search'], true) ? $v : 'single';
+        return $this;
+    }
 
     public function getTgBotToken(): ?string { return $this->tgBotToken; }
     public function setTgBotToken(?string $v): self { $this->tgBotToken = $v; return $this; }
