@@ -238,11 +238,6 @@ requireAuth();
             <span id="genSpin"></span> Сгенерировать всё
         </button>
     </div>
-    <div id="genProgress" style="display:none" class="section">
-        <div class="section-head"><span class="section-head-title">Генерация...</span></div>
-        <div class="section-body"><div class="ai-progress" id="genSteps"></div></div>
-    </div>
-
     <!-- Blocks -->
     <div class="section">
         <div class="section-head">

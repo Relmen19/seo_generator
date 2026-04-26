@@ -5,7 +5,6 @@ async function generateAll() {
     const btn = el('btnGenerate');
     btn.disabled = true;
     el('genSpin').innerHTML = '<span class="spin spin-white"></span>';
-    el('genProgress').style.display = '';
     const articleId = S.article.id;
 
     const ac = new AbortController();
@@ -136,5 +135,4 @@ async function generateAll() {
 
     btn.disabled = false;
     el('genSpin').innerHTML = '';
-    setTimeout(() => { el('genProgress').style.display = 'none'; }, 3000);
 }
