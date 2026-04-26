@@ -8,11 +8,14 @@ use Seo\Service\EditorialQaService;
 use Throwable;
 
 /*
-   GET    /qa/{articleId}                       — list unresolved issues
-   GET    /qa/{articleId}/all                   — list all issues incl. resolved
-   POST   /qa/{articleId}/run                   — run all rules and persist
-   POST   /qa/{articleId}/resolve/{issueId}     — mark single issue as resolved
-   GET    /qa/{articleId}/has-errors            — { has_errors: bool }
+   GET    /qa/{articleId}                  — list unresolved issues
+   GET    /qa/{articleId}/all              — list all issues incl. resolved
+   POST   /qa/{articleId}/run              — run all rules and persist
+   POST   /qa/{articleId}/resolve          — body|query: { "issue_id": N }
+   GET    /qa/{articleId}/has-errors       — { has_errors: bool }
+
+   Note: router.php parses only one $action segment, поэтому issue_id передаётся
+   через query/JSON-body, а не path. Sync с фактическим поведением.
  */
 class ArticleQaController extends AbstractController {
 
