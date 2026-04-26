@@ -573,6 +573,26 @@ body.advanced .section.adv-only { display: block !important; }
         </div>
     </div>
 
+    <!-- Editorial QA -->
+    <div class="section">
+        <div class="section-head">
+            <span class="section-head-title">Редакторские проверки</span>
+            <span style="display:flex;gap:8px;align-items:center">
+                <span id="qaSummary" style="font-size:12px;color:var(--text-3)"></span>
+                <button class="btn btn-secondary btn-sm" onclick="runQaChecks()" id="btnRunQa">🧪 Прогнать проверки</button>
+            </span>
+        </div>
+        <div class="section-body">
+            <div id="qaIssuesList" style="display:flex;flex-direction:column;gap:6px"></div>
+            <div id="qaForceWrap" style="display:none;margin-top:10px;padding:10px;border:1px solid var(--danger);background:var(--danger-light);border-radius:8px">
+                <label style="display:flex;gap:8px;align-items:center;font-size:13px">
+                    <input type="checkbox" id="qaForcePublish">
+                    <span>Опубликовать несмотря на блокирующие ошибки (force-override)</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
     <!-- Article settings (advanced only) -->
     <div class="section adv-only">
         <div class="section-head"><span class="section-head-title">Детали статьи</span></div>
@@ -817,6 +837,71 @@ function renderEditor() {
 
     setSaveState('saved');
     renderBlocks(a.blocks || []);
+    refreshQaIssues();
+}
+
+// ─── Editorial QA ───
+async function refreshQaIssues() {
+    if (!S.article) return;
+    try {
+        const res = await api('qa/' + S.article.id);
+        renderQaIssues(res.data || []);
+    } catch (e) {
+        renderQaIssues([]);
+    }
+}
+
+function renderQaIssues(issues) {
+    const wrap = el('qaIssuesList');
+    const summary = el('qaSummary');
+    const forceWrap = el('qaForceWrap');
+    if (!wrap) return;
+    if (!issues.length) {
+        wrap.innerHTML = '<div style="font-size:13px;color:var(--text-3)">Замечаний нет — либо проверки ещё не запускались.</div>';
+        summary.textContent = '';
+        forceWrap.style.display = 'none';
+        return;
+    }
+    const c = { error: 0, warn: 0, info: 0 };
+    for (const i of issues) c[i.severity] = (c[i.severity] || 0) + 1;
+    summary.textContent = (c.error ? '⛔ ' + c.error + '  ' : '') + (c.warn ? '⚠️ ' + c.warn + '  ' : '') + (c.info ? 'ℹ️ ' + c.info : '');
+    forceWrap.style.display = c.error > 0 ? '' : 'none';
+    wrap.innerHTML = issues.map(i => {
+        const color = i.severity === 'error' ? 'var(--danger)' : (i.severity === 'warn' ? '#a06200' : 'var(--text-3)');
+        const bg = i.severity === 'error' ? 'var(--danger-light)' : (i.severity === 'warn' ? '#fff7e6' : 'var(--bg)');
+        const icon = i.severity === 'error' ? '⛔' : (i.severity === 'warn' ? '⚠️' : 'ℹ️');
+        return '<div style="display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:8px;background:' + bg + ';color:' + color + ';font-size:13px">' +
+               '<span><span style="font-weight:600;text-transform:uppercase;font-size:11px;margin-right:6px">' + icon + ' ' + esc(i.code) + '</span>' + esc(i.message) + '</span>' +
+               '<button class="btn btn-ghost btn-sm" onclick="resolveQaIssue(' + i.id + ')" title="Отметить решённым">✓</button>' +
+               '</div>';
+    }).join('');
+}
+
+async function runQaChecks() {
+    if (!S.article) return;
+    const btn = el('btnRunQa');
+    btn.disabled = true;
+    const prev = btn.innerHTML;
+    btn.innerHTML = 'Проверяю…';
+    try {
+        const res = await api('qa/' + S.article.id + '/run', 'POST', {});
+        renderQaIssues(res.data.issues || []);
+        toast('Проверки выполнены', 'ok');
+    } catch (e) {
+        toast(e.message, 'err');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = prev;
+    }
+}
+
+async function resolveQaIssue(issueId) {
+    try {
+        await api('qa/' + S.article.id + '/resolve', 'POST', { issue_id: issueId });
+        await refreshQaIssues();
+    } catch (e) {
+        toast(e.message, 'err');
+    }
 }
 
 // ─── Autosave ───
@@ -1060,7 +1145,12 @@ async function doPublish() {
     const sp = el('pubSpin');
     sp.innerHTML = '<span class="spin spin-white"></span>';
     try {
-        // Save URL
+        const gate = await api('qa/' + S.article.id + '/has-errors');
+        if (gate.data.has_errors && !(el('qaForcePublish') && el('qaForcePublish').checked)) {
+            sp.innerHTML = '';
+            toast('Есть блокирующие ошибки в проверках. Отметьте force-override для публикации.', 'err');
+            return;
+        }
         await api('articles/' + S.article.id, 'PUT', { published_url: url });
         // Set status published
         await api('articles/' + S.article.id + '/status', 'PUT', { status: 'published' });
