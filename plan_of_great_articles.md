@@ -251,7 +251,7 @@ $content = is_string($block['content']) ? json_decode($block['content'], true) :
 
 ---
 
-### Prompt 12 — Research progress UI + Prune phase (M)
+### Prompt 12 — Research progress UI + Prune phase (M) ✅ closed
 
 **Цель:** закрыть незакрытые опции 6.4 + 6.5.
 

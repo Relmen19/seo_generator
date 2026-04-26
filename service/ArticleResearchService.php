@@ -24,6 +24,13 @@ class ArticleResearchService
     private GptClient $gpt;
     private Database $db;
 
+    public const STATUS_NONE    = 'none';
+    public const STATUS_OUTLINE = 'outline';
+    public const STATUS_FILL    = 'fill';
+    public const STATUS_PRUNE   = 'prune';
+    public const STATUS_READY   = 'ready';
+    public const STATUS_STALE   = 'stale';
+
     private const SECTIONS = [
         'facts'          => ['claim', 'evidence'],
         'entities'       => ['name', 'definition'],
@@ -165,6 +172,8 @@ class ArticleResearchService
         $usages    = [];
         $models    = [];
 
+        $this->setPhase($articleId, self::STATUS_OUTLINE);
+
         // ─── Phase 1: outline ───
         $outlineModel = $opts['outline_model'] ?? GPT_DEFAULT_MODEL;
         $this->gpt->setLogContext([
@@ -190,6 +199,8 @@ class ArticleResearchService
         if ($angle === '') {
             throw new RuntimeException("Research: outline без angle");
         }
+
+        $this->setPhase($articleId, self::STATUS_FILL);
 
         // ─── Phase 2: fill per section ───
         $fillModel = $opts['fill_model'] ?? $article['gpt_model'] ?? GPT_DEFAULT_MODEL;
@@ -290,8 +301,109 @@ class ArticleResearchService
 
         $this->deriveSourcesFromItems($collected);
 
+        if (!empty($opts['prune'])) {
+            $this->setPhase($articleId, self::STATUS_PRUNE);
+            $pruneModel = $opts['prune_model'] ?? 'gpt-4.1-mini';
+            $pruneUsage = $this->runPrune($collected, $articleId, $profileId, $pruneModel);
+            if ($pruneUsage !== null) {
+                $usages[] = $pruneUsage['usage'] ?? [];
+                if (!empty($pruneUsage['model']) && !in_array($pruneUsage['model'], $models, true)) {
+                    $models[] = $pruneUsage['model'];
+                }
+            }
+        }
+
         $normalised = $this->validateDossier($collected, $title);
         return [$normalised, $usages, $models];
+    }
+
+    /**
+     * Cheap-model pass that asks GPT which collected items duplicate or stray
+     * from the angle. Returns {remove_ids:[...]}; we drop matching items.
+     * Returns ['usage' => array, 'model' => string] or null when nothing to do.
+     */
+    private function runPrune(array &$collected, int $articleId, $profileId, string $model): ?array
+    {
+        $idx = self::indexById($collected);
+        if (empty($idx)) return null;
+
+        $lines = [];
+        foreach ($idx as $item) {
+            $lines[] = self::renderItemLine($item);
+        }
+        $angle = (string)($collected['angle'] ?? '');
+        $title = (string)($collected['title'] ?? '');
+
+        $messages = [
+            ['role' => 'system', 'content' =>
+                "Ты редактор research-досье. Твоя задача — выкинуть из списка items, "
+                . "которые дубликаты, не относятся к angle, или явно слабее остальных. "
+                . "Не удаляй больше 25% items за проход. "
+                . "Отвечай строго JSON: {\"remove_ids\":[\"id1\",\"id2\",...]}. "
+                . "Если ничего удалять не нужно — пустой массив."],
+            ['role' => 'user', 'content' =>
+                "Тема: {$title}\nAngle: {$angle}\n\nItems:\n" . implode("\n", $lines)],
+        ];
+
+        $this->gpt->setLogContext([
+            'category'    => TokenUsageLogger::CATEGORY_ARTICLE_RESEARCH,
+            'operation'   => 'research_prune',
+            'profile_id'  => $profileId,
+            'entity_type' => 'article',
+            'entity_id'   => $articleId,
+        ]);
+
+        try {
+            $resp = $this->gpt->chatJson($messages, [
+                'model'       => $model,
+                'temperature' => 0.1,
+                'max_tokens'  => 600,
+            ]);
+        } catch (\Throwable $e) {
+            error_log('[ArticleResearchService] prune failed: ' . $e->getMessage());
+            return null;
+        }
+
+        $removeIds = $resp['data']['remove_ids'] ?? [];
+        if (!is_array($removeIds) || empty($removeIds)) {
+            return ['usage' => $resp['usage'] ?? [], 'model' => $resp['model'] ?? null];
+        }
+        $removeSet = [];
+        foreach ($removeIds as $rid) {
+            $r = trim((string)$rid);
+            if ($r !== '') $removeSet[$r] = true;
+        }
+
+        $maxDrop = (int)floor(count($idx) * 0.25);
+        if ($maxDrop < 1) $maxDrop = 1;
+        $dropped = 0;
+
+        foreach (self::SECTIONS as $key => $_) {
+            if (empty($collected[$key]) || !is_array($collected[$key])) continue;
+            $kept = [];
+            foreach ($collected[$key] as $item) {
+                if (!is_array($item)) { $kept[] = $item; continue; }
+                $iid = (string)($item['id'] ?? '');
+                if ($iid !== '' && isset($removeSet[$iid]) && $dropped < $maxDrop) {
+                    $dropped++;
+                    continue;
+                }
+                $kept[] = $item;
+            }
+            $collected[$key] = $kept;
+        }
+
+        return ['usage' => $resp['usage'] ?? [], 'model' => $resp['model'] ?? null];
+    }
+
+    private function setPhase(int $articleId, string $phase): void
+    {
+        try {
+            $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, 'id = :aid',
+                ['research_status' => $phase], [':aid' => $articleId]);
+        } catch (\Throwable $e) {
+            error_log('[ArticleResearchService] setPhase failed: ' . $e->getMessage());
+        }
     }
 
     /**

@@ -35,6 +35,11 @@ class GenerationController extends AbstractController {
             return;
         }
 
+        if ($method === 'GET' && $action === 'research-progress' && $id !== null) {
+            $this->researchProgress($id);
+            return;
+        }
+
         if ($method !== 'POST') {
             $this->methodNotAllowed();
             return;
@@ -198,8 +203,55 @@ class GenerationController extends AbstractController {
             $result = $svc->buildDossier($articleId, [
                 'model' => $body['model'] ?? null,
                 'force' => !empty($body['force']),
+                'prune' => !empty($body['prune']),
+                'prune_model' => $body['prune_model'] ?? null,
             ]);
             $this->success($result);
+        } catch (Throwable $e) {
+            $this->error($e->getMessage(), 500);
+        }
+    }
+
+    private function researchProgress(int $articleId): void {
+        try {
+            $db = Database::getInstance();
+            $row = $db->fetchOne(
+                "SELECT research_status, research_at FROM " . SeoArticle::SEO_ARTICLE_TABLE . " WHERE id = ?",
+                [$articleId]
+            );
+            if (!$row) {
+                $this->error('Article not found', 404);
+                return;
+            }
+            $rows = $db->fetchAll(
+                "SELECT operation,
+                        SUM(prompt_tokens) AS prompt_tokens,
+                        SUM(completion_tokens) AS completion_tokens,
+                        SUM(total_tokens) AS total_tokens,
+                        SUM(cost_usd) AS cost_usd
+                   FROM seo_token_usage
+                  WHERE entity_type = 'article'
+                    AND entity_id = ?
+                    AND category = 'article_research'
+                  GROUP BY operation",
+                [$articleId]
+            );
+            $byOp = [];
+            foreach ($rows as $r) {
+                $op = (string)($r['operation'] ?? '');
+                if ($op === '') $op = 'research';
+                $byOp[$op] = [
+                    'prompt_tokens'     => (int)$r['prompt_tokens'],
+                    'completion_tokens' => (int)$r['completion_tokens'],
+                    'total_tokens'      => (int)$r['total_tokens'],
+                    'cost_usd'          => (float)$r['cost_usd'],
+                ];
+            }
+            $this->success([
+                'status'             => $row['research_status'] ?? 'none',
+                'research_at'        => $row['research_at'] ?? null,
+                'tokens_by_operation' => $byOp,
+            ]);
         } catch (Throwable $e) {
             $this->error($e->getMessage(), 500);
         }

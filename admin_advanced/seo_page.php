@@ -1170,11 +1170,20 @@ requireAuth();
                                 <strong>Research dossier</strong>
                                 <span id="artResearchStatus" class="status-badge" style="font-size:.65rem;background:#334155;color:#94a3b8">none</span>
                                 <span id="artResearchAt" style="font-size:.65rem;color:#64748b;font-weight:400"></span>
+                                <label style="font-size:.65rem;color:#94a3b8;display:inline-flex;align-items:center;gap:3px;margin-left:6px;cursor:pointer">
+                                    <input type="checkbox" id="researchPrune" style="accent-color:#22d3ee"> prune
+                                </label>
                                 <div class="prep-actions">
                                     <button type="button" class="btn btn-sm btn-ghost" onclick="saveResearchAdv()" title="Сохранить">💾</button>
                                     <button type="button" class="btn btn-sm btn-ghost" style="color:#22d3ee;border-color:#0891b2" onclick="buildResearchAdv(false)" title="Собрать через GPT">🔍 GPT</button>
                                     <button type="button" class="btn btn-sm btn-ghost" style="color:#f59e0b;border-color:#b45309" onclick="buildResearchAdv(true)" title="Перезаписать через GPT">⟲</button>
                                 </div>
+                            </div>
+                            <div id="researchPhases" style="display:flex;gap:6px;margin:4px 0 6px 0;font-size:.62rem;flex-wrap:wrap">
+                                <span class="rphase" data-phase="outline" style="padding:2px 8px;border-radius:10px;background:#1e293b;color:#64748b">outline <b data-tok>—</b></span>
+                                <span class="rphase" data-phase="fill" style="padding:2px 8px;border-radius:10px;background:#1e293b;color:#64748b">fill <b data-tok>—</b></span>
+                                <span class="rphase" data-phase="prune" style="padding:2px 8px;border-radius:10px;background:#1e293b;color:#64748b">prune <b data-tok>—</b></span>
+                                <span class="rphase" data-phase="ready" style="padding:2px 8px;border-radius:10px;background:#1e293b;color:#64748b">ready</span>
                             </div>
                             <textarea id="artResearch" rows="12" placeholder="Markdown досье. Заполнится через «GPT» или впишите вручную." style="font-family:'SF Mono',Menlo,monospace;font-size:12px;line-height:1.55;width:100%" oninput="dirty=true; updatePrepSummary();"></textarea>
                             <div style="font-size:.65rem;color:#64748b;margin-top:3px">Категория токенов: <b>article_research</b>.</div>
@@ -2419,6 +2428,7 @@ requireAuth();
 
             $('artResearch').value = art.research_dossier || '';
             renderResearchStatusAdv(art.research_status || 'none', art.research_at || null);
+            if (typeof pollResearchProgressOnce === 'function') pollResearchProgressOnce();
             $('artOutline').value = art.article_outline || '';
             renderOutlineStatusAdv(art.outline_status || 'none');
             renderPlanList();
@@ -3164,15 +3174,53 @@ requireAuth();
         badge.style.color = m.fg;
     }
 
+    function applyResearchPhase(activePhase, byOp) {
+        const totals = { outline: 0, fill: 0, prune: 0 };
+        Object.keys(byOp || {}).forEach(op => {
+            const t = (byOp[op] && byOp[op].total_tokens) || 0;
+            if (op === 'research_outline') totals.outline += t;
+            else if (op.indexOf('research_fill') === 0) totals.fill += t;
+            else if (op === 'research_prune') totals.prune += t;
+        });
+        document.querySelectorAll('#researchPhases .rphase').forEach(el => {
+            const ph = el.getAttribute('data-phase');
+            const tokEl = el.querySelector('[data-tok]');
+            if (tokEl) tokEl.textContent = totals[ph] ? totals[ph].toLocaleString('ru-RU') : '—';
+            const isActive = (activePhase === ph) || (activePhase === 'ready' && ph === 'ready');
+            el.style.background = isActive ? '#0e7490' : '#1e293b';
+            el.style.color = isActive ? '#ecfeff' : '#94a3b8';
+        });
+    }
+
+    let researchPollTimer = null;
+    function stopResearchPoll() {
+        if (researchPollTimer) { clearInterval(researchPollTimer); researchPollTimer = null; }
+    }
+    async function pollResearchProgressOnce() {
+        if (!artId) return;
+        try {
+            const result = await api('generate/'+artId+'/research-progress', { method: 'GET' });
+            const d = result.data || {};
+            applyResearchPhase(d.status || 'none', d.tokens_by_operation || {});
+        } catch(_) {}
+    }
+    function startResearchPoll() {
+        stopResearchPoll();
+        pollResearchProgressOnce();
+        researchPollTimer = setInterval(pollResearchProgressOnce, 1500);
+    }
+
     async function buildResearchAdv(force) {
         if (!artId) { toast('Сначала сохраните статью', true); return; }
         const cur = ($('artResearch').value || '').trim();
         if (cur && !force && !confirm('Research уже заполнен. Перезаписать через GPT?')) return;
+        const prune = !!($('researchPrune') && $('researchPrune').checked);
         try {
             renderResearchStatusAdv('pending', null);
+            startResearchPoll();
             const result = await api('generate/'+artId+'/research', {
                 method: 'POST',
-                body: { force: !!force, model: $('genModel').value }
+                body: { force: !!force, model: $('genModel').value, prune: prune }
             });
             const d = result.data || {};
             $('artResearch').value = d.dossier || '';
@@ -3181,6 +3229,9 @@ requireAuth();
         } catch(e) {
             renderResearchStatusAdv('error', null);
             toast('Ошибка research: ' + e.message, true);
+        } finally {
+            stopResearchPoll();
+            pollResearchProgressOnce();
         }
     }
 
