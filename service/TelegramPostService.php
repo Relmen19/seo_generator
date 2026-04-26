@@ -1416,7 +1416,7 @@ class TelegramPostService {
         $rows = $this->db->fetchAll(
             'SELECT id, attempts FROM ' . SeoTelegramPost::TABLE
             . ' WHERE status = :st AND scheduled_at <= NOW()'
-            . ' ORDER BY scheduled_at ASC LIMIT 10',
+            . ' ORDER BY scheduled_at ASC LIMIT 50',
             [':st' => SeoTelegramPost::STATUS_SCHEDULED]
         );
 
@@ -1425,14 +1425,15 @@ class TelegramPostService {
             'SELECT id, attempts FROM ' . SeoTelegramPost::TABLE
             . ' WHERE status = :st AND attempts < :max'
             . ' AND updated_at <= DATE_SUB(NOW(), INTERVAL POW(2, attempts) MINUTE)'
-            . ' ORDER BY updated_at ASC LIMIT 5',
+            . ' ORDER BY updated_at ASC LIMIT 10',
             [':st' => SeoTelegramPost::STATUS_FAILED, ':max' => self::MAX_RETRY_ATTEMPTS]
         );
 
         $allRows = array_merge($rows, $failedRows);
         $processed = 0;
+        $total = count($allRows);
 
-        foreach ($allRows as $row) {
+        foreach ($allRows as $idx => $row) {
             try {
                 $this->send((int)$row['id']);
                 $processed++;
@@ -1448,6 +1449,12 @@ class TelegramPostService {
                         [':id' => (int)$row['id']]
                     );
                 }
+            }
+
+            // Throttle to stay under Telegram global rate limit (~30 msg/sec).
+            // 200ms gap → 5 posts/sec, well below the cap, leaves headroom for media uploads.
+            if ($idx < $total - 1) {
+                usleep(200000);
             }
         }
 
