@@ -508,6 +508,11 @@ class RichtextBlockRenderer extends AbstractBlockRenderer
             . '.lf-code pre{margin:0;padding:1em 1.1em;overflow-x:auto;background:transparent;'
             .   'font-family:var(--lf-mono);font-size:14px;line-height:1.55;color:#e2e8f0}'
             . '.lf-code code{font-family:inherit;background:transparent;color:inherit;padding:0}'
+            // Prism tomorrow theme overrides — keep our container chrome, let Prism colour tokens.
+            . '.lf-code pre[class*="language-"]{background:transparent;margin:0;padding:1em 1.1em;'
+            .   'text-shadow:none;font-family:var(--lf-mono);font-size:14px;line-height:1.55}'
+            . '.lf-code code[class*="language-"]{background:transparent;text-shadow:none;'
+            .   'font-family:var(--lf-mono);font-size:inherit}'
 
             . '.lf-figure{margin:1.6em 0}'
             . '.lf-figure .img-frame{border-radius:10px;overflow:hidden;border:1px solid var(--lf-border)}'
@@ -585,7 +590,34 @@ class RichtextBlockRenderer extends AbstractBlockRenderer
 
     public function getJs(): string
     {
-        return '';
+        // Conditional Prism.js loader: fires once if any .lf-code is present.
+        // Autoloader pulls the matching language grammar by class language-*.
+        return <<<'JS'
+(function(){
+  if (!document.querySelector('.lf-code code')) return;
+  if (window.__lfPrismLoaded) return;
+  window.__lfPrismLoaded = true;
+  var base = 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/';
+  var link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = base + 'themes/prism-tomorrow.min.css';
+  document.head.appendChild(link);
+  var core = document.createElement('script');
+  core.src = base + 'components/prism-core.min.js';
+  core.onload = function(){
+    var auto = document.createElement('script');
+    auto.src = base + 'plugins/autoloader/prism-autoloader.min.js';
+    auto.onload = function(){
+      if (window.Prism && Prism.plugins && Prism.plugins.autoloader) {
+        Prism.plugins.autoloader.languages_path = base + 'components/';
+      }
+      if (window.Prism) Prism.highlightAll();
+    };
+    document.head.appendChild(auto);
+  };
+  document.head.appendChild(core);
+})();
+JS;
     }
 
     public function getTocLabel(array $content, array $meta): string
