@@ -434,4 +434,65 @@ P17 cost report ── after several articles run on split/split_search
 
 ---
 
+## 8. Ревью stage 1-6 (2026-04-26)
+
+Прошёл по коду закрытых stage. Ниже — найденные баги/недочёты, сгруппированные по stage и severity. Severity: **H** = функциональный баг или утечка стоимости; **M** = деградация качества/UX; **L** = техдолг/мелочь.
+
+### Stage 6 — Research v2
+
+- **[H] `sources` никогда не заполняется в split/split_search.** `ArticleResearchService::buildSplit` line 196: `$sectionsOrder` = `['facts','entities','benchmarks','comparisons','counter_theses','quotes_cases','terms']` — **без `sources`**. Дальше `useSearch = ... && in_array($sec, ['benchmarks','sources'], true)` — проверка на `sources` мёртвый код, цикл туда не доходит. `OUTLINE_FORMAT` тоже не выдаёт `questions.sources`. Итого: dossier из split-пайплайна всегда имеет `sources: []`, даже в `split_search`. Фикс: либо добавить `sources` в `sectionsOrder` + `questions.sources` в outline, либо собирать sources из `source` полей facts/benchmarks в отдельный пост-проход.
+- **[M] Минимум `facts` рассинхрон.** `validateDossier` бросает на `< 3`, а `SYSTEM` промпт требует `facts ≥ 8`. Модель будет считать что 3 ОК, валидация пропустит — статья выйдет хилая. Поднять порог до 5-6 или явно прописать в обоих местах.
+- **[M] `WebSearchClient` пересоздаётся в цикле.** Line 216 внутри `foreach ($sectionsOrder as $sec)`. Не критично (нет I/O в конструкторе), но `disabled()` дёргается per-секция; вынести экземпляр перед циклом.
+- **[L] `ResearchPrompt::SKELETON` alias не убран.** Plan 2.6 уже фиксирует — alias на `FORMAT`. После Stage 6a `single`-pipeline всё ещё ссылается через alias (line 507). При cleanup переписать вызов на `FORMAT`.
+- **[L] Audit не разделяет фазы.** В `buildSplit` audit пишется один раз с `mode=build_dossier` и аггрегатом токенов. Чтобы понимать стоимость outline vs fill, лучше писать отдельные events per-operation — данные уже есть в `seo_token_usage`, audit дублирует, но читать его удобнее.
+- **[L] Дубликат id в split-pipeline ловится поздно.** Если модель в двух fill-вызовах вернёт `f1`, `validateDossier` бросит исключение и всё досье потеряно (вместе с оплаченными токенами). Лучше пере-нумеровать collisions перед валидацией: `{prefix}{global_counter}`.
+- **[L] `validateDossier` отбрасывает item при пустом required-поле, но `i++` уже инкрементнут.** ID-нумерация получает дыры (`f1, f3, f5`). Не баг, но косметика.
+
+### Stage 5 — Editorial QA
+
+- **[H] `qa_worker.php`: placeholder в `INTERVAL ? MINUTE`.** Line 50: `(NOW() - INTERVAL ? MINUTE)`. PDO с emulated prepares кавычит число → `INTERVAL '30' MINUTE` → MySQL может ругаться или игнорить. Безопаснее inline `(int)$staleMinutes`. Сейчас не падает только потому что emulate=true и MySQL parses '30' как int.
+- **[M] `BrokenLinksRule` — false positives на HEAD.** `CURLOPT_NOBODY = true`. Многие CDN/lambda возвращают 405/403 на HEAD. Получаем `broken_link` warn на живые ссылки. Фикс: при `>= 400` и `!= 404` повторить GET с Range 0-1024.
+- **[M] `BrokenLinksRule` — `SSL_VERIFYPEER=0`.** Принципиально допустимо для линкчека, но залогировать в комменте *почему* отключено. Альтернатива — `CURLOPT_CAINFO` с системным bundle.
+- **[M] `EmptyChartRule::DATA_KEYS` неполный.** Проверяет `items|data|datasets|rings|axes|rows|columns`. Реальные content_schema у charts: `bars`, `series`, `points`, `cells`, `slices` (надо сверить с `seo_block_types.content_schema`). Сейчас валидный график с `bars: [...]` помечается `error: empty_chart`. Нужен таблично-точный per-type ключ, не общий список.
+- **[M] `EditorialQaService::runChecks` без try/catch на rule.** Если `BrokenLinksRule` падает на curl-таймаут → исключение пробрасывается, остальные правила не отрабатывают. Обернуть `try { … } catch(Throwable $e) { error_log; continue; }` на каждый rule.
+- **[M] `ArticleQaController` resolve route несоответствие.** Docblock: `POST /qa/{articleId}/resolve/{issueId}`. Код: читает `issue_id` из query/JSON-body, **path-parameter игнорируется**. Либо обновить роутер и доставать из `$action` второй сегмент, либо удалить путь из доки.
+- **[M] `BannedPhrasesRule` спамит дубликатами.** Один штамп на N блоках = N issues. На длинных статьях UI забивается. Сгруппировать по фразе с `block_ids[]`, либо severity=info OK как сейчас, но один issue с listing.
+- **[L] `runChecks` мечтит ВСЕ unresolved → CURRENT_TIMESTAMP перед прогоном.** Если правило времянно отключено / упало — issue потеряется. Альтернатива: `DELETE` только то что найдено снова (по hash code+block_id+message), но это рефактор. Сейчас приемлемо, отметить.
+- **[L] `RepetitionRule` без стоп-слов.** 4-граммы из частотных служебных слов («в этом случае при», «как правило это»). Добавить blacklist-стоп-слов или поднять `n` до 5.
+- **[L] `UnknownInDossierRule` ловит шаблонные значения.** Если в досье попали placeholder-строки типа `"url|null"` (модель повторила схему дословно), они не покрыты `unknownPatterns`. Расширить паттерн: `"|null"`, `"http://example"`, `"..."`.
+
+### Stage 4 — Theming
+
+- **[M] Bridge всё ещё активен** (это уже в плане 2.2 / Prompt 10). 22 рендера используют legacy `var(--blue)` и т.п. Cancel.
+
+### Stage 3 — Illustrations
+
+- **[L] `og` иллюстрации не маркируются `stale` при изменении дайджеста.** В `ArticleResearchService::buildDossier` после persist обновляется только `kind = HERO`. OG картинка title-driven — формально допустимо, но если профильный бренд-кит изменили, og остаётся прежней. Не критично.
+
+### Stage 1 — Outline
+
+- **[L] `ALLOWED_ROLES` дублируется в коде и промпте.** `ArticleOutlineService::ALLOWED_ROLES` и `OutlinePrompt::SYSTEM` (строка 24) — синхронизированы вручную. Вынести единым константным массивом, форматировать в SYSTEM через `implode(' | ', …)`.
+- **[L] `dossierIndex` усечение до 8000 байт.** При большом досье часть items режется из контекста, но `validateOutline` использует ПОЛНЫЙ индекс. Модель не видит item → не ссылается → меньше связей с этим item. Не баг, но эффект: длинные дайджесты дают «слепые зоны». Метрика: считать сколько item ушло за горизонт, лог.
+
+### Stage 2 — RichText
+
+- Без претензий по коду рендеров не открывал каждый из 44. Замечание: `AbstractBlockRenderer` отсутствует (Plan 2.5 / Prompt 14 это фиксит).
+
+### Сводка приоритетов (что чинить вне очереди Prompt 7+)
+
+| # | Severity | Stage | Что | Объём |
+|---|----------|-------|-----|-------|
+| R1 | H | 6 | sources не заполняется в split | S |
+| R2 | H | 5 | `INTERVAL ? MINUTE` placeholder в qa_worker | XS |
+| R3 | M | 5 | BrokenLinksRule fallback HEAD→GET | S |
+| R4 | M | 5 | EmptyChartRule per-type data keys | S |
+| R5 | M | 5 | runChecks try/catch per rule | XS |
+| R6 | M | 5 | ArticleQaController resolve path/body согласовать | XS |
+| R7 | M | 6 | facts минимум: 3 vs 8 рассинхрон | XS |
+| R8 | M | 5 | BannedPhrasesRule группировка | XS |
+
+R1+R2+R5+R7+R6 = ~1 час, можно сделать одним hotfix-промптом перед очередью.
+
+---
+
 **Конец roadmap.**
