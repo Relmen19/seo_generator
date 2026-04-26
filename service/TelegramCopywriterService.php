@@ -6,6 +6,7 @@ namespace Seo\Service;
 
 use RuntimeException;
 use Seo\Entity\SeoSiteProfile;
+use Seo\Service\Editorial\TextExtractor;
 
 /**
  * TelegramCopywriterService
@@ -198,7 +199,7 @@ JSON;
         $chunks = [];
 
         foreach ($textBlocks as $block) {
-            $content = json_decode($block['content'] ?? '{}', true);
+            $content = TextExtractor::blockContent($block);
             if (!is_array($content)) continue;
             $text = $this->textFromRichtext($content);
             if ($text !== '') {
@@ -207,7 +208,7 @@ JSON;
         }
 
         foreach ($extraBlocks as $block) {
-            $content = json_decode($block['content'] ?? '{}', true);
+            $content = TextExtractor::blockContent($block);
             if (!is_array($content)) continue;
             $text = $this->textFromArbitraryBlock($block['type'] ?? '', $content);
             if ($text !== '') {
@@ -257,7 +258,7 @@ JSON;
     {
         $out = [];
         foreach ($renderableBlocks as $b) {
-            $content = json_decode($b['content'] ?? '{}', true);
+            $content = TextExtractor::blockContent($b);
             if (!is_array($content)) $content = [];
             $summary = $content['title'] ?? $content['subtitle'] ?? $content['caption'] ?? $b['name'] ?? '';
 

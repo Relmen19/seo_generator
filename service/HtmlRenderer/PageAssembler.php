@@ -17,6 +17,7 @@ use Seo\Service\HtmlRenderer\Component\NavSearchComponent;
 use Seo\Service\HtmlRenderer\Component\ParallaxComponent;
 use Seo\Service\HtmlRenderer\Component\TocComponent;
 use Seo\Service\HtmlRenderer\Component\TrackingComponent;
+use Seo\Service\Editorial\TextExtractor;
 use Seo\Service\HtmlRenderer\Theme\DefaultTheme;
 use Seo\Service\HtmlRenderer\Theme\ThemeFactory;
 use Seo\Service\HtmlRenderer\Theme\ThemeInterface;
@@ -94,12 +95,9 @@ class PageAssembler
         $bodyHtml = '';
         foreach ($blocks as $idx => $block) {
             if (!(int)($block['is_visible'] ?? 1)) continue;
-            $content = is_string($block['content'])
-                ? json_decode($block['content'], true)
-                : ($block['content'] ?? []);
+            $content = TextExtractor::blockContent($block);
             // Inject article_id so block renderers can pull article-scoped data
             // (e.g. HeroBlockRenderer reads seo_article_illustrations).
-            if (!is_array($content)) $content = [];
             $content['article_id'] = $block['article_id'] ?? null;
 
             $renderer = $this->registry->get($block['type']);

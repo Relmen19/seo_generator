@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Seo\Service\HtmlRenderer\Component;
 
+use Seo\Service\Editorial\TextExtractor;
 use Seo\Service\HtmlRenderer\BlockRendererInterface;
 
 class TocComponent implements ComponentInterface
@@ -18,7 +19,7 @@ class TocComponent implements ComponentInterface
         $items = [];
         foreach ($blocks as $b) {
             $bid     = 'block-' . $b['id'];
-            $content = is_string($b['content']) ? json_decode($b['content'], true) : ($b['content'] ?? []);
+            $content = TextExtractor::blockContent($b);
             $type    = $b['type'] ?? '';
 
             $label = '';

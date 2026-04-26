@@ -14,6 +14,7 @@ use Seo\Entity\SeoImage;
 use Seo\Entity\SeoSiteProfile;
 use Seo\Entity\SeoTemplateBlock;
 use Seo\Enum\ImagePrompt;
+use Seo\Service\Editorial\TextExtractor;
 use Throwable;
 
 /**
@@ -64,9 +65,7 @@ class ImageGeneratorService {
             throw new RuntimeException("Блок #{$blockId} не принадлежит статье #{$articleId}");
         }
 
-        $blockContent = is_string($block['content'])
-            ? json_decode($block['content'], true) ?? []
-            : ($block['content'] ?? []);
+        $blockContent = TextExtractor::blockContent($block);
 
         $profile = null;
         if (!empty($article['profile_id'])) {
@@ -158,9 +157,7 @@ class ImageGeneratorService {
         $results   = [];
 
         foreach ($blocks as $block) {
-            $content = is_string($block['content'])
-                ? json_decode($block['content'], true) ?? []
-                : ($block['content'] ?? []);
+            $content = TextExtractor::blockContent($block);
 
             if (!$overwrite && !empty($content['image_id'])) {
                 $skipped++;

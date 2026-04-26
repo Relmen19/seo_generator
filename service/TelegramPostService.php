@@ -10,6 +10,7 @@ use Seo\Entity\SeoArticle;
 use Seo\Entity\SeoSiteProfile;
 use Seo\Entity\SeoTelegramPost;
 use Seo\Entity\SeoTelegramRenderedImage;
+use Seo\Service\Editorial\TextExtractor;
 
 class TelegramPostService {
 
@@ -566,7 +567,7 @@ class TelegramPostService {
 
         foreach ($blocks as $block) {
             $type    = $block['type'] ?? '';
-            $content = json_decode($block['content'] ?? '{}', true);
+            $content = TextExtractor::blockContent($block);
 
             if ($type === '' || !is_array($content)) {
                 continue;
@@ -669,7 +670,7 @@ class TelegramPostService {
         // Collect article text
         $textParts = [];
         foreach ($textBlocks as $block) {
-            $content = json_decode($block['content'] ?? '{}', true);
+            $content = TextExtractor::blockContent($block);
             $text = $this->extractTextFromContent($content);
             if ($text !== '') {
                 $textParts[] = $text;
@@ -726,7 +727,7 @@ class TelegramPostService {
         $parts[] = '<b>' . htmlspecialchars($title) . '</b>';
 
         foreach ($textBlocks as $block) {
-            $content = json_decode($block['content'] ?? '{}', true);
+            $content = TextExtractor::blockContent($block);
             $text = $this->extractTextFromContent($content);
             if ($text !== '') {
                 $parts[] = $text;
@@ -751,7 +752,7 @@ class TelegramPostService {
         $parts = ['<b>' . htmlspecialchars($title) . '</b>'];
 
         foreach ($textBlocks as $block) {
-            $content = json_decode($block['content'] ?? '{}', true);
+            $content = TextExtractor::blockContent($block);
             $text = $this->extractTextFromContent($content);
             if ($text !== '') {
                 $parts[] = $text;
@@ -774,7 +775,7 @@ class TelegramPostService {
         }
 
         foreach ($chunk as $block) {
-            $content = json_decode($block['content'] ?? '{}', true);
+            $content = TextExtractor::blockContent($block);
             $blockTitle = $content['title'] ?? $block['name'] ?? '';
             if ($blockTitle !== '') {
                 $parts[] = '<b>' . htmlspecialchars($blockTitle) . '</b>';
@@ -872,7 +873,7 @@ class TelegramPostService {
         $images = [];
 
         foreach ($blocks as $i => $block) {
-            $content = json_decode($block['content'] ?? '{}', true);
+            $content = TextExtractor::blockContent($block);
             if (!is_array($content)) {
                 $content = [];
             }
@@ -948,7 +949,7 @@ class TelegramPostService {
         $renderer->setSiteProfile($profile);
         $puppeteer = new PuppeteerClient();
 
-        $content = json_decode($block['content'] ?? '{}', true);
+        $content = TextExtractor::blockContent($block);
         if (!is_array($content)) {
             $content = [];
         }
