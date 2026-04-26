@@ -314,6 +314,7 @@ requireAuth();
 </div>
 
 <script src="assets/articles/core.js"></script>
+<script src="assets/articles/progress.js"></script>
 <script src="assets/articles/list.js"></script>
 <script src="assets/articles/qa.js"></script>
 <script src="assets/articles/editor.js"></script>

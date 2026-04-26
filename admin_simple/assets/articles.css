@@ -316,3 +316,28 @@ body.advanced .section.adv-only { display: block !important; }
 .status-pill.published .status-pill-dot { background: var(--success); }
 .status-pill.draft { background: var(--bg); color: var(--text-2); border: 1px solid var(--border); }
 .status-pill.draft .status-pill-dot { background: var(--text-3); }
+
+/* ─── Sticky progress bar ─── */
+.progress-bar { position: sticky; top: 56px; z-index: 99; background: var(--surface); border-bottom: 1px solid var(--border); display: none; flex-direction: column; }
+.progress-bar.open { display: flex; }
+.progress-row { display: grid; grid-template-columns: minmax(140px, 220px) auto 1fr auto auto auto; align-items: center; gap: 12px; padding: 8px 24px; border-top: 1px solid var(--border); font-size: 12px; }
+.progress-row:first-child { border-top: 0; }
+.progress-row.state-success { background: var(--success-light); }
+.progress-row.state-error   { background: var(--danger-light); }
+.progress-row.state-cancelled { background: var(--bg); color: var(--text-2); }
+.progress-label { font-weight: 600; color: var(--text); }
+.progress-phase { font-size: 11px; color: var(--text-2); text-transform: uppercase; letter-spacing: .04em; min-width: 60px; }
+.progress-meter { height: 6px; background: var(--bg); border-radius: 4px; overflow: hidden; min-width: 100px; }
+.progress-fill  { height: 100%; background: var(--accent); transition: width .25s ease; }
+.progress-fill.indeterminate { width: 30% !important; animation: progIndet 1.4s ease-in-out infinite; }
+@keyframes progIndet { 0%{transform:translateX(-100%)} 100%{transform:translateX(400%)} }
+.progress-row.state-success .progress-fill   { background: var(--success); }
+.progress-row.state-error .progress-fill     { background: var(--danger); }
+.progress-row.state-cancelled .progress-fill { background: var(--text-3); }
+.progress-sub    { font-size: 12px; color: var(--text-2); }
+.progress-tokens { font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.progress-cancel { background: transparent; border: 1px solid var(--border); color: var(--text-2); padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+.progress-cancel:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+.progress-cancel:disabled { opacity: .5; cursor: default; }
+.progress-close  { background: transparent; border: 0; color: var(--text-3); cursor: pointer; font-size: 14px; padding: 0 6px; }
+.progress-close:hover { color: var(--text); }

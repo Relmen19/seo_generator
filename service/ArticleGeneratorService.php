@@ -345,6 +345,31 @@ class ArticleGeneratorService {
 
     public function generateFullPipelineSSE(int $articleId, array $options = []): void {
         $article = $this->loadArticle($articleId);
+        $control = new GenerationControlService($this->db);
+        $control->clearCancel($articleId);
+
+        $totalUsage = ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0];
+        $cancelGuard = function (string $phase) use ($control, $articleId, &$totalUsage): bool {
+            if (!$control->isCancelled($articleId)) return false;
+            $this->sendSSE('cancelled', [
+                'phase' => $phase,
+                'usage' => $totalUsage,
+            ]);
+            $this->writeAudit($articleId, 'generation_cancelled', [
+                'phase' => $phase,
+                'tokens' => $totalUsage,
+            ]);
+            $control->clearCancel($articleId);
+            return true;
+        };
+        $accUsage = function (?array $usage) use (&$totalUsage): void {
+            if (!is_array($usage)) return;
+            foreach (['prompt_tokens', 'completion_tokens', 'total_tokens'] as $k) {
+                $totalUsage[$k] += (int)($usage[$k] ?? 0);
+            }
+        };
+
+        if ($cancelGuard('init')) return;
 
         if (empty($article['slug'])) {
             $slug = $this->generateSlug($article['title']);
@@ -354,36 +379,46 @@ class ArticleGeneratorService {
         }
 
         if (empty($options['skip_research'])) {
+            if ($cancelGuard('research')) return;
             $this->sendSSE('research_start', ['article_id' => $articleId]);
             try {
                 $researchResult = $this->ensureResearch($articleId, $options);
+                $accUsage($researchResult['usage'] ?? null);
                 $this->sendSSE('research_done', [
                     'status' => $researchResult['status'] ?? 'ok',
                     'usage'  => $researchResult['usage'] ?? null,
                     'length' => isset($researchResult['dossier']) ? strlen($researchResult['dossier']) : null,
                 ]);
+            } catch (CancelledException $e) {
+                if ($cancelGuard('research')) return;
             } catch (Throwable $e) {
                 $this->sendSSE('research_error', ['error' => $e->getMessage()]);
             }
         }
 
         if (empty($options['skip_outline'])) {
+            if ($cancelGuard('outline')) return;
             $this->sendSSE('outline_start', ['article_id' => $articleId]);
             try {
                 $outlineResult = $this->ensureOutline($articleId, $options);
+                $accUsage($outlineResult['usage'] ?? null);
                 $this->sendSSE('outline_done', [
                     'status'   => $outlineResult['status'] ?? 'ok',
                     'usage'    => $outlineResult['usage'] ?? null,
                     'sections' => $outlineResult['sections'] ?? null,
                 ]);
+            } catch (CancelledException $e) {
+                if ($cancelGuard('outline')) return;
             } catch (Throwable $e) {
                 $this->sendSSE('outline_error', ['error' => $e->getMessage()]);
             }
         }
 
+        if ($cancelGuard('meta')) return;
         $this->sendSSE('meta_start', ['article_id' => $articleId]);
         try {
             $metaResult = $this->generateMeta($articleId, $options);
+            $accUsage($metaResult['usage'] ?? null);
             $this->sendSSE('meta_done', [
                 'meta_title' => $metaResult['meta_title'],
                 'meta_description' => $metaResult['meta_description'],
@@ -393,7 +428,11 @@ class ArticleGeneratorService {
         } catch (Throwable $e) {
             $this->sendSSE('meta_error', ['error' => $e->getMessage()]);
         }
-        $this->generateAllBlocksSSE($articleId, $options);
+
+        if ($cancelGuard('blocks')) return;
+        $this->generateAllBlocksSSE($articleId, $options, $totalUsage);
+
+        if ($cancelGuard('post_blocks')) return;
 
         if (!empty($options['auto_hero'])) {
             $this->sendSSE('hero_start', ['article_id' => $articleId]);
@@ -411,6 +450,8 @@ class ArticleGeneratorService {
                 $this->sendSSE('hero_error', ['error' => $e->getMessage()]);
             }
         }
+
+        if ($cancelGuard('og')) return;
 
         if (!empty($options['auto_og'])) {
             $this->sendSSE('og_start', ['article_id' => $articleId]);
@@ -903,7 +944,8 @@ class ArticleGeneratorService {
         return $data;
     }
 
-    public function generateAllBlocksSSE(int $articleId, array $options = []): void {
+    public function generateAllBlocksSSE(int $articleId, array $options = [], array &$pipelineUsage = null): void {
+        $control = new GenerationControlService($this->db);
         if (empty($options['skip_research'])) {
             $this->sendSSE('research_start', ['article_id' => $articleId]);
             try {
@@ -960,6 +1002,25 @@ class ArticleGeneratorService {
         ]);
 
         foreach ($templateBlocks as $i => $tb) {
+            if ($control->isCancelled($articleId)) {
+                $this->sendSSE('cancelled', [
+                    'phase' => 'blocks',
+                    'blocks_done' => $i,
+                    'total_blocks' => $totalBlocks,
+                    'usage' => $totalUsage,
+                ]);
+                $this->writeAudit($articleId, 'generation_cancelled', [
+                    'phase' => 'blocks',
+                    'blocks_done' => $i,
+                    'total_blocks' => $totalBlocks,
+                    'tokens' => $totalUsage,
+                ]);
+                $control->clearCancel($articleId);
+                if ($pipelineUsage !== null) {
+                    foreach ($totalUsage as $k => $v) $pipelineUsage[$k] = ($pipelineUsage[$k] ?? 0) + $v;
+                }
+                return;
+            }
             $this->sendSSE('block_start', [
                 'index' => $i, 'type' => $tb['type'],
                 'name' => $tb['name'], 'total' => $totalBlocks,
@@ -1037,6 +1098,9 @@ class ArticleGeneratorService {
         $this->sendSSE('done', [
             'total_blocks' => $totalBlocks, 'total_usage' => $totalUsage,
         ]);
+        if ($pipelineUsage !== null) {
+            foreach ($totalUsage as $k => $v) $pipelineUsage[$k] = ($pipelineUsage[$k] ?? 0) + $v;
+        }
     }
 
     private function generateAllBlocksSSEFromOutline(int $articleId, array $article, array $sections, array $options): void {

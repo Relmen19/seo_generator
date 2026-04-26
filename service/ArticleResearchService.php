@@ -172,6 +172,8 @@ class ArticleResearchService
         $usages    = [];
         $models    = [];
 
+        $control = new GenerationControlService($this->db);
+        $control->throwIfCancelled($articleId, 'research_outline');
         $this->setPhase($articleId, self::STATUS_OUTLINE);
 
         // ─── Phase 1: outline ───
@@ -223,6 +225,7 @@ class ArticleResearchService
         $search = new WebSearchClient();
 
         foreach ($sectionsOrder as $sec) {
+            $control->throwIfCancelled($articleId, 'research_fill_' . $sec);
             $questions = $outlineData['questions'][$sec] ?? [];
             if (!is_array($questions) || empty($questions)) continue;
 

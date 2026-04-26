@@ -7,6 +7,7 @@ namespace Seo\Controller;
 use Seo\Service\ArticleGeneratorService;
 use Seo\Service\ArticleOutlineService;
 use Seo\Service\ArticleResearchService;
+use Seo\Service\GenerationControlService;
 use Seo\Database;
 use Seo\Entity\SeoArticle;
 use Seo\Service\GptClient;
@@ -72,6 +73,12 @@ class GenerationController extends AbstractController {
 
         if ($id !== null && $action === 'block') {
             $this->generateBlock($id);
+            return;
+        }
+
+        if ($id !== null && $action === 'cancel') {
+            (new GenerationControlService())->requestCancel($id);
+            $this->success(['cancel_requested' => true, 'article_id' => $id]);
             return;
         }
 
