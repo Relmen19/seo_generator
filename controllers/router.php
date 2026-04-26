@@ -23,6 +23,7 @@ use Seo\Controller\GenerationController;
 use Seo\Controller\BlockTypeController;
 use Seo\Controller\SiteProfileController;
 use Seo\Controller\TelegramController;
+use Seo\Controller\ThemeController;
 
 $routes = [
     'catalogs'        => CatalogController::class,
@@ -41,6 +42,7 @@ $routes = [
     'block-types'     => BlockTypeController::class,
     'profiles'        => SiteProfileController::class,
     'telegram'        => TelegramController::class,
+    'themes'          => ThemeController::class,
 ];
 
 

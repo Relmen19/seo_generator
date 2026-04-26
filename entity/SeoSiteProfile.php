@@ -24,6 +24,7 @@ class SeoSiteProfile extends AbstractEntity {
     protected string $tone = 'professional';
     protected string $colorScheme = '#6366f1';
     protected string $theme = 'default';
+    protected ?string $defaultThemeCode = null;
     protected ?string $tgBotToken = null;
     protected ?string $tgChannelId = null;
     protected string $tgPostFormat = 'auto';
@@ -86,6 +87,9 @@ class SeoSiteProfile extends AbstractEntity {
         if (array_key_exists('theme', $data)) {
             $this->theme = (string)$data['theme'];
         }
+        if (array_key_exists('default_theme_code', $data)) {
+            $this->defaultThemeCode = $this->toNullableString($data['default_theme_code']);
+        }
         if (array_key_exists('tg_bot_token', $data)) {
             $this->tgBotToken = $this->toNullableString($data['tg_bot_token']);
         }
@@ -139,6 +143,7 @@ class SeoSiteProfile extends AbstractEntity {
             'tone'          => $this->tone,
             'color_scheme'  => $this->colorScheme,
             'theme'             => $this->theme,
+            'default_theme_code' => $this->defaultThemeCode,
             'tg_bot_token'      => $this->tgBotToken,
             'tg_channel_id'     => $this->tgChannelId,
             'tg_post_format'    => $this->tgPostFormat,
@@ -215,6 +220,9 @@ class SeoSiteProfile extends AbstractEntity {
 
     public function getTheme(): string { return $this->theme; }
     public function setTheme(string $theme): self { $this->theme = $theme; return $this; }
+
+    public function getDefaultThemeCode(): ?string { return $this->defaultThemeCode; }
+    public function setDefaultThemeCode(?string $v): self { $this->defaultThemeCode = $v; return $this; }
 
     public function getTgBotToken(): ?string { return $this->tgBotToken; }
     public function setTgBotToken(?string $v): self { $this->tgBotToken = $v; return $this; }
