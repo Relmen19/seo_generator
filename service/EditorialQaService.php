@@ -7,9 +7,12 @@ namespace Seo\Service;
 use RuntimeException;
 use Seo\Database;
 use Seo\Service\Editorial\Rule\BannedPhrasesRule;
+use Seo\Service\Editorial\Rule\BrokenLinksRule;
 use Seo\Service\Editorial\Rule\EmptyChartRule;
 use Seo\Service\Editorial\Rule\MinWordsRule;
+use Seo\Service\Editorial\Rule\RepetitionRule;
 use Seo\Service\Editorial\Rule\RuleInterface;
+use Seo\Service\Editorial\Rule\UnknownInDossierRule;
 
 class EditorialQaService
 {
@@ -24,6 +27,9 @@ class EditorialQaService
             new MinWordsRule(),
             new BannedPhrasesRule(),
             new EmptyChartRule(),
+            new RepetitionRule(),
+            new UnknownInDossierRule(),
+            new BrokenLinksRule(),
         ];
     }
 
