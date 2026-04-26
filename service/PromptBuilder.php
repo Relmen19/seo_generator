@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Seo\Service;
 
 use Seo\Enum\ArticlePrompt;
+use Seo\Service\ArticleResearchService;
 
 class PromptBuilder {
 
@@ -25,7 +26,8 @@ class PromptBuilder {
                                      ?string $systemPrompt = null, array $allBlockTypes = [],
                                      ?array $outlineSection = null, array $previousSummaries = []): array {
         $system = $this->buildSystemMessage($systemPrompt, $article);
-        $user   = $this->buildBlockUserMessage($templateBlock, $articleBlock, $allBlockTypes, $outlineSection, $previousSummaries);
+        $dossierIdx = $this->dossierIndex($article);
+        $user   = $this->buildBlockUserMessage($templateBlock, $articleBlock, $allBlockTypes, $outlineSection, $previousSummaries, $dossierIdx);
 
         return [
             ['role' => 'system', 'content' => $system],
@@ -141,7 +143,15 @@ class PromptBuilder {
         return $system;
     }
 
-    private function buildBlockUserMessage(array $templateBlock, array $articleBlock, array $allBlockTypes, ?array $outlineSection = null, array $previousSummaries = []): string {
+    private function dossierIndex(array $article): array {
+        $raw = $article['research_dossier'] ?? null;
+        if ($raw === null || trim((string)$raw) === '') return [];
+        $decoded = is_array($raw) ? $raw : json_decode((string)$raw, true);
+        if (!is_array($decoded)) return [];
+        return ArticleResearchService::indexById($decoded);
+    }
+
+    private function buildBlockUserMessage(array $templateBlock, array $articleBlock, array $allBlockTypes, ?array $outlineSection = null, array $previousSummaries = [], array $dossierIdx = []): string {
         $config = $this->decodeConfig($templateBlock['config'] ?? null);
         $type   = $templateBlock['type'] ?? 'unknown';
         $name   = $templateBlock['name'] ?? $type;
@@ -181,9 +191,15 @@ class PromptBuilder {
             if ($role !== '')  $user .= "Роль в нарративе: {$role}\n";
             if ($brief !== '') $user .= "Что должна сказать секция: {$brief}\n";
             if (is_array($facts) && !empty($facts)) {
-                $user .= "Опорные факты из досье (ОБЯЗАТЕЛЬНО используй):\n";
+                $user .= "Опорные факты из досье (ОБЯЗАТЕЛЬНО используй каждый):\n";
                 foreach ($facts as $f) {
-                    $user .= "  - " . trim((string)$f) . "\n";
+                    $id = trim((string)$f);
+                    if ($id === '') continue;
+                    if (isset($dossierIdx[$id])) {
+                        $user .= "  - " . ArticleResearchService::renderItemLine($dossierIdx[$id]) . "\n";
+                    } else {
+                        $user .= "  - {$id}\n";
+                    }
                 }
             }
             $user .= "Блок не существует сам по себе — он часть сквозного рассказа. "
@@ -255,19 +271,31 @@ class PromptBuilder {
     }
 
     /**
-     * Returns "\n\nRESEARCH DOSSIER (...):\n<markdown>" or "" if absent.
-     * Truncated to keep prompt size sane.
+     * Returns compact text rendition of the JSON dossier with id-prefixed
+     * lines, or "" if the dossier is missing/invalid.
      */
     private function buildResearchSection(array $article, string $usageRule): string {
-        $dossier = $article['research_dossier'] ?? null;
-        if ($dossier === null || trim((string)$dossier) === '') return '';
+        $raw = $article['research_dossier'] ?? null;
+        if ($raw === null || trim((string)$raw) === '') return '';
+
+        $decoded = is_array($raw) ? $raw : json_decode((string)$raw, true);
+        if (!is_array($decoded)) return '';
+
+        $angle = trim((string)($decoded['angle'] ?? ''));
+        $idx = ArticleResearchService::indexById($decoded);
+        if (empty($idx)) return '';
+
+        $lines = [];
+        foreach ($idx as $item) {
+            $lines[] = ArticleResearchService::renderItemLine($item);
+        }
+        $body = ($angle !== '' ? "Якорь: {$angle}\n\n" : '') . implode("\n", $lines);
 
         $maxLen = 8000;
-        $body = (string)$dossier;
         if (strlen($body) > $maxLen) {
             $body = substr($body, 0, $maxLen) . "\n…[усечено]";
         }
-        return "\n\nRESEARCH DOSSIER (фактическая база). " . $usageRule . "\n\n" . $body;
+        return "\n\nRESEARCH DOSSIER (фактическая база, ссылайся по ID). " . $usageRule . "\n\n" . $body;
     }
 
     private function decodeConfig($config): array {

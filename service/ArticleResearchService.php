@@ -13,14 +13,27 @@ use Seo\Entity\SeoSiteProfile;
 use Seo\Enum\ResearchPrompt;
 
 /**
- * Builds a markdown research dossier for an article.
+ * Builds a structured JSON research dossier for an article.
  * Runs BEFORE meta+blocks generation and feeds them as factual base.
+ * Each item has a stable id (f1, b1, c1, ct1, q1, t1, e1, src1) that
+ * outline.source_facts must reference.
  * Token usage logged under TokenUsageLogger::CATEGORY_ARTICLE_RESEARCH.
  */
 class ArticleResearchService
 {
     private GptClient $gpt;
     private Database $db;
+
+    private const SECTIONS = [
+        'facts'          => ['claim', 'evidence'],
+        'entities'       => ['name', 'definition'],
+        'benchmarks'     => ['metric', 'value'],
+        'comparisons'    => ['x', 'y'],
+        'counter_theses' => ['thesis', 'objection'],
+        'quotes_cases'   => ['text'],
+        'terms'          => ['term', 'definition'],
+        'sources'        => ['url'],
+    ];
 
     public function __construct(?GptClient $gpt = null) {
         $this->gpt = $gpt ?? new GptClient();
@@ -48,7 +61,7 @@ class ArticleResearchService
         $gptOpts = [
             'model'       => $opts['model']       ?? $article['gpt_model'] ?? GPT_DEFAULT_MODEL,
             'temperature' => $opts['temperature'] ?? 0.4,
-            'max_tokens'  => $opts['max_tokens']  ?? 2500,
+            'max_tokens'  => $opts['max_tokens']  ?? 3500,
         ];
 
         $this->gpt->setLogContext([
@@ -59,11 +72,15 @@ class ArticleResearchService
             'entity_id'   => $articleId,
         ]);
 
-        $result = $this->gpt->chat($messages, $gptOpts);
-        $dossier = trim((string)($result['content'] ?? ''));
-
-        if ($dossier === '') {
-            throw new RuntimeException("Research: пустой ответ от GPT");
+        $result = $this->gpt->chatJson($messages, $gptOpts);
+        $data = $result['data'] ?? null;
+        if (!is_array($data)) {
+            throw new RuntimeException("Research: GPT не вернул JSON-объект");
+        }
+        $normalised = $this->validateDossier($data, (string)($article['title'] ?? ''));
+        $dossier = json_encode($normalised, JSON_UNESCAPED_UNICODE);
+        if ($dossier === false || $dossier === '') {
+            throw new RuntimeException("Research: не удалось сериализовать dossier в JSON");
         }
 
         $now = date('Y-m-d H:i:s');
@@ -101,17 +118,151 @@ class ArticleResearchService
     }
 
     public function saveManual(int $articleId, string $dossier, string $status = 'ready'): void {
+        $clean = trim($dossier);
+        $stored = null;
+        if ($clean !== '') {
+            $decoded = json_decode($clean, true);
+            if (!is_array($decoded)) {
+                throw new RuntimeException("Research: невалидный JSON dossier");
+            }
+            $article = $this->loadArticle($articleId);
+            $normalised = $this->validateDossier($decoded, (string)($article['title'] ?? ''));
+            $stored = json_encode($normalised, JSON_UNESCAPED_UNICODE);
+        }
+
         $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, 'id = :aid', [
-            'research_dossier' => $dossier !== '' ? $dossier : null,
-            'research_status'  => $dossier !== '' ? $status : 'none',
-            'research_at'      => $dossier !== '' ? date('Y-m-d H:i:s') : null,
+            'research_dossier' => $stored,
+            'research_status'  => $stored !== null ? $status : 'none',
+            'research_at'      => $stored !== null ? date('Y-m-d H:i:s') : null,
         ], [':aid' => $articleId]);
 
         $this->writeAudit($articleId, 'research', [
             'mode'   => 'manual_save',
-            'length' => strlen($dossier),
+            'length' => $stored !== null ? strlen($stored) : 0,
             'status' => $status,
         ]);
+    }
+
+    /**
+     * Build a flat map: id => item, so consumers (outline validator, prompt
+     * builder) can resolve references like "f3" or "b1" without re-walking.
+     */
+    public static function indexById(array $dossier): array {
+        $idx = [];
+        foreach (self::SECTIONS as $key => $_) {
+            if (empty($dossier[$key]) || !is_array($dossier[$key])) continue;
+            foreach ($dossier[$key] as $item) {
+                if (!is_array($item)) continue;
+                $id = (string)($item['id'] ?? '');
+                if ($id === '') continue;
+                $item['_section'] = $key;
+                $idx[$id] = $item;
+            }
+        }
+        return $idx;
+    }
+
+    /**
+     * One-line text representation of a dossier item for prompt injection.
+     */
+    public static function renderItemLine(array $item): string {
+        $section = (string)($item['_section'] ?? '');
+        $id      = (string)($item['id'] ?? '');
+        switch ($section) {
+            case 'facts':
+                return "{$id} (факт): " . trim(($item['claim'] ?? '') . ' — ' . ($item['evidence'] ?? ''), ' —');
+            case 'benchmarks':
+                $cond = !empty($item['conditions']) ? " ({$item['conditions']})" : '';
+                return "{$id} (бенчмарк): {$item['metric']} = {$item['value']}{$cond}";
+            case 'comparisons':
+                $axes = is_array($item['axes'] ?? null) ? implode(', ', $item['axes']) : '';
+                $sum  = $item['summary'] ?? '';
+                return "{$id} (сравнение): {$item['x']} vs {$item['y']} по [{$axes}] — {$sum}";
+            case 'counter_theses':
+                return "{$id} (контр-тезис): {$item['thesis']} || возражение: {$item['objection']}";
+            case 'quotes_cases':
+                $att = !empty($item['attribution']) ? " — {$item['attribution']}" : '';
+                return "{$id} ({$item['kind']}): {$item['text']}{$att}";
+            case 'terms':
+                return "{$id} (термин): {$item['term']} — {$item['definition']}";
+            case 'entities':
+                return "{$id} (сущность): {$item['name']} — {$item['definition']}";
+            case 'sources':
+                $title = $item['title'] ?? '';
+                return "{$id} (источник): {$item['url']}" . ($title ? " — {$title}" : '');
+            default:
+                return $id;
+        }
+    }
+
+    /**
+     * Validates dossier shape, drops malformed items, fills missing ids.
+     * Throws if structure is irrecoverable (no facts at all).
+     */
+    private function validateDossier(array $data, string $title): array {
+        $out = [
+            'title'    => trim((string)($data['title'] ?? $title)),
+            'angle'    => trim((string)($data['angle'] ?? '')),
+            'audience' => trim((string)($data['audience'] ?? '')),
+        ];
+
+        if ($out['angle'] === '') {
+            throw new RuntimeException("Research: dossier без angle");
+        }
+
+        $idPrefix = [
+            'facts' => 'f', 'entities' => 'e', 'benchmarks' => 'b',
+            'comparisons' => 'c', 'counter_theses' => 'ct', 'quotes_cases' => 'q',
+            'terms' => 't', 'sources' => 'src',
+        ];
+
+        foreach (self::SECTIONS as $key => $required) {
+            $items = $data[$key] ?? [];
+            if (!is_array($items)) $items = [];
+            $clean = [];
+            $i = 0;
+            foreach ($items as $raw) {
+                if (!is_array($raw)) continue;
+                $i++;
+                $missing = false;
+                foreach ($required as $field) {
+                    if (!isset($raw[$field]) || trim((string)$raw[$field]) === '') {
+                        $missing = true; break;
+                    }
+                }
+                if ($missing) continue;
+                $id = trim((string)($raw['id'] ?? ''));
+                if ($id === '') $id = $idPrefix[$key] . $i;
+                $raw['id'] = $id;
+                $clean[] = $raw;
+            }
+            $out[$key] = $clean;
+        }
+
+        $out['open_questions'] = [];
+        if (!empty($data['open_questions']) && is_array($data['open_questions'])) {
+            foreach ($data['open_questions'] as $q) {
+                $s = trim((string)$q);
+                if ($s !== '') $out['open_questions'][] = $s;
+            }
+        }
+
+        if (count($out['facts']) < 3) {
+            throw new RuntimeException("Research: facts < 3 — досье слишком бедное");
+        }
+
+        $seen = [];
+        foreach (self::SECTIONS as $key => $_) {
+            foreach ($out[$key] as $item) {
+                $id = $item['id'];
+                if (isset($seen[$id])) {
+                    throw new RuntimeException("Research: дубликат id '{$id}'");
+                }
+                $seen[$id] = true;
+            }
+        }
+
+        return $out;
     }
 
     public function markStale(int $articleId): void {

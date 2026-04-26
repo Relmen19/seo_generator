@@ -655,9 +655,24 @@ class ImageGeneratorService {
         $userMsg  = "Контекст статьи:\n";
         $userMsg .= "Заголовок: " . ($article['title']    ?? '') . "\n";
         $userMsg .= "Ключевые слова: " . ($article['keywords'] ?? '') . "\n";
-        $dossier = (string)($article['research_dossier'] ?? '');
-        if ($dossier !== '') {
-            $userMsg .= "\nResearch dossier:\n" . mb_substr($dossier, 0, 4000) . "\n";
+        $dossierRaw = (string)($article['research_dossier'] ?? '');
+        if ($dossierRaw !== '') {
+            $decoded = json_decode($dossierRaw, true);
+            if (is_array($decoded)) {
+                $angle = trim((string)($decoded['angle'] ?? ''));
+                if ($angle !== '') $userMsg .= "\nЯкорь статьи: {$angle}\n";
+                if (!empty($decoded['entities']) && is_array($decoded['entities'])) {
+                    $userMsg .= "Ключевые сущности:\n";
+                    foreach (array_slice($decoded['entities'], 0, 8) as $e) {
+                        if (!is_array($e)) continue;
+                        $name = trim((string)($e['name'] ?? ''));
+                        $def  = trim((string)($e['definition'] ?? ''));
+                        if ($name !== '') $userMsg .= "- {$name}" . ($def !== '' ? " — {$def}" : '') . "\n";
+                    }
+                }
+            } else {
+                $userMsg .= "\nResearch dossier (raw):\n" . mb_substr($dossierRaw, 0, 4000) . "\n";
+            }
         }
         $userMsg .= "\n" . ImagePrompt::HERO_CRAFT_USER_FOOTER;
 

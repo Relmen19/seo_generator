@@ -46,19 +46,24 @@ class ArticleOutlineService
             ];
         }
 
-        $dossier = trim((string)($article['research_dossier'] ?? ''));
-        if ($dossier === '' || ($article['research_status'] ?? 'none') !== 'ready') {
+        $dossierRaw = trim((string)($article['research_dossier'] ?? ''));
+        if ($dossierRaw === '' || ($article['research_status'] ?? 'none') !== 'ready') {
             throw new RuntimeException(
                 "Outline: нельзя строить — research dossier обязателен (research_status=ready)."
             );
         }
+        $dossier = json_decode($dossierRaw, true);
+        if (!is_array($dossier)) {
+            throw new RuntimeException("Outline: research_dossier не валидный JSON — пересоберите досье");
+        }
+        $dossierIndex = ArticleResearchService::indexById($dossier);
 
         $blockTypes = $this->loadAllowedBlockTypes();
         if (empty($blockTypes)) {
             throw new RuntimeException("Outline: нет активных типов блоков в seo_block_types");
         }
 
-        $messages = $this->buildMessages($article, $dossier, $blockTypes);
+        $messages = $this->buildMessages($article, $dossier, $dossierIndex, $blockTypes);
 
         $gptOpts = [
             'model'       => $opts['model']       ?? $article['gpt_model'] ?? GPT_DEFAULT_MODEL,
@@ -78,7 +83,7 @@ class ArticleOutlineService
         $data = $result['data'] ?? [];
 
         $allowedTypes = array_keys($blockTypes);
-        $sections = $this->validateOutline($data, $allowedTypes, $dossier);
+        $sections = $this->validateOutline($data, $allowedTypes, $dossierIndex);
 
         $outline = ['sections' => $sections];
         $outlineJson = json_encode($outline, JSON_UNESCAPED_UNICODE);
@@ -146,7 +151,7 @@ class ArticleOutlineService
         return $out;
     }
 
-    private function buildMessages(array $article, string $dossier, array $blockTypes): array {
+    private function buildMessages(array $article, array $dossier, array $dossierIndex, array $blockTypes): array {
         $title    = (string)($article['title'] ?? '');
         $keywords = (string)($article['keywords'] ?? '');
         $kwLine   = $keywords !== '' ? "Ключевые слова: {$keywords}\n" : '';
@@ -164,14 +169,22 @@ class ArticleOutlineService
             $typesList .= "- {$code} — {$name}\n";
         }
 
+        $angle = (string)($dossier['angle'] ?? '');
+
+        $lines = [];
+        foreach ($dossierIndex as $item) {
+            $lines[] = ArticleResearchService::renderItemLine($item);
+        }
+        $dossierBody = implode("\n", $lines);
+
         $maxDossier = 8000;
-        if (strlen($dossier) > $maxDossier) {
-            $dossier = substr($dossier, 0, $maxDossier) . "\n…[усечено]";
+        if (strlen($dossierBody) > $maxDossier) {
+            $dossierBody = substr($dossierBody, 0, $maxDossier) . "\n…[усечено]";
         }
 
         $user = sprintf(
             OutlinePrompt::USER_TEMPLATE,
-            $title, $kwLine, $intentLine, rtrim($typesList), $dossier, OutlinePrompt::FORMAT
+            $title, $kwLine, $intentLine, rtrim($typesList), $angle, $dossierBody, OutlinePrompt::FORMAT
         );
 
         return [
@@ -182,9 +195,10 @@ class ArticleOutlineService
 
     /**
      * Validate parsed JSON, normalise sections.
-     * Throws on hard violations (no sections, empty source_facts, invalid block_type).
+     * Throws on hard violations (no sections, empty source_facts,
+     * invalid block_type, source_fact ID не существует в досье).
      */
-    private function validateOutline($data, array $allowedTypes, string $dossier): array {
+    private function validateOutline($data, array $allowedTypes, array $dossierIndex): array {
         if (!is_array($data) || !isset($data['sections']) || !is_array($data['sections'])) {
             throw new RuntimeException("Outline: ответ не содержит массив sections");
         }
@@ -215,13 +229,23 @@ class ArticleOutlineService
             }
 
             $cleanFacts = [];
+            $unknown = [];
             foreach ($sourceFacts as $f) {
                 $s = trim((string)$f);
                 if ($s === '') continue;
+                if (!isset($dossierIndex[$s])) {
+                    $unknown[] = $s;
+                    continue;
+                }
                 $cleanFacts[] = $s;
             }
+            if (!empty($unknown)) {
+                throw new RuntimeException(
+                    "Outline: секция #{$i} ссылается на несуществующие ID досье: " . implode(', ', $unknown)
+                );
+            }
             if (empty($cleanFacts)) {
-                throw new RuntimeException("Outline: секция #{$i} — все source_facts пустые");
+                throw new RuntimeException("Outline: секция #{$i} — нет валидных source_facts");
             }
 
             $sections[] = [
