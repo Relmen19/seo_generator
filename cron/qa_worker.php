@@ -33,6 +33,8 @@ try {
     $db = Database::getInstance();
     $svc = new EditorialQaService($db);
 
+    $staleMin = (int)$staleMinutes;
+    $limit    = (int)$batchLimit;
     $rows = $db->fetchAll(
         "SELECT a.id
          FROM seo_articles a
@@ -43,10 +45,10 @@ try {
          ) i ON i.article_id = a.id
          WHERE a.status IN ('blocks_done','ai_review','human_review','review')
            AND a.is_active = 1
-           AND (i.last_check IS NULL OR i.last_check < (NOW() - INTERVAL ? MINUTE))
+           AND (i.last_check IS NULL OR i.last_check < (NOW() - INTERVAL {$staleMin} MINUTE))
          ORDER BY i.last_check IS NULL DESC, i.last_check ASC
-         LIMIT ?",
-        [$staleMinutes, $batchLimit]
+         LIMIT {$limit}",
+        []
     );
 
     $processed = 0;
