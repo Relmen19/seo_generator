@@ -37,7 +37,7 @@ class PrepChecklistBlockRenderer extends AbstractBlockRenderer
             . '<div class="mac-body">'
             . '<div class="pc-wrap" data-prepcheck="' . $id . '" data-total="' . $totalItems . '">'
             . '<div class="pc-progress-row"><span class="pc-progress-text">Готово <b class="pc-done">0</b> из <b>' . $totalItems . '</b></span>'
-            . '<div class="bar-track"><div class="pc-bar bar-fill" style="background:var(--green);width:0"></div></div></div>'
+            . '<div class="bar-track"><div class="pc-bar bar-fill" style="background:var(--color-success);width:0"></div></div></div>'
             . '<div class="pc-milestone" style="display:none"></div>';
         foreach ($sections as $si => $sec) {
             $icon = $this->e($sec['icon'] ?? '📋');
@@ -67,23 +67,23 @@ class PrepChecklistBlockRenderer extends AbstractBlockRenderer
     {
         return '.pc-wrap{max-width:560px;margin:0 auto}'
             . "\n" . '.pc-progress-row{display:flex;align-items:center;gap:12px;margin-bottom:20px}'
-            . "\n" . '.pc-progress-text{font-size:13px;color:var(--muted);font-weight:500;white-space:nowrap}'
-            . "\n" . '.pc-progress-text b{color:var(--dark);font-family:var(--fh)}'
+            . "\n" . '.pc-progress-text{font-size:13px;color:var(--color-text-3);font-weight:500;white-space:nowrap}'
+            . "\n" . '.pc-progress-text b{color:var(--color-text);font-family:var(--type-font-heading)}'
             . "\n" . '.pc-bar{transition:width .5s ease}'
             . "\n" . '.pc-section{margin-bottom:20px}'
-            . "\n" . '.pc-section-header{display:flex;align-items:center;gap:10px;padding:10px 0;font-family:var(--fh);font-size:14px;font-weight:700;color:var(--dark)}'
+            . "\n" . '.pc-section-header{display:flex;align-items:center;gap:10px;padding:10px 0;font-family:var(--type-font-heading);font-size:14px;font-weight:700;color:var(--color-text)}'
             . "\n" . '.pc-section-icon{font-size:1.3em}'
             . "\n" . '.pc-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;cursor:pointer;transition:all .2s;margin-bottom:3px}'
-            . "\n" . '.pc-item:hover{background:var(--blue-light)}'
-            . "\n" . '.pc-item--important{border-left:3px solid var(--warn)}'
+            . "\n" . '.pc-item:hover{background:var(--color-accent-soft)}'
+            . "\n" . '.pc-item--important{border-left:3px solid var(--color-warn)}'
             . "\n" . '.pc-check{display:none}'
-            . "\n" . '.pc-checkmark{width:20px;height:20px;border-radius:6px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .25s;font-size:11px;color:transparent}'
-            . "\n" . '.pc-check:checked~.pc-checkmark{background:var(--green);border-color:var(--green);color:#fff;transform:scale(1.15)}'
+            . "\n" . '.pc-checkmark{width:20px;height:20px;border-radius:6px;border:2px solid var(--color-border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .25s;font-size:11px;color:transparent}'
+            . "\n" . '.pc-check:checked~.pc-checkmark{background:var(--color-success);border-color:var(--color-success);color:#fff;transform:scale(1.15)}'
             . "\n" . '.pc-check:checked~.pc-checkmark::after{content:"✓"}'
             . "\n" . '.pc-check:checked~.pc-text{text-decoration:line-through;opacity:.5}'
-            . "\n" . '.pc-text{font-size:14px;color:var(--slate);line-height:1.4}'
-            . "\n" . '.pc-confetti{text-align:center;font-size:1.5rem;padding:16px;border-radius:14px;background:var(--green-light);color:var(--green);font-family:var(--fh);font-weight:700}'
-            . "\n" . '.pc-milestone{text-align:center;font-size:14px;padding:10px 16px;border-radius:10px;background:var(--blue-light);color:var(--blue);font-family:var(--fh);font-weight:600;margin-top:12px}'
+            . "\n" . '.pc-text{font-size:14px;color:var(--color-text-2);line-height:1.4}'
+            . "\n" . '.pc-confetti{text-align:center;font-size:1.5rem;padding:16px;border-radius:14px;background:var(--color-accent-soft);color:var(--color-success);font-family:var(--type-font-heading);font-weight:700}'
+            . "\n" . '.pc-milestone{text-align:center;font-size:14px;padding:10px 16px;border-radius:10px;background:var(--color-accent-soft);color:var(--color-accent);font-family:var(--type-font-heading);font-weight:600;margin-top:12px}'
             ;
     }
 

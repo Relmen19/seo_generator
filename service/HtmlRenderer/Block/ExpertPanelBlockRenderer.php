@@ -53,17 +53,17 @@ class ExpertPanelBlockRenderer extends AbstractBlockRenderer
 
     public function getCss(): string
     {
-        return '.ep-card{border-radius:20px;background:rgba(255,255,255,.6);backdrop-filter:blur(14px);border:1px solid var(--border);padding:32px 36px;position:relative;overflow:hidden}'
+        return '.ep-card{border-radius:20px;background:rgba(255,255,255,.6);backdrop-filter:blur(14px);border:1px solid var(--color-border);padding:32px 36px;position:relative;overflow:hidden}'
             . "\n" . '[data-theme="dark"] .ep-card{background:rgba(255,255,255,.03)}'
             . "\n" . '.ep-quote-mark{position:absolute;top:16px;right:28px;font-family:Georgia,serif;font-size:6rem;color:rgba(37,99,235,.08);line-height:1;pointer-events:none}'
             . "\n" . '[data-theme="dark"] .ep-quote-mark{color:rgba(96,165,250,.12)}'
-            . "\n" . '.ep-text{font-size:16px;color:var(--slate);line-height:1.75;font-style:italic;position:relative;z-index:1}'
-            . "\n" . '.ep-highlight{margin-top:16px;padding:14px 18px;border-radius:12px;background:var(--blue-light);font-family:var(--fh);font-size:15px;font-weight:700;color:var(--dark);font-style:normal;border-left:4px solid var(--blue)}'
-            . "\n" . '.ep-author{display:flex;align-items:center;gap:14px;margin-top:24px;padding-top:20px;border-top:1px solid var(--border)}'
-            . "\n" . '.ep-avatar{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;font-family:var(--fh);font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}'
-            . "\n" . '.ep-name{font-family:var(--fh);font-size:15px;font-weight:700;color:var(--dark)}'
-            . "\n" . '.ep-creds{font-size:13px;color:var(--muted)}'
-            . "\n" . '.ep-exp{font-size:11.5px;color:var(--muted);opacity:.7}'
+            . "\n" . '.ep-text{font-size:16px;color:var(--color-text-2);line-height:1.75;font-style:italic;position:relative;z-index:1}'
+            . "\n" . '.ep-highlight{margin-top:16px;padding:14px 18px;border-radius:12px;background:var(--color-accent-soft);font-family:var(--type-font-heading);font-size:15px;font-weight:700;color:var(--color-text);font-style:normal;border-left:4px solid var(--color-accent)}'
+            . "\n" . '.ep-author{display:flex;align-items:center;gap:14px;margin-top:24px;padding-top:20px;border-top:1px solid var(--color-border)}'
+            . "\n" . '.ep-avatar{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--color-accent),var(--color-accent));color:#fff;font-family:var(--type-font-heading);font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}'
+            . "\n" . '.ep-name{font-family:var(--type-font-heading);font-size:15px;font-weight:700;color:var(--color-text)}'
+            . "\n" . '.ep-creds{font-size:13px;color:var(--color-text-3)}'
+            . "\n" . '.ep-exp{font-size:11.5px;color:var(--color-text-3);opacity:.7}'
             . "\n" . '@media(max-width:700px){.ep-card{padding:24px}}'
             ;
     }

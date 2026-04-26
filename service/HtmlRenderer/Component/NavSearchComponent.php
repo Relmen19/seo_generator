@@ -102,12 +102,12 @@ class NavSearchComponent implements ComponentInterface
         return '.nav-search-wrap{position:relative;display:flex;align-items:center;margin-left:auto;margin-right:.5rem}'
             . "\n" . '.nav-search-toggle{background:none;border:none;cursor:pointer;color:var(--text-muted,#8b949e);padding:.4rem;border-radius:6px;display:flex;align-items:center;transition:color .2s,background .2s}'
             . "\n" . '.nav-search-toggle:hover,.nav-search-toggle.is-active{color:var(--accent,#58a6ff);background:rgba(88,166,255,.08)}'
-            . "\n" . '.nav-search-box{position:absolute;top:calc(100% + 8px);right:0;width:320px;background:var(--surface,#161b22);border:1px solid var(--border,#30363d);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.5);overflow:hidden;display:none;flex-direction:column;z-index:9999}'
+            . "\n" . '.nav-search-box{position:absolute;top:calc(100% + 8px);right:0;width:320px;background:var(--surface,#161b22);border:1px solid var(--color-border,#30363d);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.5);overflow:hidden;display:none;flex-direction:column;z-index:9999}'
             . "\n" . '.nav-search-box.is-open{display:flex}'
-            . "\n" . '.nav-search-input{width:100%;box-sizing:border-box;padding:.7rem 1rem;background:transparent;border:none;border-bottom:1px solid var(--border,#30363d);color:var(--text,#e6edf3);font-size:.95rem;outline:none}'
+            . "\n" . '.nav-search-input{width:100%;box-sizing:border-box;padding:.7rem 1rem;background:transparent;border:none;border-bottom:1px solid var(--color-border,#30363d);color:var(--text,#e6edf3);font-size:.95rem;outline:none}'
             . "\n" . '.nav-search-input::placeholder{color:var(--text-muted,#8b949e)}'
             . "\n" . '.nav-search-results{max-height:360px;overflow-y:auto}'
-            . "\n" . '.ns-item{display:flex;flex-direction:column;gap:.2rem;padding:.65rem 1rem;color:var(--text,#e6edf3);text-decoration:none;border-bottom:1px solid var(--border,#30363d);transition:background .15s;cursor:pointer;outline:none}'
+            . "\n" . '.ns-item{display:flex;flex-direction:column;gap:.2rem;padding:.65rem 1rem;color:var(--text,#e6edf3);text-decoration:none;border-bottom:1px solid var(--color-border,#30363d);transition:background .15s;cursor:pointer;outline:none}'
             . "\n" . '.ns-item:last-child{border-bottom:none}'
             . "\n" . '.ns-item:hover,.ns-item.is-focused{background:rgba(88,166,255,.08);color:var(--accent,#58a6ff)}'
             . "\n" . '.ns-title{font-size:.9rem;font-weight:500}'
@@ -117,12 +117,12 @@ class NavSearchComponent implements ComponentInterface
             . "\n" . '.related-articles{padding:3rem 0 4rem;background:var(--bg-alt,#0d1117)}'
             . "\n" . '.ra-heading{font-size:1.6rem;font-weight:700;margin-bottom:1.5rem;color:var(--text,#e6edf3)}'
             . "\n" . '.ra-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem}'
-            . "\n" . '.ra-card{display:flex;flex-direction:column;gap:.5rem;padding:1.2rem 1.25rem;background:var(--surface,#161b22);border:1px solid var(--border,#30363d);border-radius:12px;text-decoration:none;color:var(--text,#e6edf3);transition:border-color .2s,transform .2s,box-shadow .2s}'
+            . "\n" . '.ra-card{display:flex;flex-direction:column;gap:.5rem;padding:1.2rem 1.25rem;background:var(--surface,#161b22);border:1px solid var(--color-border,#30363d);border-radius:12px;text-decoration:none;color:var(--text,#e6edf3);transition:border-color .2s,transform .2s,box-shadow .2s}'
             . "\n" . '.ra-card:hover{border-color:var(--accent,#58a6ff);transform:translateY(-3px);box-shadow:0 8px 24px rgba(88,166,255,.12)}'
             . "\n" . '.ra-card-title{font-size:.95rem;font-weight:600;line-height:1.35;color:var(--text,#e6edf3)}'
             . "\n" . '.ra-card-desc{font-size:.8rem;color:var(--text-muted,#8b949e);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:0}'
             . "\n" . '.ra-card-arrow{margin-top:auto;color:var(--accent,#58a6ff);font-size:.9rem;font-weight:700;align-self:flex-end}'
-            . "\n" . '.ra-skeleton{height:140px;border-radius:12px;background:linear-gradient(90deg,var(--border,rgba(255,255,255,.06)) 25%,rgba(255,255,255,.04) 50%,var(--border,rgba(255,255,255,.06)) 75%);background-size:200% 100%;animation:ra-shimmer 1.4s infinite}';
+            . "\n" . '.ra-skeleton{height:140px;border-radius:12px;background:linear-gradient(90deg,var(--color-border,rgba(255,255,255,.06)) 25%,rgba(255,255,255,.04) 50%,var(--color-border,rgba(255,255,255,.06)) 75%);background-size:200% 100%;animation:ra-shimmer 1.4s infinite}';
     }
 
     public function getJs(): string

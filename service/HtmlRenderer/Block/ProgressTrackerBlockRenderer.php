@@ -60,18 +60,18 @@ class ProgressTrackerBlockRenderer extends AbstractBlockRenderer
     public function getCss(): string
     {
         return '.pt-wrap{padding:10px 0}'
-            . "\n" . '.pt-track{position:relative;height:8px;background:var(--border);border-radius:100px;margin:40px 20px 50px}'
-            . "\n" . '.pt-track-fill{position:absolute;top:0;left:0;height:100%;border-radius:100px;background:linear-gradient(90deg,var(--blue),var(--teal),var(--green));width:0;transition:width 1.5s cubic-bezier(.4,0,.2,1)}'
+            . "\n" . '.pt-track{position:relative;height:8px;background:var(--color-border);border-radius:100px;margin:40px 20px 50px}'
+            . "\n" . '.pt-track-fill{position:absolute;top:0;left:0;height:100%;border-radius:100px;background:linear-gradient(90deg,var(--color-accent),var(--color-accent),var(--color-success));width:0;transition:width 1.5s cubic-bezier(.4,0,.2,1)}'
             . "\n" . '.pt-dot{position:absolute;top:50%;transform:translateY(-50%);cursor:pointer;z-index:2}'
-            . "\n" . '.pt-dot-inner{width:20px;height:20px;border-radius:50%;background:var(--bg);border:3px solid var(--blue);margin-left:-10px;transition:all .3s;box-shadow:0 2px 8px rgba(37,99,235,.15)}'
-            . "\n" . '.pt-dot:hover .pt-dot-inner,.pt-dot.is-active .pt-dot-inner{background:var(--blue);transform:scale(1.3)}'
-            . "\n" . '.pt-label{position:absolute;top:28px;left:50%;transform:translateX(-50%);font-family:var(--fh);font-size:11px;font-weight:600;color:var(--muted);white-space:normal;text-align:center;max-width:110px;line-height:1.3;word-break:break-word}'
-            . "\n" . '.pt-detail{padding:18px 20px;border-radius:14px;background:rgba(255,255,255,.5);border:1px solid var(--border);backdrop-filter:blur(8px);animation:fadeInUp .4s ease}'
+            . "\n" . '.pt-dot-inner{width:20px;height:20px;border-radius:50%;background:var(--color-bg);border:3px solid var(--color-accent);margin-left:-10px;transition:all .3s;box-shadow:0 2px 8px rgba(37,99,235,.15)}'
+            . "\n" . '.pt-dot:hover .pt-dot-inner,.pt-dot.is-active .pt-dot-inner{background:var(--color-accent);transform:scale(1.3)}'
+            . "\n" . '.pt-label{position:absolute;top:28px;left:50%;transform:translateX(-50%);font-family:var(--type-font-heading);font-size:11px;font-weight:600;color:var(--color-text-3);white-space:normal;text-align:center;max-width:110px;line-height:1.3;word-break:break-word}'
+            . "\n" . '.pt-detail{padding:18px 20px;border-radius:14px;background:rgba(255,255,255,.5);border:1px solid var(--color-border);backdrop-filter:blur(8px);animation:fadeInUp .4s ease}'
             . "\n" . '[data-theme="dark"] .pt-detail{background:rgba(255,255,255,.03)}'
-            . "\n" . '.pt-detail-period{font-family:var(--fh);font-size:14px;font-weight:700;color:var(--blue);margin-bottom:4px}'
-            . "\n" . '.pt-detail-text{font-size:14px;color:var(--slate);line-height:1.6}'
-            . "\n" . '.pt-detail-metric{margin-top:8px;padding:8px 12px;border-radius:8px;background:var(--blue-light);font-family:var(--fh);font-size:13px;font-weight:600;color:var(--dark)}'
-            . "\n" . '.pt-note{font-size:11.5px;color:var(--muted);text-align:center;margin-top:16px;font-style:italic}'
+            . "\n" . '.pt-detail-period{font-family:var(--type-font-heading);font-size:14px;font-weight:700;color:var(--color-accent);margin-bottom:4px}'
+            . "\n" . '.pt-detail-text{font-size:14px;color:var(--color-text-2);line-height:1.6}'
+            . "\n" . '.pt-detail-metric{margin-top:8px;padding:8px 12px;border-radius:8px;background:var(--color-accent-soft);font-family:var(--type-font-heading);font-size:13px;font-weight:600;color:var(--color-text)}'
+            . "\n" . '.pt-note{font-size:11.5px;color:var(--color-text-3);text-align:center;margin-top:16px;font-style:italic}'
             ;
     }
 

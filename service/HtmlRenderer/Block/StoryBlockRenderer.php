@@ -49,15 +49,15 @@ class StoryBlockRenderer extends AbstractBlockRenderer
 
     public function getCss(): string
     {
-        return '.sb-card{border-radius:20px;background:rgba(255,255,255,.6);backdrop-filter:blur(12px);border:1px solid var(--border);overflow:hidden;display:flex}'
+        return '.sb-card{border-radius:20px;background:rgba(255,255,255,.6);backdrop-filter:blur(12px);border:1px solid var(--color-border);overflow:hidden;display:flex}'
             . "\n" . '[data-theme="dark"] .sb-card{background:rgba(255,255,255,.03)}'
             . "\n" . '.sb-accent{width:6px;flex-shrink:0;background:var(--sb-c,var(--purple))}'
             . "\n" . '.sb-body{padding:28px 32px;flex:1}'
             . "\n" . '.sb-icon{font-size:1.5rem;margin-bottom:8px}'
-            . "\n" . '.sb-lead{font-family:var(--fh);font-size:13px;font-weight:700;color:var(--sb-c,var(--purple));text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}'
-            . "\n" . '.sb-text{font-size:15px;color:var(--slate);line-height:1.7;font-style:italic}'
-            . "\n" . '.sb-highlight{margin-top:14px;padding:12px 16px;border-radius:10px;background:var(--blue-light);font-family:var(--fh);font-size:14px;font-weight:700;color:var(--dark)}'
-            . "\n" . '.sb-footnote{margin-top:12px;font-size:11px;color:var(--muted);font-style:italic}'
+            . "\n" . '.sb-lead{font-family:var(--type-font-heading);font-size:13px;font-weight:700;color:var(--sb-c,var(--purple));text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}'
+            . "\n" . '.sb-text{font-size:15px;color:var(--color-text-2);line-height:1.7;font-style:italic}'
+            . "\n" . '.sb-highlight{margin-top:14px;padding:12px 16px;border-radius:10px;background:var(--color-accent-soft);font-family:var(--type-font-heading);font-size:14px;font-weight:700;color:var(--color-text)}'
+            . "\n" . '.sb-footnote{margin-top:12px;font-size:11px;color:var(--color-text-3);font-style:italic}'
             . "\n" . '@media(max-width:700px){.sb-body{padding:20px}}'
             ;
     }

@@ -102,28 +102,6 @@ class ThemeService
             }
         }
 
-        // Legacy aliases — keep all old renderers working through bridge.
-        // PHP themes (DefaultTheme/Editorial/Brutalist) emit literal values that override
-        // these aliases when active. When only DB theme is set, aliases drive every renderer.
-        $lines[] = '--blue:var(--color-accent)';
-        $lines[] = '--blue-light:var(--color-accent-soft)';
-        $lines[] = '--blue-dark:var(--color-accent)';
-        $lines[] = '--teal:var(--color-accent)';
-        $lines[] = '--dark:var(--color-text)';
-        $lines[] = '--dark2:var(--color-surface)';
-        $lines[] = '--slate:var(--color-text-2)';
-        $lines[] = '--muted:var(--color-text-3)';
-        $lines[] = '--border:var(--color-border)';
-        $lines[] = '--bg:var(--color-bg)';
-        $lines[] = '--white:var(--color-surface)';
-        $lines[] = '--red:var(--color-danger)';
-        $lines[] = '--green:var(--color-success)';
-        $lines[] = '--green-light:var(--color-accent-soft)';
-        $lines[] = '--warn:var(--color-warn)';
-        $lines[] = '--fh:var(--type-font-heading)';
-        $lines[] = '--fb:var(--type-font-text)';
-        $lines[] = '--r:var(--radius-md)';
-
         if (!$lines) return '';
         return ':root{' . implode(';', $lines) . '}';
     }

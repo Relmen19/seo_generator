@@ -100,7 +100,7 @@ class ComparisonCardsBlockRenderer extends AbstractBlockRenderer
         foreach (['card_a', 'card_b'] as $side) {
             $card = $entry[$side] ?? [];
             if (!is_array($card)) $card = [];
-            $color = $this->e($card['color'] ?? 'var(--blue)');
+            $color = $this->e($card['color'] ?? 'var(--color-accent)');
             $name  = $this->e($card['name'] ?? '');
             $badge = $this->e($card['badge'] ?? '');
             $price = $this->e($card['price'] ?? '');
@@ -131,28 +131,28 @@ class ComparisonCardsBlockRenderer extends AbstractBlockRenderer
     {
         return '.cc-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}'
             . "\n" . '@media(max-width:700px){.cc-grid{grid-template-columns:1fr}}'
-            . "\n" . '.cc-card{padding:28px 24px;border-radius:20px;background:rgba(255,255,255,.6);backdrop-filter:blur(12px);border:2px solid var(--border);position:relative;transition:all .3s}'
+            . "\n" . '.cc-card{padding:28px 24px;border-radius:20px;background:rgba(255,255,255,.6);backdrop-filter:blur(12px);border:2px solid var(--color-border);position:relative;transition:all .3s}'
             . "\n" . '[data-theme="dark"] .cc-card{background:rgba(255,255,255,.03)}'
-            . "\n" . '.cc-card:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(15,23,42,.08);border-color:var(--cc-c,var(--blue))}'
-            . "\n" . '.cc-badge{position:absolute;top:-1px;right:20px;padding:4px 14px;border-radius:0 0 10px 10px;font-family:var(--fh);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;background:var(--cc-c,var(--blue));color:#fff}'
-            . "\n" . '.cc-name{font-family:var(--fh);font-size:1.3rem;font-weight:900;color:var(--dark);margin-bottom:16px;padding-right:60px}'
+            . "\n" . '.cc-card:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(15,23,42,.08);border-color:var(--cc-c,var(--color-accent))}'
+            . "\n" . '.cc-badge{position:absolute;top:-1px;right:20px;padding:4px 14px;border-radius:0 0 10px 10px;font-family:var(--type-font-heading);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;background:var(--cc-c,var(--color-accent));color:#fff}'
+            . "\n" . '.cc-name{font-family:var(--type-font-heading);font-size:1.3rem;font-weight:900;color:var(--color-text);margin-bottom:16px;padding-right:60px}'
             . "\n" . '.cc-list{margin-bottom:14px}'
-            . "\n" . '.cc-li{display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:14px;color:var(--slate);line-height:1.5}'
+            . "\n" . '.cc-li{display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:14px;color:var(--color-text-2);line-height:1.5}'
             . "\n" . '.cc-li-icon{flex-shrink:0;font-size:14px;font-weight:700;margin-top:2px}'
-            . "\n" . '.cc-ok{color:var(--green)}'
-            . "\n" . '.cc-no{color:var(--red)}'
-            . "\n" . '.cc-price{font-family:var(--fh);font-size:1.1rem;font-weight:700;color:var(--dark);padding:12px 0;border-top:1px solid var(--border)}'
-            . "\n" . '.cc-verdict{font-size:13px;color:var(--muted);font-style:italic;line-height:1.5}'
+            . "\n" . '.cc-ok{color:var(--color-success)}'
+            . "\n" . '.cc-no{color:var(--color-danger)}'
+            . "\n" . '.cc-price{font-family:var(--type-font-heading);font-size:1.1rem;font-weight:700;color:var(--color-text);padding:12px 0;border-top:1px solid var(--color-border)}'
+            . "\n" . '.cc-verdict{font-size:13px;color:var(--color-text-3);font-style:italic;line-height:1.5}'
             . "\n" . '.cc-accordion{display:flex;flex-direction:column;gap:12px}'
-            . "\n" . '.cc-acc-item{border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.5);overflow:hidden;transition:border-color .2s}'
+            . "\n" . '.cc-acc-item{border:1px solid var(--color-border);border-radius:16px;background:rgba(255,255,255,.5);overflow:hidden;transition:border-color .2s}'
             . "\n" . '[data-theme="dark"] .cc-acc-item{background:rgba(255,255,255,.03)}'
-            . "\n" . '.cc-acc-item[open]{border-color:var(--blue)}'
+            . "\n" . '.cc-acc-item[open]{border-color:var(--color-accent)}'
             . "\n" . '.cc-acc-sum{list-style:none;cursor:pointer;padding:16px 20px;display:flex;align-items:center;gap:16px;user-select:none}'
             . "\n" . '.cc-acc-sum::-webkit-details-marker{display:none}'
             . "\n" . '.cc-acc-head{flex:1;min-width:0}'
-            . "\n" . '.cc-acc-title{font-family:var(--fh);font-weight:800;font-size:1.05rem;color:var(--dark);margin-bottom:2px}'
-            . "\n" . '.cc-acc-desc{font-size:13px;color:var(--muted);line-height:1.4}'
-            . "\n" . '.cc-acc-caret{font-size:18px;color:var(--muted);transition:transform .2s;flex-shrink:0}'
+            . "\n" . '.cc-acc-title{font-family:var(--type-font-heading);font-weight:800;font-size:1.05rem;color:var(--color-text);margin-bottom:2px}'
+            . "\n" . '.cc-acc-desc{font-size:13px;color:var(--color-text-3);line-height:1.4}'
+            . "\n" . '.cc-acc-caret{font-size:18px;color:var(--color-text-3);transition:transform .2s;flex-shrink:0}'
             . "\n" . '.cc-acc-item[open] .cc-acc-caret{transform:rotate(180deg)}'
             . "\n" . '.cc-acc-body{padding:8px 20px 20px}'
             ;

@@ -55,12 +55,12 @@ class TestimonialBlockRenderer extends AbstractBlockRenderer
         return '.block-reviews { background:rgba(15,23,42,.9); backdrop-filter:blur(20px); padding:80px 0 }'
             . "\n" . '[data-theme="dark"] .block-reviews { background:rgba(2,8,16,.92) }'
             . "\n" . '.reviews-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px }'
-            . "\n" . '.review-card { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:var(--r); padding:24px; transition:all .25s }'
+            . "\n" . '.review-card { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:var(--radius-md); padding:24px; transition:all .25s }'
             . "\n" . '.review-card:hover { transform:translateY(-3px); box-shadow:0 8px 28px rgba(0,0,0,.2); border-color:rgba(255,255,255,.15) }'
             . "\n" . '.review-stars { color:#FBBF24; font-size:14px; letter-spacing:2px; margin-bottom:12px }'
             . "\n" . '.review-text { font-size:14px; color:rgba(255,255,255,.75); line-height:1.65; margin-bottom:18px; font-style:italic }'
             . "\n" . '.review-who { display:flex; align-items:center; gap:10px }'
-            . "\n" . '.review-av { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,var(--blue),var(--teal)); display:flex; align-items:center; justify-content:center; font-family:var(--fh); font-size:13px; font-weight:700; color:#fff; flex-shrink:0 }'
+            . "\n" . '.review-av { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,var(--color-accent),var(--color-accent)); display:flex; align-items:center; justify-content:center; font-family:var(--type-font-heading); font-size:13px; font-weight:700; color:#fff; flex-shrink:0 }'
             . "\n" . '.review-name { font-size:14px; font-weight:500; color:#fff }'
             . "\n" . '.review-role { font-size:12px; color:rgba(255,255,255,.4); margin-top:2px }';
     }

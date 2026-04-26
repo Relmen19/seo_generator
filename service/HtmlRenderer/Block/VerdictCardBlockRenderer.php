@@ -53,19 +53,19 @@ class VerdictCardBlockRenderer extends AbstractBlockRenderer
     public function getCss(): string
     {
         return '.vd-grid{display:grid;gap:16px}'
-            . "\n" . '.vd-card{padding:24px;border-radius:16px;background:rgba(255,255,255,.55);backdrop-filter:blur(10px);border:1px solid var(--border);cursor:pointer;transition:all .3s}'
+            . "\n" . '.vd-card{padding:24px;border-radius:16px;background:rgba(255,255,255,.55);backdrop-filter:blur(10px);border:1px solid var(--color-border);cursor:pointer;transition:all .3s}'
             . "\n" . '[data-theme="dark"] .vd-card{background:rgba(255,255,255,.03)}'
             . "\n" . '.vd-card:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(15,23,42,.06)}'
-            . "\n" . '.vd-stamp{display:inline-block;padding:4px 14px;border-radius:100px;font-family:var(--fh);font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}'
+            . "\n" . '.vd-stamp{display:inline-block;padding:4px 14px;border-radius:100px;font-family:var(--type-font-heading);font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}'
             . "\n" . '.vd-verdict--myth{background:rgba(239,68,68,.12);color:#EF4444}'
             . "\n" . '.vd-verdict--truth{background:rgba(16,185,129,.12);color:#10B981}'
             . "\n" . '.vd-verdict--partial{background:rgba(245,158,11,.12);color:#F59E0B}'
-            . "\n" . '.vd-claim{font-family:var(--fh);font-size:16px;font-weight:700;color:var(--dark);line-height:1.4}'
+            . "\n" . '.vd-claim{font-family:var(--type-font-heading);font-size:16px;font-weight:700;color:var(--color-text);line-height:1.4}'
             . "\n" . '.vd-expand{display:grid;grid-template-rows:0fr;transition:grid-template-rows .4s ease;overflow:hidden}'
             . "\n" . '.vd-card.is-open .vd-expand{grid-template-rows:1fr}'
             . "\n" . '.vd-expand>div{overflow:hidden}'
-            . "\n" . '.vd-explanation{padding-top:14px;font-size:14px;color:var(--slate);line-height:1.65;border-top:1px solid var(--border);margin-top:14px}'
-            . "\n" . '.vd-source{font-size:11.5px;color:var(--muted);margin-top:8px;font-style:italic}'
+            . "\n" . '.vd-explanation{padding-top:14px;font-size:14px;color:var(--color-text-2);line-height:1.65;border-top:1px solid var(--color-border);margin-top:14px}'
+            . "\n" . '.vd-source{font-size:11.5px;color:var(--color-text-3);margin-top:8px;font-style:italic}'
             ;
     }
 
