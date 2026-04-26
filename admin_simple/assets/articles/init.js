@@ -7,6 +7,7 @@
         document.body.classList.add('advanced');
         el('advToggle').classList.add('on');
     }
+    restoreCollapsibles();
 })();
 
 (async function init() {

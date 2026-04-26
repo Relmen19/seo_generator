@@ -165,6 +165,28 @@ document.addEventListener('input', (ev) => {
     if (t && t.dataset && t.dataset.autosave) scheduleAutosave(t.dataset.autosave);
 });
 
+// ─── Collapsible sections ───
+function toggleSection(headEl, ev) {
+    if (ev && ev.target && ev.target.closest('button, input, select, label, a')) return;
+    const sec = headEl.closest('.section.collapsible');
+    if (!sec) return;
+    const collapsed = sec.classList.toggle('collapsed');
+    const key = sec.dataset.sec;
+    if (key) {
+        try { localStorage.setItem('seo_simple_sec_' + key, collapsed ? '1' : '0'); } catch(e) {}
+    }
+}
+
+function restoreCollapsibles() {
+    document.querySelectorAll('.section.collapsible[data-sec]').forEach(sec => {
+        const key = sec.dataset.sec;
+        let v = null;
+        try { v = localStorage.getItem('seo_simple_sec_' + key); } catch(e) {}
+        if (v === '0') sec.classList.remove('collapsed');
+        else if (v === '1') sec.classList.add('collapsed');
+    });
+}
+
 // ─── Advanced mode ───
 function toggleAdvanced() {
     S.advanced = !S.advanced;

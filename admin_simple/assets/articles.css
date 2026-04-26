@@ -309,6 +309,17 @@ body.advanced .adv-only { display: revert !important; }
 body.advanced .form-row.adv-only { display: grid !important; }
 body.advanced .section.adv-only { display: block !important; }
 
+/* ─── Collapsible sections ─── */
+.section.collapsible .section-head { cursor: pointer; user-select: none; }
+.section.collapsible .section-head::after {
+    content: '▾'; margin-left: 8px; font-size: 11px; color: var(--text-3);
+    transition: transform .15s ease;
+}
+.section.collapsible.collapsed .section-head::after { transform: rotate(-90deg); }
+.section.collapsible.collapsed .section-body,
+.section.collapsible.collapsed .section-foot { display: none; }
+.section.collapsible .section-head:hover { background: var(--bg); }
+
 /* ─── Publish status pill ─── */
 .status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 100px; }
 .status-pill-dot { width: 8px; height: 8px; border-radius: 50%; }

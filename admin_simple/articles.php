@@ -250,10 +250,12 @@ requireAuth();
     </div>
 
     <!-- Workflow -->
-    <div class="section adv-only">
-        <div class="section-head">
+    <div class="section adv-only collapsible collapsed" data-sec="workflow">
+        <div class="section-head" onclick="toggleSection(this, event)">
             <span class="section-head-title">Этап работы</span>
-            <span style="display:flex;gap:8px;align-items:center">
+        </div>
+        <div class="section-body">
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
                 <select id="wfStatus" onchange="changeWorkflowStatus(this.value)" style="font-size:13px;padding:4px 8px">
                     <option value="draft">Черновик</option>
                     <option value="research_done">Research готов</option>
@@ -268,13 +270,13 @@ requireAuth();
                 <select id="artTheme" onchange="changeArticleTheme(this.value)" style="font-size:13px;padding:4px 8px">
                     <option value="">— наследовать от профиля —</option>
                 </select>
-            </span>
+            </div>
         </div>
     </div>
 
     <!-- Editorial QA -->
-    <div class="section">
-        <div class="section-head">
+    <div class="section collapsible collapsed" data-sec="qa">
+        <div class="section-head" onclick="toggleSection(this, event)">
             <span class="section-head-title">Редакторские проверки</span>
             <span style="display:flex;gap:8px;align-items:center">
                 <span id="qaSummary" style="font-size:12px;color:var(--text-3)"></span>
@@ -297,8 +299,8 @@ requireAuth();
     </div>
 
     <!-- Article settings (advanced only) -->
-    <div class="section adv-only">
-        <div class="section-head"><span class="section-head-title">Детали статьи</span></div>
+    <div class="section adv-only collapsible collapsed" data-sec="details">
+        <div class="section-head" onclick="toggleSection(this, event)"><span class="section-head-title">Детали статьи</span></div>
         <div class="section-body">
             <div class="meta-pair"><span class="k">Опубликованный URL</span><span class="v" id="metaPubUrl">—</span></div>
             <div class="meta-pair"><span class="k">Версия</span><span class="v" id="metaVersion">—</span></div>
