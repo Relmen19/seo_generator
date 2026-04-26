@@ -127,7 +127,7 @@ class RichtextBlockRenderer extends AbstractBlockRenderer
         }
 
         // Detect long-form types — apply lf-* styling only when present.
-        $longformTypes = ['callout', 'code', 'figure', 'table', 'footnote'];
+        $longformTypes = ['callout', 'code', 'figure', 'table', 'footnote', 'steps', 'stat', 'pros_cons', 'definition'];
         $isLongform = false;
         foreach ($normalized as $nb) {
             if (in_array(($nb['type'] ?? ''), $longformTypes, true)) {
@@ -224,12 +224,101 @@ class RichtextBlockRenderer extends AbstractBlockRenderer
                 $items = is_array($raw) ? $raw : [$txt];
             }
             if (!is_array($items)) $items = [$items];
-            $h .= '<ul>';
+            $style = (string)($b['style'] ?? '');
+            $isOrdered = $style === 'ordered' || !empty($b['ordered']);
+            $tag = $isOrdered ? 'ol' : 'ul';
+            $h .= "<{$tag}>";
             foreach ($items as $li) {
                 $liText = is_string($li) ? $li : (is_array($li) && isset($li['text']) ? $li['text'] : json_encode($li, JSON_UNESCAPED_UNICODE));
                 $h .= '<li>'.$inline((string)$liText).'</li>';
             }
-            $h .= '</ul>';
+            $h .= "</{$tag}>";
+
+        } elseif ($t === 'steps') {
+            $items = is_array($b['items'] ?? null) ? $b['items'] : [];
+            if (!empty($items)) {
+                $h .= '<ol class="lf-steps">';
+                foreach ($items as $step) {
+                    if (!is_array($step)) continue;
+                    $title    = trim((string)($step['title'] ?? ''));
+                    $body     = trim((string)($step['body'] ?? $step['text'] ?? ''));
+                    $duration = trim((string)($step['duration'] ?? ''));
+                    if ($title === '' && $body === '') continue;
+                    $h .= '<li class="lf-step"><div class="lf-step-head">';
+                    if ($title !== '') $h .= '<span class="lf-step-title">'.$inline($title).'</span>';
+                    if ($duration !== '') $h .= '<span class="lf-step-duration">'.$this->e($duration).'</span>';
+                    $h .= '</div>';
+                    if ($body !== '') $h .= '<div class="lf-step-body">'.$inline($body).'</div>';
+                    $h .= '</li>';
+                }
+                $h .= '</ol>';
+            }
+
+        } elseif ($t === 'stat') {
+            $stats = isset($b['items']) && is_array($b['items']) ? $b['items'] : [$b];
+            $cards = [];
+            foreach ($stats as $st) {
+                if (!is_array($st)) continue;
+                $value = trim((string)($st['value'] ?? ''));
+                $label = trim((string)($st['label'] ?? ''));
+                if ($value === '' && $label === '') continue;
+                $trend   = strtolower(trim((string)($st['trend'] ?? '')));
+                $context = trim((string)($st['context'] ?? ''));
+                $trendClass = '';
+                $arrow = '';
+                if ($trend === 'up')   { $trendClass = ' lf-stat--up';   $arrow = '↑'; }
+                if ($trend === 'down') { $trendClass = ' lf-stat--down'; $arrow = '↓'; }
+                $card  = '<div class="lf-stat'.$trendClass.'">';
+                $card .= '<div class="lf-stat-value">';
+                if ($arrow !== '') $card .= '<span class="lf-stat-arrow" aria-hidden="true">'.$arrow.'</span>';
+                $card .= $this->e($value).'</div>';
+                if ($label !== '')   $card .= '<div class="lf-stat-label">'.$inline($label).'</div>';
+                if ($context !== '') $card .= '<div class="lf-stat-context">'.$inline($context).'</div>';
+                $card .= '</div>';
+                $cards[] = $card;
+            }
+            if (!empty($cards)) {
+                $h .= '<div class="lf-stat-grid">'.implode('', $cards).'</div>';
+            }
+
+        } elseif ($t === 'pros_cons') {
+            $pros = is_array($b['pros'] ?? null) ? $b['pros'] : [];
+            $cons = is_array($b['cons'] ?? null) ? $b['cons'] : [];
+            $proLabel = trim((string)($b['pros_label'] ?? 'За'));
+            $conLabel = trim((string)($b['cons_label'] ?? 'Против'));
+            if (!empty($pros) || !empty($cons)) {
+                $h .= '<div class="lf-pros-cons">';
+                $renderCol = function (string $label, array $items, string $variant) use ($inline) {
+                    $col  = '<div class="lf-pc lf-pc--'.$variant.'">';
+                    $col .= '<div class="lf-pc-head">'.$this->e($label).'</div>';
+                    $col .= '<ul class="lf-pc-list">';
+                    foreach ($items as $it) {
+                        $line = is_string($it) ? $it : (is_array($it) && isset($it['text']) ? (string)$it['text'] : '');
+                        $line = trim($line);
+                        if ($line === '') continue;
+                        $col .= '<li>'.$inline($line).'</li>';
+                    }
+                    $col .= '</ul></div>';
+                    return $col;
+                };
+                $h .= $renderCol($proLabel, $pros, 'pros');
+                $h .= $renderCol($conLabel, $cons, 'cons');
+                $h .= '</div>';
+            }
+
+        } elseif ($t === 'definition') {
+            $items = is_array($b['items'] ?? null) ? $b['items'] : [];
+            if (!empty($items)) {
+                $h .= '<dl class="lf-def">';
+                foreach ($items as $it) {
+                    if (!is_array($it)) continue;
+                    $term = trim((string)($it['term'] ?? ''));
+                    $def  = trim((string)($it['def'] ?? $it['definition'] ?? ''));
+                    if ($term === '' || $def === '') continue;
+                    $h .= '<dt>'.$inline($term).'</dt><dd>'.$inline($def).'</dd>';
+                }
+                $h .= '</dl>';
+            }
 
         } elseif ($t === 'highlight') {
             $h .= '<div class="highlight">'.$inline($txt).'</div>';
@@ -431,6 +520,41 @@ class RichtextBlockRenderer extends AbstractBlockRenderer
             . '.lf-table th,.lf-table td{padding:.7em .9em;text-align:left;border-bottom:1px solid var(--lf-border);vertical-align:top}'
             . '.lf-table th{background:var(--lf-bg-soft);font-weight:600}'
             . '.lf-table tr:last-child td{border-bottom:0}'
+
+            . '.lf-steps{counter-reset:lf-step;list-style:none;padding:0;margin:1.6em 0;display:flex;flex-direction:column;gap:1em}'
+            . '.lf-step{counter-increment:lf-step;position:relative;padding:1em 1.2em 1em 3.2em;border:1px solid var(--lf-border);'
+            .   'background:#fff;border-radius:10px}'
+            . '.lf-step::before{content:counter(lf-step);position:absolute;left:1em;top:1em;width:1.8em;height:1.8em;'
+            .   'border-radius:50%;background:var(--lf-accent);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:.95em}'
+            . '.lf-step-head{display:flex;justify-content:space-between;align-items:baseline;gap:.8em;margin-bottom:.3em}'
+            . '.lf-step-title{font-weight:600;font-size:1.05em}'
+            . '.lf-step-duration{font-size:.85em;color:var(--lf-muted);background:var(--lf-bg-soft);padding:.15em .55em;border-radius:6px;white-space:nowrap}'
+            . '.lf-step-body{font-size:var(--lf-text-size);line-height:var(--lf-line);color:var(--lf-fg)}'
+
+            . '.lf-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1em;margin:1.6em 0}'
+            . '.lf-stat{padding:1em 1.1em;border:1px solid var(--lf-border);border-radius:10px;background:#fff}'
+            . '.lf-stat-value{font-size:2em;font-weight:700;line-height:1.1;display:flex;align-items:baseline;gap:.2em}'
+            . '.lf-stat-arrow{font-size:.85em}'
+            . '.lf-stat-label{margin-top:.3em;color:var(--lf-fg);font-weight:500}'
+            . '.lf-stat-context{margin-top:.2em;font-size:.88em;color:var(--lf-muted);line-height:1.4}'
+            . '.lf-stat--up .lf-stat-value{color:#10b981}'
+            . '.lf-stat--down .lf-stat-value{color:#dc2626}'
+
+            . '.lf-pros-cons{display:grid;grid-template-columns:1fr 1fr;gap:1em;margin:1.6em 0}'
+            . '.lf-pc{padding:1em 1.1em;border:1px solid var(--lf-border);border-radius:10px;background:#fff}'
+            . '.lf-pc-head{font-weight:700;margin-bottom:.5em;font-size:.95em;text-transform:uppercase;letter-spacing:.05em}'
+            . '.lf-pc--pros{background:#ecfdf5;border-color:#bbf3d6}'
+            . '.lf-pc--pros .lf-pc-head{color:#10b981}'
+            . '.lf-pc--cons{background:#fef2f2;border-color:#fecaca}'
+            . '.lf-pc--cons .lf-pc-head{color:#dc2626}'
+            . '.lf-pc-list{margin:0;padding-left:1.2em}'
+            . '.lf-pc-list li{margin:.35em 0;line-height:1.5}'
+            . '@media(max-width:640px){.lf-pros-cons{grid-template-columns:1fr}}'
+
+            . '.lf-def{margin:1.4em 0;padding:1em 1.2em;border:1px solid var(--lf-border);border-radius:10px;background:var(--lf-bg-soft)}'
+            . '.lf-def dt{font-weight:600;margin-top:.6em;color:var(--lf-fg)}'
+            . '.lf-def dt:first-child{margin-top:0}'
+            . '.lf-def dd{margin:.15em 0 0;padding-left:0;color:var(--lf-fg);line-height:1.55}'
 
             . '.lf-fnref{font-size:.7em;line-height:0;vertical-align:super;margin-left:1px}'
             . '.lf-fnref a{text-decoration:none;color:var(--lf-accent)}'

@@ -16,11 +16,15 @@ abstract class ArticlePrompt
     /** Backwards-compatible format example — only original 5 types (default). */
     const RICHTEXT_FORMAT_BASIC = '{"blocks":[{"type":"heading","text":"...","level":2},{"type":"paragraph","text":"..."},{"type":"list","items":["..."]},{"type":"highlight","text":"..."},{"type":"quote","text":"..."}]}';
 
-    /** JSON format example for richtext blocks (long-form: ytsaurus.tech style) */
+    /** JSON format example for richtext blocks (long-form). Universal across niches. */
     const RICHTEXT_FORMAT = '{"blocks":['
         . '{"type":"heading","text":"...","level":2},'
-        . '{"type":"paragraph","text":"... с `inline_code`, **жирным**, *курсивом*, [ссылкой](https://...)"},'
-        . '{"type":"list","items":["..."]},'
+        . '{"type":"paragraph","text":"... с `inline`, **жирным**, *курсивом*, [ссылкой](https://...)"},'
+        . '{"type":"list","style":"bullet|ordered","items":["..."]},'
+        . '{"type":"steps","items":[{"title":"Шаг 1: ...","body":"что делать","duration":"5 мин"}]},'
+        . '{"type":"stat","items":[{"value":"42%","label":"...","trend":"up|down","context":"..."}]},'
+        . '{"type":"pros_cons","pros_label":"За","cons_label":"Против","pros":["..."],"cons":["..."]},'
+        . '{"type":"definition","items":[{"term":"...","def":"..."}]},'
         . '{"type":"quote","text":"...","author":"...","source":"..."},'
         . '{"type":"callout","variant":"info|warn|tip|danger","text":"..."},'
         . '{"type":"code","lang":"python|bash|sql|js|go|yaml|json","code":"..."},'
@@ -33,19 +37,24 @@ abstract class ArticlePrompt
     /** Backwards-compatible rules — only original 5 types (default). */
     const RICHTEXT_RULES_BASIC = 'type "list" → "items"(массив строк). type "heading" → "text"+"level"(2/3). Остальные → "text"(строка). Мин. 6 подблоков, чередуй типы.';
 
-    /** Long-form rules — used only when template opts in via block_types. */
+    /** Long-form rules — universal across niches. Choose block type by content, not by quota. */
     const RICHTEXT_RULES =
-          'list → items(массив строк). heading → text+level(2/3). '
-        . 'quote → text(+author, source опционально). '
-        . 'callout → variant(info|warn|tip|danger)+text. '
-        . 'code → lang+code(многострочный). '
-        . 'figure → image_url+caption+alt (или image_id если есть). '
-        . 'table → headers(массив)+rows(массив массивов строк). '
-        . 'footnote → id(строка)+text. Ссылка на сноску в paragraph через [^id]. '
-        . 'paragraph/highlight → text(строка). '
-        . 'Inline в paragraph/list/quote/callout: `code`, **bold**, *italic*, [text](url). '
-        . 'Мин. 8 подблоков, чередуй типы. Для технической темы — мин. 1 code ИЛИ table ИЛИ figure. '
-        . 'callout не чаще 1 на 3 параграфа. inline `code` для команд, имён файлов, типов, флагов.';
+          'СЕМАНТИЧЕСКИЙ ВЫБОР ТИПА — выбирай тип по смыслу содержимого, а не по квоте: '
+        . 'steps → когда даёшь пошаговую инструкцию (рецепт, протокол, процедура, настройка). '
+        . 'stat → когда есть конкретные числа/метрики которые надо подчеркнуть (проценты, суммы, длительности, рейтинги). '
+        . 'pros_cons → когда сравниваешь варианты или подводишь баланс плюсы/минусы. '
+        . 'definition → когда вводишь термины/определения (глоссарий, терминология). '
+        . 'table → когда сравнение по 3+ параметрам или табличные данные. '
+        . 'list (style:bullet) → перечисление без порядка; (style:ordered) → когда порядок важен. '
+        . 'callout (variant:tip/warn/info/danger) → выделение совета, предупреждения, факта. '
+        . 'quote → реальная цитата с автором или конкретный кейс. '
+        . 'figure → визуальная иллюстрация с caption. '
+        . 'code → ТОЛЬКО для техн.тем с реальным кодом/командами, lang обязателен. '
+        . 'footnote → побочный комментарий, ссылка из paragraph через [^id]. '
+        . 'paragraph/highlight → text(строка). heading → text+level(2/3). '
+        . 'Inline в paragraph/list/quote/callout/steps: `code`, **bold**, *italic*, [text](url). '
+        . 'Мин. 8 подблоков, чередуй типы. Не используй callout чаще 1 на 3 параграфа. '
+        . 'НЕ дублируй тип подряд если можешь выразить смысл другим типом.';
 
     /** Warning: do not wrap richtext in outer object */
     const RICHTEXT_NO_WRAP = "НЕ оборачивай в {\"type\":\"richtext\",\"content\":[...]}!\n";

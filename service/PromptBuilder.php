@@ -241,11 +241,19 @@ class PromptBuilder {
     }
 
     private function getRichtextHint(array $config): string {
-        // Default keeps backwards-compatible 5 types so admin schema/forms keep working.
-        // To enable long-form types (callout/code/figure/table/footnote), set template
-        // block_types explicitly: e.g. JSON_ARRAY('paragraph','heading','list','highlight','quote','callout','code','table').
-        $allowed = $config['block_types'] ?? ['paragraph', 'heading', 'list', 'highlight', 'quote'];
-        $hasLongform = (bool)array_intersect($allowed, ['callout', 'code', 'figure', 'table', 'footnote']);
+        // Default = full universal set: works across any niche (tech/cooking/finance/health/etc).
+        // Templates can narrow via config.block_types if needed.
+        $defaultAllowed = [
+            'paragraph', 'heading', 'list', 'highlight', 'quote',
+            'callout', 'figure', 'table', 'footnote',
+            'steps', 'stat', 'pros_cons', 'definition',
+            'code',
+        ];
+        $allowed = $config['block_types'] ?? $defaultAllowed;
+        $hasLongform = (bool)array_intersect($allowed, [
+            'callout', 'code', 'figure', 'table', 'footnote',
+            'steps', 'stat', 'pros_cons', 'definition',
+        ]);
 
         $format = $hasLongform ? ArticlePrompt::RICHTEXT_FORMAT : ArticlePrompt::RICHTEXT_FORMAT_BASIC;
         $rules  = $hasLongform ? ArticlePrompt::RICHTEXT_RULES  : ArticlePrompt::RICHTEXT_RULES_BASIC;
