@@ -573,6 +573,25 @@ body.advanced .section.adv-only { display: block !important; }
         </div>
     </div>
 
+    <!-- Workflow -->
+    <div class="section adv-only">
+        <div class="section-head">
+            <span class="section-head-title">Этап работы</span>
+            <span style="display:flex;gap:8px;align-items:center">
+                <select id="wfStatus" onchange="changeWorkflowStatus(this.value)" style="font-size:13px;padding:4px 8px">
+                    <option value="draft">Черновик</option>
+                    <option value="research_done">Research готов</option>
+                    <option value="outline_done">Outline готов</option>
+                    <option value="blocks_done">Блоки готовы</option>
+                    <option value="ai_review">AI-ревью</option>
+                    <option value="human_review">Ручное ревью</option>
+                    <option value="review">Готов к публикации</option>
+                    <option value="archived">Архив</option>
+                </select>
+            </span>
+        </div>
+    </div>
+
     <!-- Editorial QA -->
     <div class="section">
         <div class="section-head">
@@ -838,6 +857,25 @@ function renderEditor() {
     setSaveState('saved');
     renderBlocks(a.blocks || []);
     refreshQaIssues();
+    const wf = el('wfStatus');
+    if (wf) wf.value = a.status || 'draft';
+}
+
+async function changeWorkflowStatus(newStatus) {
+    if (!S.article) return;
+    if (newStatus === 'published' || newStatus === 'unpublished') {
+        toast('Публикация — через кнопку «Опубликовать»', 'err');
+        el('wfStatus').value = S.article.status || 'draft';
+        return;
+    }
+    try {
+        await api('articles/' + S.article.id + '/status', 'PUT', { status: newStatus });
+        S.article.status = newStatus;
+        toast('Статус изменён: ' + newStatus, 'ok');
+    } catch (e) {
+        toast(e.message, 'err');
+        el('wfStatus').value = S.article.status || 'draft';
+    }
 }
 
 // ─── Editorial QA ───
