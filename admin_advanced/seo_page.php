@@ -1259,6 +1259,43 @@ requireAuth();
                             <button class="btn btn-sm" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;font-size:.72rem;padding:3px 10px" onclick="generateAllImages()" id="btnGenAllImg" title="Сгенерировать изображения для всех image-блоков">&#127912; AI-Генерация</button>
                         </div>
                     </div>
+                    <div class="img-gen-settings" id="illustrationsBox" style="background:#0f172a;border-color:#1e293b;margin-bottom:12px">
+                        <div class="img-gen-title">&#127919; Баннеры (hero / OG)</div>
+                        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px">
+                            <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;color:#cbd5e1">
+                                <input type="checkbox" id="illustAutoGen" checked> Авто-генерация при создании статьи
+                            </label>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                            <div style="border:1px solid #1e293b;border-radius:6px;padding:10px;background:#020617">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                                    <strong style="font-size:.82rem;color:#a5b4fc">Hero (16:9)</strong>
+                                    <span id="illustHeroStatus" style="font-size:.7rem;color:#64748b">—</span>
+                                </div>
+                                <div id="illustHeroPreview" style="min-height:80px;border-radius:4px;background:#0f172a;display:flex;align-items:center;justify-content:center;color:#475569;font-size:.7rem;margin-bottom:8px">нет</div>
+                                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                                    <button class="btn btn-xs" style="background:#7c3aed;color:#fff;border:none;font-size:.7rem" onclick="genIllustHero()" id="btnIllustHero">&#127912; Генерировать</button>
+                                    <button class="btn btn-xs btn-ghost" style="font-size:.7rem" onclick="document.getElementById('illustHeroFile').click()">Загрузить</button>
+                                    <button class="btn btn-xs btn-ghost" style="font-size:.7rem;color:#f87171" onclick="dropIllust('hero')">×</button>
+                                    <input type="file" id="illustHeroFile" accept="image/*" style="display:none" onchange="uploadIllust('hero', this)">
+                                </div>
+                            </div>
+                            <div style="border:1px solid #1e293b;border-radius:6px;padding:10px;background:#020617">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                                    <strong style="font-size:.82rem;color:#a5b4fc">OG (1200×630)</strong>
+                                    <span id="illustOgStatus" style="font-size:.7rem;color:#64748b">—</span>
+                                </div>
+                                <div id="illustOgPreview" style="min-height:80px;border-radius:4px;background:#0f172a;display:flex;align-items:center;justify-content:center;color:#475569;font-size:.7rem;margin-bottom:8px">нет</div>
+                                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                                    <button class="btn btn-xs" style="background:#0ea5e9;color:#fff;border:none;font-size:.7rem" onclick="genIllustOg()" id="btnIllustOg">&#128247; Рендер</button>
+                                    <button class="btn btn-xs btn-ghost" style="font-size:.7rem" onclick="document.getElementById('illustOgFile').click()">Загрузить</button>
+                                    <button class="btn btn-xs btn-ghost" style="font-size:.7rem;color:#f87171" onclick="dropIllust('og')">×</button>
+                                    <input type="file" id="illustOgFile" accept="image/*" style="display:none" onchange="uploadIllust('og', this)">
+                                </div>
+                            </div>
+                        </div>
+                        <div id="illustStatus" style="display:none;margin-top:8px;padding:6px 10px;border-radius:4px;font-size:.75rem"></div>
+                    </div>
                     <div class="img-gen-settings">
                         <div class="img-gen-title">&#127912; Настройки генерации изображений</div>
                         <div class="img-gen-grid">
@@ -2398,6 +2435,7 @@ requireAuth();
 
             await loadArticleBlocks(art.id);
             await loadArticleImages(art.id);
+            await loadIllustrations();
             $('genLog').style.display='none'; $('genLog').innerHTML='';
             $('genProgress').classList.remove('active');
             $('imgGenStatus').style.display='none';
@@ -2928,12 +2966,13 @@ requireAuth();
         const model = $('genModel').value;
         const temp  = parseFloat($('genTemp').value);
         const overwrite = $('genOverwrite').checked;
+        const illustOpts = getIllustGenOptions();
 
         try {
             const response = await fetch(API+'?r=generate/'+artId+'/sse', {
                 method: 'POST',
                 headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({model, temperature: temp, overwrite}),
+                body: JSON.stringify({model, temperature: temp, overwrite, ...illustOpts}),
             });
 
             const reader = response.body.getReader();
@@ -2970,6 +3009,19 @@ requireAuth();
         await selectArticle(artId);
     }
 
+    function getIllustGenOptions() {
+        const auto = !!($('illustAutoGen') && $('illustAutoGen').checked);
+        if (!auto) return {};
+        const params = (typeof getImgGenParams === 'function') ? getImgGenParams() : {};
+        const heroSize = params.size === '1024x1024' ? '1792x1024' : (params.size || '1792x1024');
+        return {
+            auto_hero: true,
+            auto_og:   true,
+            hero_model: params.model || null,
+            hero_size:  heroSize,
+        };
+    }
+
     function handleGenEvent(event, data) {
         switch (event) {
             case 'start':
@@ -3004,6 +3056,22 @@ requireAuth();
                 genLog('ОШИБКА: '+data.message, 'log-err');
                 toast('Ошибка GPT: '+data.message, true);
                 break;
+            case 'research_start':  genLog('→ Research…', 'log-info'); break;
+            case 'research_done':   genLog('✓ Research: '+(data.status||'ok')+(data.length?(' ('+data.length+' символов)') :''), 'log-ok'); break;
+            case 'research_error':  genLog('✗ Research: '+data.error, 'log-err'); break;
+            case 'outline_start':   genLog('→ Outline…', 'log-info'); break;
+            case 'outline_done':    genLog('✓ Outline: '+(data.status||'ok')+(data.sections?(' ('+data.sections+' секций)') :''), 'log-ok'); break;
+            case 'outline_error':   genLog('✗ Outline: '+data.error, 'log-err'); break;
+            case 'meta_start':      genLog('→ Meta…', 'log-info'); break;
+            case 'meta_done':       genLog('✓ Meta готово', 'log-ok'); break;
+            case 'meta_error':      genLog('✗ Meta: '+data.error, 'log-err'); break;
+            case 'hero_start':      genLog('→ Hero (banner)…', 'log-info'); break;
+            case 'hero_done':       genLog('✓ Hero: image #'+data.image_id+(data.model?(' · '+data.model):''), 'log-ok'); break;
+            case 'hero_error':      genLog('✗ Hero: '+data.error, 'log-err'); break;
+            case 'og_start':        genLog('→ OG (Puppeteer)…', 'log-info'); break;
+            case 'og_done':         genLog('✓ OG: image #'+data.image_id, 'log-ok'); break;
+            case 'og_error':        genLog('✗ OG: '+data.error, 'log-err'); break;
+            case 'slug_generated':  genLog('slug: '+data.slug, 'log-info'); break;
         }
     }
 
@@ -3256,10 +3324,11 @@ requireAuth();
         genLog('→ Генерация блоков контента...', 'log-info');
 
         try {
+            const illustOpts = getIllustGenOptions();
             const response = await fetch(API+'?r=generate/'+artId+'/sse', {
                 method: 'POST',
                 headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({model, temperature: temp, overwrite}),
+                body: JSON.stringify({model, temperature: temp, overwrite, ...illustOpts}),
             });
 
             const reader = response.body.getReader();
@@ -4260,6 +4329,109 @@ requireAuth();
             model: $('imgGenModel') ? $('imgGenModel').value : 'dall-e-3',
             size:  $('imgGenSize')  ? $('imgGenSize').value  : '1024x1024',
         };
+    }
+
+    // ── Иллюстрации (hero / OG) ────────────────────────────────────────────
+    function illustSetStatus(html, color) {
+        const el = $('illustStatus');
+        if (!el) return;
+        el.style.display = 'block';
+        el.style.background = color || '#1e293b';
+        el.style.color = '#e2e8f0';
+        el.innerHTML = html;
+    }
+    function illustRenderRow(kind, row) {
+        const statusEl = $('illust' + (kind === 'hero' ? 'Hero' : 'Og') + 'Status');
+        const preview  = $('illust' + (kind === 'hero' ? 'Hero' : 'Og') + 'Preview');
+        if (!row || !row.image_id) {
+            if (statusEl) statusEl.textContent = '—';
+            if (preview) preview.innerHTML = 'нет';
+            return;
+        }
+        const txt = row.status + (row.model ? ' · ' + row.model : '');
+        if (statusEl) {
+            statusEl.textContent = txt;
+            statusEl.style.color = row.status === 'ready' ? '#34d399' : (row.status === 'failed' ? '#f87171' : '#fbbf24');
+        }
+        if (preview) {
+            preview.innerHTML = '<img src="'+API+'?r=images/'+row.image_id+'/raw" style="max-width:100%;max-height:140px;border-radius:4px;display:block;margin:0 auto" alt="">';
+        }
+    }
+    async function loadIllustrations() {
+        if (!artId) return;
+        try {
+            const res = await api('illustrations/' + artId);
+            const items = (res.data && res.data.items) || [];
+            const heroRow = items.find(r => r.kind === 'hero');
+            const ogRow   = items.find(r => r.kind === 'og');
+            illustRenderRow('hero', heroRow);
+            illustRenderRow('og', ogRow);
+        } catch (e) {
+            console.warn('loadIllustrations failed', e);
+        }
+    }
+    async function genIllustHero() {
+        if (!artId) { toast('Сначала сохраните статью', true); return; }
+        const btn = $('btnIllustHero'); if (btn) btn.disabled = true;
+        illustSetStatus('⏳ Генерация hero…', '#1e1b4b');
+        try {
+            const {model, size} = getImgGenParams();
+            const heroSize = size === '1024x1024' ? '1792x1024' : size;
+            const r = await api('illustrations/' + artId + '/hero', {method:'POST', body:{model, size: heroSize}});
+            illustSetStatus('✅ Hero сгенерирован (image #' + r.data.image_id + ')', '#064e3b');
+            toast('Hero готов');
+        } catch (e) {
+            illustSetStatus('❌ ' + esc(e.message), '#7f1d1d');
+            toast('Ошибка hero: ' + e.message, true);
+        }
+        if (btn) btn.disabled = false;
+        await loadIllustrations();
+    }
+    async function genIllustOg() {
+        if (!artId) { toast('Сначала сохраните статью', true); return; }
+        const btn = $('btnIllustOg'); if (btn) btn.disabled = true;
+        illustSetStatus('⏳ Рендер OG через Puppeteer…', '#1e1b4b');
+        try {
+            const r = await api('illustrations/' + artId + '/og', {method:'POST', body:{}});
+            illustSetStatus('✅ OG сгенерирован (image #' + r.data.image_id + ')', '#064e3b');
+            toast('OG готов');
+        } catch (e) {
+            illustSetStatus('❌ ' + esc(e.message), '#7f1d1d');
+            toast('Ошибка OG: ' + e.message, true);
+        }
+        if (btn) btn.disabled = false;
+        await loadIllustrations();
+    }
+    async function uploadIllust(kind, fileInput) {
+        if (!artId) { toast('Сначала сохраните статью', true); return; }
+        const f = fileInput.files && fileInput.files[0];
+        if (!f) return;
+        const reader = new FileReader();
+        reader.onload = async () => {
+            try {
+                illustSetStatus('⏳ Загрузка…', '#1e1b4b');
+                await api('illustrations/' + artId + '/upload-' + kind, {method:'POST', body:{data_base64: reader.result}});
+                illustSetStatus('✅ Загружено', '#064e3b');
+                toast(kind.toUpperCase() + ' загружен');
+                await loadIllustrations();
+            } catch (e) {
+                illustSetStatus('❌ ' + esc(e.message), '#7f1d1d');
+                toast('Ошибка: ' + e.message, true);
+            }
+            fileInput.value = '';
+        };
+        reader.readAsDataURL(f);
+    }
+    async function dropIllust(kind) {
+        if (!artId) return;
+        if (!confirm('Удалить ' + kind + '?')) return;
+        try {
+            await api('illustrations/' + artId + '/' + kind, {method:'DELETE'});
+            toast('Удалено');
+            await loadIllustrations();
+        } catch (e) {
+            toast('Ошибка: ' + e.message, true);
+        }
     }
 
     async function generateManualImage() {

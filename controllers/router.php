@@ -14,6 +14,7 @@ use Seo\Controller\PublishController;
 use Seo\Controller\TemplateController;
 use Seo\Controller\ArticleController;
 use Seo\Controller\ImageController;
+use Seo\Controller\IllustrationController;
 use Seo\Controller\LinkConstantController;
 use Seo\Controller\StatsController;
 use Seo\Controller\AuditLogController;
@@ -28,6 +29,7 @@ $routes = [
     'templates'       => TemplateController::class,
     'articles'        => ArticleController::class,
     'images'          => ImageController::class,
+    'illustrations'   => IllustrationController::class,
     'links'           => LinkConstantController::class,
     'stats'           => StatsController::class,
     'audit-log'       => AuditLogController::class,

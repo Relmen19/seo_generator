@@ -31,6 +31,9 @@ class SeoSiteProfile extends AbstractEntity {
     protected ?string $tgChannelName = null;
     protected ?string $tgChannelAvatar = null;
     protected bool $isActive = true;
+    protected ?array $brandPalette = null;
+    protected ?string $brandIllustrationStyle = null;
+    protected ?int $brandLogoImageId = null;
 
     protected function hydrate(array $data): void {
         if (array_key_exists('name', $data)) {
@@ -104,6 +107,18 @@ class SeoSiteProfile extends AbstractEntity {
         if (array_key_exists('is_active', $data)) {
             $this->isActive = $this->toBool($data['is_active']);
         }
+        if (array_key_exists('brand_palette', $data)) {
+            $this->brandPalette = is_array($data['brand_palette'])
+                ? $data['brand_palette']
+                : $this->decodeJson($data['brand_palette']);
+        }
+        if (array_key_exists('brand_illustration_style', $data)) {
+            $this->brandIllustrationStyle = $this->toNullableString($data['brand_illustration_style']);
+        }
+        if (array_key_exists('brand_logo_image_id', $data)) {
+            $this->brandLogoImageId = $data['brand_logo_image_id'] !== null && $data['brand_logo_image_id'] !== ''
+                ? (int)$data['brand_logo_image_id'] : null;
+        }
     }
 
     public function toArray(): array {
@@ -131,8 +146,20 @@ class SeoSiteProfile extends AbstractEntity {
             'tg_channel_name'   => $this->tgChannelName,
             'tg_channel_avatar' => $this->tgChannelAvatar,
             'is_active'         => (int)$this->isActive,
+            'brand_palette'             => $this->encodeJson($this->brandPalette),
+            'brand_illustration_style'  => $this->brandIllustrationStyle,
+            'brand_logo_image_id'       => $this->brandLogoImageId,
         ];
     }
+
+    public function getBrandPalette(): ?array { return $this->brandPalette; }
+    public function setBrandPalette(?array $v): self { $this->brandPalette = $v; return $this; }
+
+    public function getBrandIllustrationStyle(): ?string { return $this->brandIllustrationStyle; }
+    public function setBrandIllustrationStyle(?string $v): self { $this->brandIllustrationStyle = $v; return $this; }
+
+    public function getBrandLogoImageId(): ?int { return $this->brandLogoImageId; }
+    public function setBrandLogoImageId(?int $v): self { $this->brandLogoImageId = $v; return $this; }
 
     public function getName(): string { return $this->name; }
     public function setName(string $name): self { $this->name = $name; return $this; }
@@ -176,6 +203,7 @@ class SeoSiteProfile extends AbstractEntity {
     public function toFullArray(): array {
         $arr = parent::toFullArray();
         $arr['content_brief'] = $this->contentBrief;
+        $arr['brand_palette'] = $this->brandPalette;
         return $arr;
     }
 

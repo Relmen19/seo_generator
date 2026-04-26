@@ -212,14 +212,44 @@ class ArticleGeneratorService {
 
         $outlineResult = null;
         if (empty($options['skip_outline'])) {
-            $outlineResult = $this->ensureOutline($articleId, $options);
-            $article = $this->loadArticle($articleId);
-            $article = $this->enrichArticleWithIntent($article);
+            try {
+                $outlineResult = $this->ensureOutline($articleId, $options);
+                $article = $this->loadArticle($articleId);
+                $article = $this->enrichArticleWithIntent($article);
+            } catch (Throwable $e) {
+                $outlineResult = ['status' => 'failed', 'error' => $e->getMessage()];
+                logMessage('[ArticleGenerator] outline failed, fallback to template: ' . $e->getMessage(), 'WARN');
+            }
         }
 
         $metaResult = $this->generateMeta($articleId, $options, $article);
         $article = $this->loadArticle($articleId);
         $blocksResult = $this->generateAllBlocks($articleId, $options);
+
+        $heroResult = null;
+        $ogResult   = null;
+        if (!empty($options['auto_hero'])) {
+            try {
+                $img = new ImageGeneratorService($this->gpt);
+                $heroResult = $img->generateHero($articleId, [
+                    'model' => $options['hero_model'] ?? null,
+                    'size'  => $options['hero_size']  ?? null,
+                ]);
+            } catch (Throwable $e) {
+                $heroResult = ['status' => 'failed', 'error' => $e->getMessage()];
+                logMessage('[ArticleGenerator] auto_hero failed: ' . $e->getMessage(), 'WARN');
+            }
+        }
+        if (!empty($options['auto_og'])) {
+            try {
+                $img = new ImageGeneratorService($this->gpt);
+                $ogResult = $img->generateOg($articleId, []);
+            } catch (Throwable $e) {
+                $ogResult = ['status' => 'failed', 'error' => $e->getMessage()];
+                logMessage('[ArticleGenerator] auto_og failed: ' . $e->getMessage(), 'WARN');
+            }
+        }
+
         $this->writeAudit($articleId, 'generate', [
             'mode' => 'full_pipeline',
             'research_tokens' => $researchResult['usage'] ?? null,
@@ -227,15 +257,19 @@ class ArticleGeneratorService {
             'meta_tokens' => $metaResult['usage'],
             'blocks_tokens' => $blocksResult['usage'],
             'blocks_count' => $blocksResult['blocks_generated'],
+            'hero' => $heroResult ? ['image_id' => $heroResult['image_id'] ?? null, 'status' => $heroResult['status'] ?? 'ok'] : null,
+            'og'   => $ogResult   ? ['image_id' => $ogResult['image_id']   ?? null, 'status' => $ogResult['status']   ?? 'ok'] : null,
         ]);
 
         return [
-            'pipeline' => 'research → outline → meta → blocks',
+            'pipeline' => 'research → outline → meta → blocks' . ($heroResult ? ' → hero' : '') . ($ogResult ? ' → og' : ''),
             'slug' => $article['slug'],
             'research' => $researchResult,
             'outline' => $outlineResult,
             'meta' => $metaResult,
             'blocks' => $blocksResult,
+            'hero' => $heroResult,
+            'og'   => $ogResult,
         ];
     }
 
@@ -289,14 +323,23 @@ class ArticleGeneratorService {
     private function sectionToTemplateBlock(array $section, int $index): array {
         $type = (string)($section['block_type'] ?? 'richtext');
         $name = (string)($section['h2_title'] ?? ($section['id'] ?? ('section_' . $index)));
+        $config = [
+            'hint'   => (string)($section['content_brief'] ?? ''),
+            'fields' => [],
+        ];
+        // Outline sections target long-form articles. Enable extended subblock palette
+        // (callout/code/figure/table/footnote) so RichtextBlockRenderer renders lf-* layout.
+        if ($type === 'richtext') {
+            $config['block_types'] = [
+                'paragraph', 'heading', 'list', 'highlight', 'quote',
+                'callout', 'code', 'figure', 'table', 'footnote',
+            ];
+        }
         return [
             'type'        => $type,
             'name'        => $name,
             'sort_order'  => $index,
-            'config'      => json_encode([
-                'hint'   => (string)($section['content_brief'] ?? ''),
-                'fields' => [],
-            ], JSON_UNESCAPED_UNICODE),
+            'config'      => json_encode($config, JSON_UNESCAPED_UNICODE),
         ];
     }
 
@@ -351,6 +394,36 @@ class ArticleGeneratorService {
             $this->sendSSE('meta_error', ['error' => $e->getMessage()]);
         }
         $this->generateAllBlocksSSE($articleId, $options);
+
+        if (!empty($options['auto_hero'])) {
+            $this->sendSSE('hero_start', ['article_id' => $articleId]);
+            try {
+                $img = new ImageGeneratorService($this->gpt);
+                $heroResult = $img->generateHero($articleId, [
+                    'model' => $options['hero_model'] ?? null,
+                    'size'  => $options['hero_size']  ?? null,
+                ]);
+                $this->sendSSE('hero_done', [
+                    'image_id' => $heroResult['image_id'] ?? null,
+                    'model'    => $heroResult['model']    ?? null,
+                ]);
+            } catch (Throwable $e) {
+                $this->sendSSE('hero_error', ['error' => $e->getMessage()]);
+            }
+        }
+
+        if (!empty($options['auto_og'])) {
+            $this->sendSSE('og_start', ['article_id' => $articleId]);
+            try {
+                $img = new ImageGeneratorService($this->gpt);
+                $ogResult = $img->generateOg($articleId, []);
+                $this->sendSSE('og_done', [
+                    'image_id' => $ogResult['image_id'] ?? null,
+                ]);
+            } catch (Throwable $e) {
+                $this->sendSSE('og_error', ['error' => $e->getMessage()]);
+            }
+        }
     }
 
     public function generateMeta(int $articleId, array $options = [], ?array $enrichedArticle = null): array {

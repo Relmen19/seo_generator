@@ -269,8 +269,9 @@ class ImageGeneratorService {
     }
 
     private function isGoogleModel(array $options): bool {
-        return $options['model'] === "gemini-2.5-flash-image";
-//        return strpos($this->dalleModel, 'imagen') === 0;
+        $model = $options['model'] ?? '';
+        return $model === 'gemini-2.5-flash-image'
+            || strpos($model, 'imagen') === 0;
     }
 
     private function callImageApi(string $prompt, array $options = []): array {
@@ -566,7 +567,10 @@ class ImageGeneratorService {
 
         $heroIllust = $this->loadIllustration($articleId, SeoArticleIllustration::KIND_HERO);
         $bgDataUri  = null;
-        if ($heroIllust && !empty($heroIllust['image_id'])) {
+        $heroIsUsable = $heroIllust
+            && !empty($heroIllust['image_id'])
+            && ($heroIllust['status'] ?? '') === SeoArticleIllustration::STATUS_READY;
+        if ($heroIsUsable) {
             $img = $this->db->fetchOne(
                 "SELECT mime_type, data_base64 FROM seo_images WHERE id = ?",
                 [(int)$heroIllust['image_id']]
