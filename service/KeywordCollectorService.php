@@ -306,9 +306,12 @@ class KeywordCollectorService {
         $batches = array_chunk($keywords, $batchSize);
         $allClusters = [];
 
+        $lastBatchIdx = count($batches) - 1;
         foreach ($batches as $batchIdx => $batch) {
             try { $allClusters[] = $this->clusterBatch($batch, $job['seed_keyword'], $model); }
             catch (Throwable $e) { $this->appendJobError($jobId, "Batch {$batchIdx}: " . $e->getMessage()); }
+            // Throttle between GPT calls to avoid hitting OpenAI per-minute rate limits.
+            if ($batchIdx < $lastBatchIdx) usleep(100000);
         }
 
         if (empty($allClusters)) { $this->updateJobStatus($jobId, 'error'); throw new RuntimeException('Все батчи с ошибками'); }
@@ -344,6 +347,7 @@ class KeywordCollectorService {
 
         $this->sendSSE('progress', ['phase' => 'clustering', 'total_keywords' => count($keywords), 'total_batches' => $totalBatches]);
 
+        $lastBatchIdx = $totalBatches - 1;
         foreach ($batches as $batchIdx => $batch) {
             $this->sendSSE('batch_start', ['batch' => $batchIdx + 1, 'total' => $totalBatches, 'keywords_in_batch' => count($batch)]);
             try {
@@ -354,6 +358,8 @@ class KeywordCollectorService {
                 $this->appendJobError($jobId, "Batch {$batchIdx}: " . $e->getMessage());
                 $this->sendSSE('batch_error', ['batch' => $batchIdx + 1, 'error' => $e->getMessage()]);
             }
+            // Throttle between GPT calls to stay under OpenAI rate limits.
+            if ($batchIdx < $lastBatchIdx) usleep(100000);
         }
 
         if (empty($allClusters)) { $this->sendSSE('error', ['message' => 'Все батчи с ошибками']); $this->updateJobStatus($jobId, 'error'); return; }
