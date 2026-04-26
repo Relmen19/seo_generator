@@ -1,6 +1,6 @@
 # SEO Generator — Roadmap
 
-**Snapshot:** 2026-04-26 · branch `main` @ `b9b81a8`
+**Snapshot:** 2026-04-26 · branch `main` @ `1bdc6d7` (после hotfix R1-R8)
 **Stack:** PHP 8.0 (`php:8.0-apache`), кастомный MVC, namespace `Seo\` (PSR-4 → `entity/`, `controller/`, `service/`, `enum/`).
 **Контейнер:** docker-compose, MySQL 8, Puppeteer-сервис.
 
@@ -438,60 +438,59 @@ P17 cost report ── after several articles run on split/split_search
 
 Прошёл по коду закрытых stage. Ниже — найденные баги/недочёты, сгруппированные по stage и severity. Severity: **H** = функциональный баг или утечка стоимости; **M** = деградация качества/UX; **L** = техдолг/мелочь.
 
+**Hotfix-проход 2026-04-26: R1-R8 закрыты** (8 коммитов `f349a7c..1bdc6d7`). Оставшиеся L-замечания в очереди на отдельный pass.
+
 ### Stage 6 — Research v2
 
-- **[H] `sources` никогда не заполняется в split/split_search.** `ArticleResearchService::buildSplit` line 196: `$sectionsOrder` = `['facts','entities','benchmarks','comparisons','counter_theses','quotes_cases','terms']` — **без `sources`**. Дальше `useSearch = ... && in_array($sec, ['benchmarks','sources'], true)` — проверка на `sources` мёртвый код, цикл туда не доходит. `OUTLINE_FORMAT` тоже не выдаёт `questions.sources`. Итого: dossier из split-пайплайна всегда имеет `sources: []`, даже в `split_search`. Фикс: либо добавить `sources` в `sectionsOrder` + `questions.sources` в outline, либо собирать sources из `source` полей facts/benchmarks в отдельный пост-проход.
-- **[M] Минимум `facts` рассинхрон.** `validateDossier` бросает на `< 3`, а `SYSTEM` промпт требует `facts ≥ 8`. Модель будет считать что 3 ОК, валидация пропустит — статья выйдет хилая. Поднять порог до 5-6 или явно прописать в обоих местах.
-- **[M] `WebSearchClient` пересоздаётся в цикле.** Line 216 внутри `foreach ($sectionsOrder as $sec)`. Не критично (нет I/O в конструкторе), но `disabled()` дёргается per-секция; вынести экземпляр перед циклом.
-- **[L] `ResearchPrompt::SKELETON` alias не убран.** Plan 2.6 уже фиксирует — alias на `FORMAT`. После Stage 6a `single`-pipeline всё ещё ссылается через alias (line 507). При cleanup переписать вызов на `FORMAT`.
-- **[L] Audit не разделяет фазы.** В `buildSplit` audit пишется один раз с `mode=build_dossier` и аггрегатом токенов. Чтобы понимать стоимость outline vs fill, лучше писать отдельные events per-operation — данные уже есть в `seo_token_usage`, audit дублирует, но читать его удобнее.
-- **[L] Дубликат id в split-pipeline ловится поздно.** Если модель в двух fill-вызовах вернёт `f1`, `validateDossier` бросит исключение и всё досье потеряно (вместе с оплаченными токенами). Лучше пере-нумеровать collisions перед валидацией: `{prefix}{global_counter}`.
-- **[L] `validateDossier` отбрасывает item при пустом required-поле, но `i++` уже инкрементнут.** ID-нумерация получает дыры (`f1, f3, f5`). Не баг, но косметика.
+- **[H] ✅ R1 `sources` никогда не заполняется в split/split_search.** Было: `sectionsOrder` без `sources`, проверка `useSearch && in_array($sec, ['benchmarks','sources'])` — мёртвый код. **Закрыто** (`f349a7c`): добавлен `deriveSourcesFromItems()` — после fill-loop сканирует facts/benchmarks, собирает уникальные http(s)-URL из поля `source`, заполняет `sources[]` с id `src{n}`. `WebSearchClient` вынесен из цикла, dead-предикат `sources` убран.
+- **[M] ✅ R7 минимум `facts` рассинхрон.** Было: validate `< 3`, SYSTEM промпт `≥ 8`. **Закрыто** (`b2e34e7`): порог поднят до 5 (компромисс — split-pipeline иногда даёт 5-7, не теряем досье).
+- **[L] `ResearchPrompt::SKELETON` alias не убран.** Plan 2.6. После Stage 6a `single`-pipeline всё ещё ссылается через alias (line 507). При cleanup переписать на `FORMAT`.
+- **[L] Audit не разделяет фазы.** В `buildSplit` один event с агрегатом токенов. Per-operation events читать удобнее, но данные уже есть в `seo_token_usage`.
+- **[L] Дубликат id в split-pipeline ловится поздно.** Если модель в двух fill-вызовах вернёт `f1`, `validateDossier` бросит исключение → потеряно всё досье. Лучше пере-нумеровать collisions: `{prefix}{global_counter}`.
+- **[L] `validateDossier` отбрасывает item при пустом required-поле, но `i++` уже инкрементнут.** ID-нумерация с дырами (`f1, f3, f5`). Косметика.
 
 ### Stage 5 — Editorial QA
 
-- **[H] `qa_worker.php`: placeholder в `INTERVAL ? MINUTE`.** Line 50: `(NOW() - INTERVAL ? MINUTE)`. PDO с emulated prepares кавычит число → `INTERVAL '30' MINUTE` → MySQL может ругаться или игнорить. Безопаснее inline `(int)$staleMinutes`. Сейчас не падает только потому что emulate=true и MySQL parses '30' как int.
-- **[M] `BrokenLinksRule` — false positives на HEAD.** `CURLOPT_NOBODY = true`. Многие CDN/lambda возвращают 405/403 на HEAD. Получаем `broken_link` warn на живые ссылки. Фикс: при `>= 400` и `!= 404` повторить GET с Range 0-1024.
-- **[M] `BrokenLinksRule` — `SSL_VERIFYPEER=0`.** Принципиально допустимо для линкчека, но залогировать в комменте *почему* отключено. Альтернатива — `CURLOPT_CAINFO` с системным bundle.
-- **[M] `EmptyChartRule::DATA_KEYS` неполный.** Проверяет `items|data|datasets|rings|axes|rows|columns`. Реальные content_schema у charts: `bars`, `series`, `points`, `cells`, `slices` (надо сверить с `seo_block_types.content_schema`). Сейчас валидный график с `bars: [...]` помечается `error: empty_chart`. Нужен таблично-точный per-type ключ, не общий список.
-- **[M] `EditorialQaService::runChecks` без try/catch на rule.** Если `BrokenLinksRule` падает на curl-таймаут → исключение пробрасывается, остальные правила не отрабатывают. Обернуть `try { … } catch(Throwable $e) { error_log; continue; }` на каждый rule.
-- **[M] `ArticleQaController` resolve route несоответствие.** Docblock: `POST /qa/{articleId}/resolve/{issueId}`. Код: читает `issue_id` из query/JSON-body, **path-parameter игнорируется**. Либо обновить роутер и доставать из `$action` второй сегмент, либо удалить путь из доки.
-- **[M] `BannedPhrasesRule` спамит дубликатами.** Один штамп на N блоках = N issues. На длинных статьях UI забивается. Сгруппировать по фразе с `block_ids[]`, либо severity=info OK как сейчас, но один issue с listing.
-- **[L] `runChecks` мечтит ВСЕ unresolved → CURRENT_TIMESTAMP перед прогоном.** Если правило времянно отключено / упало — issue потеряется. Альтернатива: `DELETE` только то что найдено снова (по hash code+block_id+message), но это рефактор. Сейчас приемлемо, отметить.
-- **[L] `RepetitionRule` без стоп-слов.** 4-граммы из частотных служебных слов («в этом случае при», «как правило это»). Добавить blacklist-стоп-слов или поднять `n` до 5.
-- **[L] `UnknownInDossierRule` ловит шаблонные значения.** Если в досье попали placeholder-строки типа `"url|null"` (модель повторила схему дословно), они не покрыты `unknownPatterns`. Расширить паттерн: `"|null"`, `"http://example"`, `"..."`.
+- **[H] ✅ R2 `qa_worker.php`: placeholder в `INTERVAL ? MINUTE`.** Было: PDO emulated prepares кавычит число → `INTERVAL '30' MINUTE`, риск sql_mode-зависимого падения. **Закрыто** (`c0b089a`): inline `(int)$staleMinutes` + `(int)$batchLimit` для `LIMIT` (MySQL до 8.0.18 требует литерал).
+- **[M] ✅ R3 `BrokenLinksRule` false positives на HEAD.** **Закрыто** (`accce8c`): `checkUrl` делает HEAD → если `>=400` и `!=404` → ретрай GET с `Range: bytes=0-1024` + WRITEFUNCTION-stub. 404 пробрасывается как есть. Комментарий про SSL_VERIFYPEER=0 поясняет компромисс.
+- **[M] ✅ R4 `EmptyChartRule::DATA_KEYS` неполный.** Было: общий список `items|data|datasets|rings|axes|rows|columns`. **Закрыто** (`edfe491`): заменено на map `block_type → keys` (`TYPE_DATA_KEYS`), синк с `seo_block_types.json_schema` (stacked_area→series/labels, radar_chart→metrics/items, funnel→items/stages, и т.д.).
+- **[M] ✅ R5 `EditorialQaService::runChecks` без try/catch.** **Закрыто** (`7ccd102`): каждое правило обёрнуто в try/catch, ошибка логируется + пишется warn-issue с `code=rule_failed` и именем класса правила. Остальные правила продолжают работать.
+- **[M] ✅ R6 `ArticleQaController` resolve route несоответствие.** Было: docblock говорит про path `{issueId}`, код читает body/query. **Закрыто** (`1d3cb9e`): docblock приведён к фактическому поведению (router пропускает только один `$action` сегмент). Без правки кода.
+- **[M] ✅ R8 `BannedPhrasesRule` спамит дубликатами.** **Закрыто** (`1bdc6d7`): группировка по фразе, один issue со списком block_ids в сообщении. `block_id` выставляется только при попадании в одном блоке.
+- **[L] `runChecks` затирает ВСЕ unresolved → CURRENT_TIMESTAMP перед прогоном.** Если правило временно упало — issue теряется. Альтернатива: `DELETE` только повторно найденные (по hash code+block_id+message), но это рефактор.
+- **[L] `RepetitionRule` без стоп-слов.** 4-граммы из служебных слов («в этом случае при»). Добавить blacklist или поднять `n` до 5.
+- **[L] `UnknownInDossierRule` ловит шаблонные значения.** Placeholder `"url|null"` не покрыт `unknownPatterns`. Расширить: `"|null"`, `"http://example"`, `"..."`.
+- **[L] `BrokenLinksRule` — `SSL_VERIFYPEER=0`.** Закомментировано в коде. Альтернатива — `CURLOPT_CAINFO` с системным bundle.
 
 ### Stage 4 — Theming
 
-- **[M] Bridge всё ещё активен** (это уже в плане 2.2 / Prompt 10). 22 рендера используют legacy `var(--blue)` и т.п. Cancel.
+- **[M] Bridge всё ещё активен** (Plan 2.2 / Prompt 10). 22 рендера используют legacy `var(--blue)`.
 
 ### Stage 3 — Illustrations
 
-- **[L] `og` иллюстрации не маркируются `stale` при изменении дайджеста.** В `ArticleResearchService::buildDossier` после persist обновляется только `kind = HERO`. OG картинка title-driven — формально допустимо, но если профильный бренд-кит изменили, og остаётся прежней. Не критично.
+- **[L] `og` иллюстрации не маркируются `stale` при изменении дайджеста.** Только `kind = HERO` обновляется. Если бренд-кит профиля изменили — og остаётся прежней. Не критично.
 
 ### Stage 1 — Outline
 
-- **[L] `ALLOWED_ROLES` дублируется в коде и промпте.** `ArticleOutlineService::ALLOWED_ROLES` и `OutlinePrompt::SYSTEM` (строка 24) — синхронизированы вручную. Вынести единым константным массивом, форматировать в SYSTEM через `implode(' | ', …)`.
-- **[L] `dossierIndex` усечение до 8000 байт.** При большом досье часть items режется из контекста, но `validateOutline` использует ПОЛНЫЙ индекс. Модель не видит item → не ссылается → меньше связей с этим item. Не баг, но эффект: длинные дайджесты дают «слепые зоны». Метрика: считать сколько item ушло за горизонт, лог.
+- **[L] `ALLOWED_ROLES` дублируется в коде и промпте.** `ArticleOutlineService::ALLOWED_ROLES` и `OutlinePrompt::SYSTEM` (строка 24). Вынести единый источник + `implode(' | ', …)` в промпт.
+- **[L] `dossierIndex` усечение до 8000 байт.** Модель не видит item → меньше ссылок на него. Метрика: лог сколько item ушло за горизонт.
 
 ### Stage 2 — RichText
 
-- Без претензий по коду рендеров не открывал каждый из 44. Замечание: `AbstractBlockRenderer` отсутствует (Plan 2.5 / Prompt 14 это фиксит).
+- Без претензий. Замечание: `AbstractBlockRenderer` отсутствует (Plan 2.5 / Prompt 14).
 
-### Сводка приоритетов (что чинить вне очереди Prompt 7+)
+### Сводка hotfix-прохода (2026-04-26)
 
-| # | Severity | Stage | Что | Объём |
-|---|----------|-------|-----|-------|
-| R1 | H | 6 | sources не заполняется в split | S |
-| R2 | H | 5 | `INTERVAL ? MINUTE` placeholder в qa_worker | XS |
-| R3 | M | 5 | BrokenLinksRule fallback HEAD→GET | S |
-| R4 | M | 5 | EmptyChartRule per-type data keys | S |
-| R5 | M | 5 | runChecks try/catch per rule | XS |
-| R6 | M | 5 | ArticleQaController resolve path/body согласовать | XS |
-| R7 | M | 6 | facts минимум: 3 vs 8 рассинхрон | XS |
-| R8 | M | 5 | BannedPhrasesRule группировка | XS |
-
-R1+R2+R5+R7+R6 = ~1 час, можно сделать одним hotfix-промптом перед очередью.
+| # | Severity | Stage | Что | Коммит |
+|---|----------|-------|-----|--------|
+| R1 | H | 6 | sources в split — derive из facts/benchmarks | `f349a7c` |
+| R2 | H | 5 | qa_worker INTERVAL/LIMIT inline (int) | `c0b089a` |
+| R5 | M | 5 | runChecks try/catch per rule | `7ccd102` |
+| R6 | M | 5 | ArticleQaController docblock sync | `1d3cb9e` |
+| R7 | M | 6 | facts минимум 3 → 5 | `b2e34e7` |
+| R3 | M | 5 | BrokenLinksRule HEAD→GET fallback | `accce8c` |
+| R4 | M | 5 | EmptyChartRule per-type data keys | `edfe491` |
+| R8 | M | 5 | BannedPhrasesRule группировка по фразе | `1bdc6d7` |
 
 ---
 
