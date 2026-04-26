@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Seo\Controller;
 
+use Seo\Service\EditorialFixerService;
 use Seo\Service\EditorialQaService;
 use Throwable;
 
@@ -11,6 +12,7 @@ use Throwable;
    GET    /qa/{articleId}                  — list unresolved issues
    GET    /qa/{articleId}/all              — list all issues incl. resolved
    POST   /qa/{articleId}/run              — run all rules and persist
+   POST   /qa/{articleId}/fix              — body: { "codes": ["repetition","banned_phrase","empty_chart"] }
    POST   /qa/{articleId}/resolve          — body|query: { "issue_id": N }
    GET    /qa/{articleId}/has-errors       — { has_errors: bool }
 
@@ -46,6 +48,26 @@ class ArticleQaController extends AbstractController {
             if ($method === 'POST' && $action === 'run') {
                 $issues = $svc->runChecks($id);
                 $this->success([
+                    'issues'     => $issues,
+                    'has_errors' => $svc->hasBlockingErrors($id),
+                ]);
+                return;
+            }
+
+            if ($method === 'POST' && $action === 'fix') {
+                $body = $this->getJsonBody();
+                $codes = [];
+                if (isset($body['codes']) && is_array($body['codes'])) {
+                    foreach ($body['codes'] as $c) {
+                        $c = trim((string)$c);
+                        if ($c !== '') $codes[] = $c;
+                    }
+                }
+                $fixer = new EditorialFixerService($this->db);
+                $report = $fixer->applyFixes($id, $codes);
+                $issues = $svc->runChecks($id);
+                $this->success([
+                    'report'     => $report,
                     'issues'     => $issues,
                     'has_errors' => $svc->hasBlockingErrors($id),
                 ]);

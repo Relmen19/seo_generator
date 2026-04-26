@@ -599,6 +599,7 @@ body.advanced .section.adv-only { display: block !important; }
             <span style="display:flex;gap:8px;align-items:center">
                 <span id="qaSummary" style="font-size:12px;color:var(--text-3)"></span>
                 <button class="btn btn-secondary btn-sm" onclick="runQaChecks()" id="btnRunQa">🧪 Прогнать проверки</button>
+                <button class="btn btn-secondary btn-sm" onclick="runQaFix()" id="btnFixQa" title="Исправить repetition / banned_phrase / empty_chart автоматически">🛠 Исправить автоматически</button>
             </span>
         </div>
         <div class="section-body">
@@ -925,6 +926,28 @@ async function runQaChecks() {
         const res = await api('qa/' + S.article.id + '/run', 'POST', {});
         renderQaIssues(res.data.issues || []);
         toast('Проверки выполнены', 'ok');
+    } catch (e) {
+        toast(e.message, 'err');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = prev;
+    }
+}
+
+async function runQaFix() {
+    if (!S.article) return;
+    const btn = el('btnFixQa');
+    btn.disabled = true;
+    const prev = btn.innerHTML;
+    btn.innerHTML = 'Исправляю…';
+    try {
+        const res = await api('qa/' + S.article.id + '/fix', 'POST', {
+            codes: ['repetition', 'banned_phrase', 'empty_chart'],
+        });
+        const fixed = res.data?.report?.fixed_blocks ?? 0;
+        renderQaIssues(res.data.issues || []);
+        await openArticle(S.article.id);
+        toast('Исправлено блоков: ' + fixed, fixed > 0 ? 'ok' : '');
     } catch (e) {
         toast(e.message, 'err');
     } finally {
