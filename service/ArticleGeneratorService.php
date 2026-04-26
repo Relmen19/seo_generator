@@ -595,6 +595,7 @@ class ArticleGeneratorService {
         $systemPrompt = $template['gpt_system_prompt'] ?? null;
 
         $allTypes = array_map(fn($s) => (string)($s['block_type'] ?? ''), $sections);
+        $dossierIndex = $this->loadDossierIndex($article);
 
         // Wipe stale template-driven blocks so outline becomes the single source of truth
         $overwrite = $options['overwrite'] ?? true;
@@ -606,6 +607,7 @@ class ArticleGeneratorService {
         $totalUsage = ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0];
         $blocksGenerated = 0;
         $modelUsed = null;
+        $coverageReport = ['ok' => 0, 'partial' => 0, 'missing' => 0, 'sections' => []];
 
         $previousSummaries = [];
         foreach ($sections as $i => $section) {
@@ -657,6 +659,13 @@ class ArticleGeneratorService {
             }
             $blocksGenerated++;
 
+            $cov = $this->factsCoverage($section, $dossierIndex, $unwrapped);
+            $coverageReport['sections'][] = [
+                'section_id' => $section['id'] ?? null,
+                'h2'         => $section['h2_title'] ?? null,
+            ] + $cov;
+            $coverageReport[$cov['verdict']]++;
+
             $previousSummaries[] = [
                 'h2'      => (string)($section['h2_title'] ?? $tb['name'] ?? ''),
                 'summary' => $this->buildSectionSummary($unwrapped),
@@ -669,11 +678,13 @@ class ArticleGeneratorService {
         $this->updateGenerationLog($articleId, [
             'mode' => 'outline_blocks', 'model' => $modelUsed,
             'usage' => $totalUsage, 'blocks' => $blocksGenerated,
+            'coverage' => ['ok' => $coverageReport['ok'], 'partial' => $coverageReport['partial'], 'missing' => $coverageReport['missing']],
             'timestamp' => date('c'),
         ]);
         $this->writeAudit($articleId, 'generate', [
             'mode' => 'outline_blocks', 'blocks' => $blocksGenerated,
             'model' => $modelUsed, 'tokens' => $totalUsage,
+            'coverage' => $coverageReport,
         ]);
 
         return [
@@ -740,6 +751,107 @@ class ArticleGeneratorService {
             'usage' => $result['usage'],
             'model' => $result['model'],
         ];
+    }
+
+    private function loadDossierIndex(array $article): array {
+        $raw = trim((string)($article['research_dossier'] ?? ''));
+        if ($raw === '') return [];
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) return [];
+        return ArticleResearchService::indexById($decoded);
+    }
+
+    /**
+     * Score whether the generated block actually mentions the facts it was
+     * supposed to use. For each source_fact ID, we extract a few content
+     * tokens (≥4-letter words) from the dossier item and check at least one
+     * appears in the block content (case-insensitive).
+     *
+     * Verdicts:
+     *   ok      — every referenced fact has at least one token hit
+     *   partial — at least one fact covered, at least one missing
+     *   missing — zero facts covered (or no source_facts at all)
+     */
+    private function factsCoverage(array $section, array $dossierIndex, $content): array {
+        $ids = $section['source_facts'] ?? [];
+        if (!is_array($ids) || empty($ids)) {
+            return ['verdict' => 'missing', 'covered' => [], 'uncovered' => [], 'total' => 0];
+        }
+        $haystack = mb_strtolower($this->flattenContentText($content), 'UTF-8');
+        if ($haystack === '') {
+            return [
+                'verdict'   => 'missing',
+                'covered'   => [],
+                'uncovered' => array_values(array_map('strval', $ids)),
+                'total'     => count($ids),
+            ];
+        }
+        $covered = [];
+        $uncovered = [];
+        foreach ($ids as $rawId) {
+            $id = (string)$rawId;
+            if (!isset($dossierIndex[$id])) {
+                $uncovered[] = $id;
+                continue;
+            }
+            $tokens = $this->factTokens($dossierIndex[$id]);
+            $hit = false;
+            foreach ($tokens as $tok) {
+                if ($tok !== '' && mb_strpos($haystack, $tok, 0, 'UTF-8') !== false) {
+                    $hit = true;
+                    break;
+                }
+            }
+            if ($hit) $covered[] = $id;
+            else      $uncovered[] = $id;
+        }
+        $verdict = empty($covered) ? 'missing' : (empty($uncovered) ? 'ok' : 'partial');
+        return [
+            'verdict'   => $verdict,
+            'covered'   => $covered,
+            'uncovered' => $uncovered,
+            'total'     => count($ids),
+        ];
+    }
+
+    private function flattenContentText($node): string {
+        if (is_string($node)) return $node;
+        if (!is_array($node)) return '';
+        $out = '';
+        foreach ($node as $v) {
+            $piece = $this->flattenContentText($v);
+            if ($piece !== '') $out .= ' ' . $piece;
+        }
+        return $out;
+    }
+
+    /**
+     * Pull keyword tokens from a dossier item: words ≥4 chars, lowered, deduped.
+     * Limits to 8 tokens to keep the substring scan cheap.
+     */
+    private function factTokens(array $item): array {
+        $section = (string)($item['_section'] ?? '');
+        $sources = [];
+        switch ($section) {
+            case 'facts':         $sources = [$item['claim'] ?? '', $item['evidence'] ?? '']; break;
+            case 'benchmarks':    $sources = [$item['metric'] ?? '', $item['value'] ?? '']; break;
+            case 'comparisons':   $sources = [$item['x'] ?? '', $item['y'] ?? '', $item['summary'] ?? '']; break;
+            case 'counter_theses':$sources = [$item['thesis'] ?? '']; break;
+            case 'quotes_cases':  $sources = [$item['text'] ?? '', $item['attribution'] ?? '']; break;
+            case 'terms':         $sources = [$item['term'] ?? '']; break;
+            case 'entities':      $sources = [$item['name'] ?? '']; break;
+            case 'sources':       $sources = [$item['title'] ?? '']; break;
+        }
+        $text = mb_strtolower(implode(' ', array_filter($sources, 'is_string')), 'UTF-8');
+        if ($text === '') return [];
+        $words = preg_split('/[^\p{L}\p{N}]+/u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $tokens = [];
+        foreach ($words as $w) {
+            if (mb_strlen($w, 'UTF-8') < 4) continue;
+            $tokens[$w] = true;
+            if (count($tokens) >= 8) break;
+        }
+        return array_keys($tokens);
     }
 
     /**
@@ -931,6 +1043,8 @@ class ArticleGeneratorService {
         $template = !empty($article['template_id']) ? $this->loadTemplate((int)$article['template_id']) : null;
         $systemPrompt = $template['gpt_system_prompt'] ?? null;
         $allTypes = array_map(fn($s) => (string)($s['block_type'] ?? ''), $sections);
+        $dossierIndex = $this->loadDossierIndex($article);
+        $coverageReport = ['ok' => 0, 'partial' => 0, 'missing' => 0, 'sections' => []];
 
         $overwrite = $options['overwrite'] ?? true;
         if ($overwrite) {
@@ -1004,10 +1118,18 @@ class ArticleGeneratorService {
                     $savedId = (int)$existing['id'];
                 }
 
+                $cov = $this->factsCoverage($section, $dossierIndex, $unwrapped);
+                $coverageReport['sections'][] = [
+                    'section_id' => $section['id'] ?? null,
+                    'h2'         => $section['h2_title'] ?? null,
+                ] + $cov;
+                $coverageReport[$cov['verdict']]++;
+
                 $this->sendSSE('block_done', [
                     'index' => $i, 'block_id' => $savedId,
                     'type' => $tb['type'], 'name' => $tb['name'],
                     'content' => $unwrapped, 'usage' => $result['usage'],
+                    'coverage' => $cov,
                 ]);
 
                 $previousSummaries[] = [
@@ -1029,15 +1151,18 @@ class ArticleGeneratorService {
             'mode' => 'outline_sse',
             'model' => $options['model'] ?? $article['gpt_model'] ?? GPT_DEFAULT_MODEL,
             'usage' => $totalUsage, 'blocks' => $totalSections,
+            'coverage' => ['ok' => $coverageReport['ok'], 'partial' => $coverageReport['partial'], 'missing' => $coverageReport['missing']],
             'timestamp' => date('c'),
         ]);
         $this->writeAudit($articleId, 'generate', [
             'mode' => 'outline_sse', 'blocks' => $totalSections,
             'model' => $options['model'] ?? $article['gpt_model'] ?? GPT_DEFAULT_MODEL,
             'tokens' => $totalUsage,
+            'coverage' => $coverageReport,
         ]);
         $this->sendSSE('done', [
             'total_blocks' => $totalSections, 'total_usage' => $totalUsage, 'source' => 'outline',
+            'coverage' => ['ok' => $coverageReport['ok'], 'partial' => $coverageReport['partial'], 'missing' => $coverageReport['missing']],
         ]);
     }
 

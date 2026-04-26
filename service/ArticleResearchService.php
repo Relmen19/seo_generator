@@ -101,6 +101,12 @@ class ArticleResearchService
             SeoArticleIllustration::STATUS_READY,
         ]);
 
+        // Outline references dossier item IDs — IDs may have shifted after rebuild,
+        // so the outline must be regenerated. Mark stale instead of deleting.
+        if (($article['outline_status'] ?? 'none') === 'ready') {
+            (new ArticleOutlineService($this->gpt))->markStale($articleId);
+        }
+
         $this->writeAudit($articleId, 'research', [
             'mode'   => 'build_dossier',
             'model'  => $result['model'] ?? null,
