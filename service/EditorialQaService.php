@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Seo\Service;
 
 use RuntimeException;
+use Throwable;
 use Seo\Database;
 use Seo\Service\Editorial\Rule\BannedPhrasesRule;
 use Seo\Service\Editorial\Rule\BrokenLinksRule;
@@ -54,7 +55,18 @@ class EditorialQaService
 
         $all = [];
         foreach ($this->rules as $rule) {
-            $issues = $rule->run($article, $blocks);
+            $ruleName = (new \ReflectionClass($rule))->getShortName();
+            try {
+                $issues = $rule->run($article, $blocks);
+            } catch (Throwable $e) {
+                error_log("[EditorialQaService] rule {$ruleName} failed for article {$articleId}: " . $e->getMessage());
+                $this->db->execute(
+                    'INSERT INTO seo_article_issues (article_id, severity, code, message, block_id)
+                     VALUES (?, ?, ?, ?, ?)',
+                    [$articleId, 'warn', 'rule_failed', "Правило {$ruleName} упало: " . $e->getMessage(), null]
+                );
+                continue;
+            }
             foreach ($issues as $i) {
                 $this->db->execute(
                     'INSERT INTO seo_article_issues (article_id, severity, code, message, block_id)
