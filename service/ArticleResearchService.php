@@ -7,6 +7,7 @@ namespace Seo\Service;
 use RuntimeException;
 use Seo\Database;
 use Seo\Entity\SeoArticle;
+use Seo\Entity\SeoArticleIllustration;
 use Seo\Entity\SeoAuditLog;
 use Seo\Entity\SeoSiteProfile;
 use Seo\Enum\ResearchPrompt;
@@ -71,6 +72,17 @@ class ArticleResearchService
             'research_status'  => 'ready',
             'research_at'      => $now,
         ], [':aid' => $articleId]);
+
+        // Hero illustration is built from dossier — invalidate it on dossier change.
+        $this->db->getPdo()->prepare(
+            "UPDATE " . SeoArticleIllustration::TABLE
+            . " SET status = ? WHERE article_id = ? AND kind = ? AND status = ?"
+        )->execute([
+            SeoArticleIllustration::STATUS_STALE,
+            $articleId,
+            SeoArticleIllustration::KIND_HERO,
+            SeoArticleIllustration::STATUS_READY,
+        ]);
 
         $this->writeAudit($articleId, 'research', [
             'mode'   => 'build_dossier',

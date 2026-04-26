@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Seo\Entity;
 
-class SeoArticleIllustration extends AbstractEntity {
+final class SeoArticleIllustration {
 
     public const TABLE = 'seo_article_illustrations';
 
@@ -17,4 +17,5 @@ class SeoArticleIllustration extends AbstractEntity {
     public const STATUS_PENDING = 'pending';
     public const STATUS_READY   = 'ready';
     public const STATUS_FAILED  = 'failed';
+    public const STATUS_STALE   = 'stale';
 }
