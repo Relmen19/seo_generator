@@ -18,6 +18,7 @@ class TokenUsageLogger
     public const CATEGORY_ARTICLE_OUTLINE      = 'article_outline';
     public const CATEGORY_ARTICLE_ILLUSTRATION = 'article_illustration';
     public const CATEGORY_ARTICLE_FIXER        = 'article_fixer';
+    public const CATEGORY_ARTICLE_AI_REVIEW    = 'article_ai_review';
     public const CATEGORY_TELEGRAM_AGGREGATE   = 'telegram_aggregate';
 
     public const CATEGORIES = [
@@ -30,6 +31,7 @@ class TokenUsageLogger
         self::CATEGORY_ARTICLE_OUTLINE,
         self::CATEGORY_ARTICLE_ILLUSTRATION,
         self::CATEGORY_ARTICLE_FIXER,
+        self::CATEGORY_ARTICLE_AI_REVIEW,
         self::CATEGORY_TELEGRAM_AGGREGATE,
     ];
 

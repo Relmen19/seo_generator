@@ -602,6 +602,9 @@ body.advanced .section.adv-only { display: block !important; }
             <span class="section-head-title">Редакторские проверки</span>
             <span style="display:flex;gap:8px;align-items:center">
                 <span id="qaSummary" style="font-size:12px;color:var(--text-3)"></span>
+                <label style="font-size:12px;color:var(--text-3);display:inline-flex;align-items:center;gap:4px;cursor:pointer" title="GPT-проверка связности (~$0.01)">
+                    <input type="checkbox" id="qaAiReview"> AI-ревью
+                </label>
                 <button class="btn btn-secondary btn-sm" onclick="runQaChecks()" id="btnRunQa">🧪 Прогнать проверки</button>
                 <button class="btn btn-secondary btn-sm" onclick="runQaFix()" id="btnFixQa" title="Исправить repetition / banned_phrase / empty_chart автоматически">🛠 Исправить автоматически</button>
             </span>
@@ -954,9 +957,10 @@ async function runQaChecks() {
     const prev = btn.innerHTML;
     btn.innerHTML = 'Проверяю…';
     try {
-        const res = await api('qa/' + S.article.id + '/run', 'POST', {});
+        const aiReview = !!(el('qaAiReview') && el('qaAiReview').checked);
+        const res = await api('qa/' + S.article.id + '/run', 'POST', { ai_review: aiReview });
         renderQaIssues(res.data.issues || []);
-        toast('Проверки выполнены', 'ok');
+        toast(aiReview ? 'Проверки + AI-ревью выполнены' : 'Проверки выполнены', 'ok');
     } catch (e) {
         toast(e.message, 'err');
     } finally {

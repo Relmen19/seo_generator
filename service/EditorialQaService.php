@@ -7,6 +7,7 @@ namespace Seo\Service;
 use RuntimeException;
 use Throwable;
 use Seo\Database;
+use Seo\Service\Editorial\AiReviewService;
 use Seo\Service\Editorial\Rule\BannedPhrasesRule;
 use Seo\Service\Editorial\Rule\BrokenLinksRule;
 use Seo\Service\Editorial\Rule\EmptyChartRule;
@@ -37,7 +38,7 @@ class EditorialQaService
     /**
      * Run all rules and persist issues. Returns the resulting issue list.
      */
-    public function runChecks(int $articleId): array
+    public function runChecks(int $articleId, bool $includeAiReview = false): array
     {
         $article = $this->db->fetchOne('SELECT * FROM seo_articles WHERE id = ?', [$articleId]);
         if (!$article) throw new RuntimeException("Статья #{$articleId} не найдена");
@@ -80,6 +81,14 @@ class EditorialQaService
                     ]
                 );
                 $all[] = $i;
+            }
+        }
+
+        if ($includeAiReview) {
+            try {
+                (new AiReviewService($this->db))->review($article, $blocks);
+            } catch (Throwable $e) {
+                error_log("[EditorialQaService] AI-review failed for article {$articleId}: " . $e->getMessage());
             }
         }
 

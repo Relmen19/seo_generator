@@ -46,10 +46,13 @@ class ArticleQaController extends AbstractController {
             }
 
             if ($method === 'POST' && $action === 'run') {
-                $issues = $svc->runChecks($id);
+                $body = $this->getJsonBody();
+                $aiReview = !empty($body['ai_review']);
+                $issues = $svc->runChecks($id, $aiReview);
                 $this->success([
                     'issues'     => $issues,
                     'has_errors' => $svc->hasBlockingErrors($id),
+                    'ai_review'  => $aiReview,
                 ]);
                 return;
             }

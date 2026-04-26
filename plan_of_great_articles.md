@@ -320,7 +320,7 @@ $content = is_string($block['content']) ? json_decode($block['content'], true) :
 
 ---
 
-### Prompt 15 — AI-review pass (опц 5.3) (M)
+### Prompt 15 — AI-review pass (опц 5.3) (M) ✅ closed
 
 **Цель:** последняя опциональная задача из Stage 5.
 
