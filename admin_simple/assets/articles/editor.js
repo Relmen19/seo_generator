@@ -21,6 +21,7 @@ async function openArticle(id) {
         S.article = normalizeArticle(res.data);
         renderEditor();
         showEditor();
+        if (typeof loadImages === 'function') loadImages();
     } catch(e) {
         toast(e.message, 'err');
     }

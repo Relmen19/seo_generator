@@ -272,6 +272,26 @@ requireAuth();
         </div>
     </div>
 
+    <!-- Images -->
+    <div class="section collapsible collapsed" data-sec="images" id="imagesSection">
+        <div class="section-head" onclick="toggleSection(this, event)">
+            <span class="section-head-title">📷 Изображения <span id="imagesCount" style="color:var(--text-3);font-weight:500"></span></span>
+            <span class="adv-only inline-flex" style="gap:8px;align-items:center">
+                <select id="imgModelPick" style="font-size:12px;padding:3px 8px">
+                    <option value="">Модель по умолчанию</option>
+                    <option value="nano-banana">🍌 Nano Banana</option>
+                    <option value="dall-e-3">DALL·E 3</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" onclick="generateAllImages()" id="btnGenAllImg">
+                    <span id="genAllImgSpin"></span> ✨ Сгенерировать все
+                </button>
+            </span>
+        </div>
+        <div class="section-body">
+            <div id="imagesList" class="img-grid"><div class="empty"><div class="spin"></div></div></div>
+        </div>
+    </div>
+
     <!-- Workflow -->
     <div class="section adv-only collapsible collapsed" data-sec="workflow">
         <div class="section-head" onclick="toggleSection(this, event)">
@@ -345,6 +365,7 @@ requireAuth();
 <script src="assets/articles/blocks_view.js"></script>
 <script src="assets/articles/blocks_schema.js"></script>
 <script src="assets/articles/blocks_actions.js"></script>
+<script src="assets/articles/images.js"></script>
 <script src="assets/articles/init.js"></script>
 </body>
 </html>

@@ -123,6 +123,7 @@ async function generateAll() {
         const art = await api('articles/' + articleId);
         S.article = normalizeArticle(art.data);
         renderEditor();
+        if (typeof loadImages === 'function') loadImages();
         if (!serverCancelled) toast('Генерация завершена', 'ok');
     } catch(e) {
         if (e.name === 'AbortError' || serverCancelled) {

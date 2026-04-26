@@ -308,6 +308,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 body.advanced .adv-only { display: revert !important; }
 body.advanced .form-row.adv-only { display: grid !important; }
 body.advanced .section.adv-only { display: block !important; }
+body.advanced .adv-only.inline-flex { display: inline-flex !important; }
+
+/* ─── Images section grid ─── */
+.img-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.img-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
+.img-card-thumb { aspect-ratio: 1; background: var(--surface); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.img-card-thumb img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+.img-card-thumb-empty { color: var(--text-3); font-size: 12px; }
+.img-card-meta { padding: 8px 10px; font-size: 11px; color: var(--text-2); display: flex; flex-direction: column; gap: 2px; }
+.img-card-name { font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.img-card-actions { padding: 6px 10px; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 6px; }
+.img-card-del { background: transparent; border: 1px solid var(--border); color: var(--danger); padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+.img-card-del:hover { background: var(--danger-light); }
 
 /* ─── Block thumbnail ─── */
 .block-thumb {

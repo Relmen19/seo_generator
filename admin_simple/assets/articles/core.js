@@ -8,6 +8,7 @@ const S = {
     openBlockId: null,
     blockTabs: {},
     advanced: false,
+    images: [],
     // wizard
     wizStep: 1,
     wizProfile: null,
