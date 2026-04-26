@@ -56,28 +56,22 @@ class ArticleResearchService
             ];
         }
 
-        $messages = $this->buildMessages($article);
+        $strategy = $opts['strategy'] ?? $this->resolveStrategy($article);
 
-        $gptOpts = [
-            'model'       => $opts['model']       ?? $article['gpt_model'] ?? GPT_DEFAULT_MODEL,
-            'temperature' => $opts['temperature'] ?? 0.4,
-            'max_tokens'  => $opts['max_tokens']  ?? 3500,
-        ];
+        $title = (string)($article['title'] ?? '');
+        $usageAggregate = ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0];
+        $modelsSeen = [];
 
-        $this->gpt->setLogContext([
-            'category'    => TokenUsageLogger::CATEGORY_ARTICLE_RESEARCH,
-            'operation'   => 'build_dossier',
-            'profile_id'  => $article['profile_id'] ?? null,
-            'entity_type' => 'article',
-            'entity_id'   => $articleId,
-        ]);
-
-        $result = $this->gpt->chatJson($messages, $gptOpts);
-        $data = $result['data'] ?? null;
-        if (!is_array($data)) {
-            throw new RuntimeException("Research: GPT не вернул JSON-объект");
+        if ($strategy === 'split' || $strategy === 'split_search') {
+            [$normalised, $phaseUsages, $models] = $this->buildSplit($article, $opts, $strategy);
+            foreach ($phaseUsages as $u) $this->mergeUsage($usageAggregate, $u);
+            $modelsSeen = $models;
+        } else {
+            [$normalised, $u, $model] = $this->buildSingle($article, $opts);
+            $this->mergeUsage($usageAggregate, $u);
+            if ($model) $modelsSeen[] = $model;
         }
-        $normalised = $this->validateDossier($data, (string)($article['title'] ?? ''));
+
         $dossier = json_encode($normalised, JSON_UNESCAPED_UNICODE);
         if ($dossier === false || $dossier === '') {
             throw new RuntimeException("Research: не удалось сериализовать dossier в JSON");
@@ -90,7 +84,6 @@ class ArticleResearchService
             'research_at'      => $now,
         ], [':aid' => $articleId]);
 
-        // Hero illustration is built from dossier — invalidate it on dossier change.
         $this->db->getPdo()->prepare(
             "UPDATE " . SeoArticleIllustration::TABLE
             . " SET status = ? WHERE article_id = ? AND kind = ? AND status = ?"
@@ -101,26 +94,165 @@ class ArticleResearchService
             SeoArticleIllustration::STATUS_READY,
         ]);
 
-        // Outline references dossier item IDs — IDs may have shifted after rebuild,
-        // so the outline must be regenerated. Mark stale instead of deleting.
         if (($article['outline_status'] ?? 'none') === 'ready') {
             (new ArticleOutlineService($this->gpt))->markStale($articleId);
         }
 
+        $primaryModel = $modelsSeen[0] ?? null;
         $this->writeAudit($articleId, 'research', [
-            'mode'   => 'build_dossier',
-            'model'  => $result['model'] ?? null,
-            'tokens' => $result['usage'] ?? [],
-            'length' => strlen($dossier),
+            'mode'     => 'build_dossier',
+            'strategy' => $strategy,
+            'model'    => $primaryModel,
+            'tokens'   => $usageAggregate,
+            'length'   => strlen($dossier),
         ]);
 
         return [
-            'status'  => 'ok',
-            'dossier' => $dossier,
-            'usage'   => $result['usage'] ?? [],
-            'model'   => $result['model'] ?? null,
-            'at'      => $now,
+            'status'   => 'ok',
+            'strategy' => $strategy,
+            'dossier'  => $dossier,
+            'usage'    => $usageAggregate,
+            'model'    => $primaryModel,
+            'at'       => $now,
         ];
+    }
+
+    private function resolveStrategy(array $article): string {
+        $profileId = (int)($article['profile_id'] ?? 0);
+        if ($profileId <= 0) return 'single';
+        $row = $this->db->fetchOne(
+            "SELECT research_strategy FROM seo_site_profiles WHERE id = ?", [$profileId]
+        );
+        $s = (string)($row['research_strategy'] ?? 'single');
+        return in_array($s, ['single', 'split', 'split_search'], true) ? $s : 'single';
+    }
+
+    private function buildSingle(array $article, array $opts): array {
+        $articleId = (int)$article['id'];
+        $messages = $this->buildMessages($article);
+
+        $gptOpts = [
+            'model'       => $opts['model']       ?? $article['gpt_model'] ?? GPT_DEFAULT_MODEL,
+            'temperature' => $opts['temperature'] ?? 0.4,
+            'max_tokens'  => $opts['max_tokens']  ?? 3500,
+        ];
+
+        $this->gpt->setLogContext([
+            'category'    => TokenUsageLogger::CATEGORY_ARTICLE_RESEARCH,
+            'operation'   => 'research_single',
+            'profile_id'  => $article['profile_id'] ?? null,
+            'entity_type' => 'article',
+            'entity_id'   => $articleId,
+        ]);
+
+        $result = $this->gpt->chatJson($messages, $gptOpts);
+        $data = $result['data'] ?? null;
+        if (!is_array($data)) {
+            throw new RuntimeException("Research: GPT не вернул JSON-объект");
+        }
+        $normalised = $this->validateDossier($data, (string)($article['title'] ?? ''));
+        return [$normalised, $result['usage'] ?? [], $result['model'] ?? null];
+    }
+
+    /**
+     * Split pipeline: phase 1 outline questions → phase 2 fill per section.
+     * Returns [normalisedDossier, phaseUsages[], modelsSeen[]].
+     */
+    private function buildSplit(array $article, array $opts, string $strategy): array {
+        $articleId = (int)$article['id'];
+        $title     = (string)($article['title'] ?? '');
+        $profileId = $article['profile_id'] ?? null;
+        $usages    = [];
+        $models    = [];
+
+        // ─── Phase 1: outline ───
+        $outlineModel = $opts['outline_model'] ?? GPT_DEFAULT_MODEL;
+        $this->gpt->setLogContext([
+            'category'    => TokenUsageLogger::CATEGORY_ARTICLE_RESEARCH,
+            'operation'   => 'research_outline',
+            'profile_id'  => $profileId,
+            'entity_type' => 'article',
+            'entity_id'   => $articleId,
+        ]);
+        $outlineResult = $this->gpt->chatJson(
+            $this->buildOutlineMessages($article),
+            ['model' => $outlineModel, 'temperature' => 0.3, 'max_tokens' => 800]
+        );
+        $outlineData = $outlineResult['data'] ?? null;
+        if (!is_array($outlineData) || empty($outlineData['questions']) || !is_array($outlineData['questions'])) {
+            throw new RuntimeException("Research: outline не вернул questions");
+        }
+        $usages[] = $outlineResult['usage'] ?? [];
+        if (!empty($outlineResult['model'])) $models[] = $outlineResult['model'];
+
+        $angle    = (string)($outlineData['angle'] ?? '');
+        $audience = (string)($outlineData['audience'] ?? '');
+        if ($angle === '') {
+            throw new RuntimeException("Research: outline без angle");
+        }
+
+        // ─── Phase 2: fill per section ───
+        $fillModel = $opts['fill_model'] ?? $article['gpt_model'] ?? GPT_DEFAULT_MODEL;
+        $sectionsOrder = ['facts', 'entities', 'benchmarks', 'comparisons', 'counter_theses', 'quotes_cases', 'terms'];
+        $idPrefix = [
+            'facts' => 'f', 'entities' => 'e', 'benchmarks' => 'b',
+            'comparisons' => 'c', 'counter_theses' => 'ct', 'quotes_cases' => 'q',
+            'terms' => 't', 'sources' => 'src',
+        ];
+
+        $collected = [
+            'title'    => $title,
+            'angle'    => $angle,
+            'audience' => $audience,
+        ];
+        foreach ($sectionsOrder as $sec) $collected[$sec] = [];
+        $collected['sources'] = [];
+        $collected['open_questions'] = [];
+
+        foreach ($sectionsOrder as $sec) {
+            $questions = $outlineData['questions'][$sec] ?? [];
+            if (!is_array($questions) || empty($questions)) continue;
+
+            $useSearch = ($strategy === 'split_search') && in_array($sec, ['benchmarks', 'sources'], true);
+            $this->gpt->setLogContext([
+                'category'    => TokenUsageLogger::CATEGORY_ARTICLE_RESEARCH,
+                'operation'   => $useSearch ? "research_fill_search_{$sec}" : "research_fill_{$sec}",
+                'profile_id'  => $profileId,
+                'entity_type' => 'article',
+                'entity_id'   => $articleId,
+            ]);
+
+            $fillResult = $this->gpt->chatJson(
+                $this->buildFillMessages($title, $angle, $sec, $questions),
+                ['model' => $fillModel, 'temperature' => 0.4, 'max_tokens' => 1200]
+            );
+            $usages[] = $fillResult['usage'] ?? [];
+            if (!empty($fillResult['model']) && !in_array($fillResult['model'], $models, true)) {
+                $models[] = $fillResult['model'];
+            }
+
+            $items = $fillResult['data']['items'] ?? null;
+            if (!is_array($items)) continue;
+
+            $i = 0;
+            foreach ($items as $raw) {
+                if (!is_array($raw)) continue;
+                $i++;
+                if (empty($raw['id']) || trim((string)$raw['id']) === '') {
+                    $raw['id'] = $idPrefix[$sec] . $i;
+                }
+                $collected[$sec][] = $raw;
+            }
+        }
+
+        $normalised = $this->validateDossier($collected, $title);
+        return [$normalised, $usages, $models];
+    }
+
+    private function mergeUsage(array &$agg, array $u): void {
+        foreach (['prompt_tokens', 'completion_tokens', 'total_tokens'] as $k) {
+            $agg[$k] = ($agg[$k] ?? 0) + (int)($u[$k] ?? 0);
+        }
     }
 
     public function saveManual(int $articleId, string $dossier, string $status = 'ready'): void {
@@ -275,6 +407,46 @@ class ArticleResearchService
         $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, 'id = :aid', [
             'research_status' => 'stale',
         ], [':aid' => $articleId]);
+    }
+
+    private function buildOutlineMessages(array $article): array {
+        $title    = (string)($article['title'] ?? '');
+        $keywords = (string)($article['keywords'] ?? '');
+        $kwLine   = $keywords !== '' ? "Ключевые слова: {$keywords}\n" : '';
+
+        $intentLine = '';
+        $intent = $this->loadIntentForArticle($article);
+        if ($intent !== null) {
+            $intentLine = "Интент: {$intent['code']}";
+            if (!empty($intent['label_ru'])) $intentLine .= " ({$intent['label_ru']})";
+            $intentLine .= "\n";
+        }
+
+        $user = sprintf(
+            ResearchPrompt::USER_OUTLINE_TEMPLATE,
+            $title, $kwLine, $intentLine, ResearchPrompt::OUTLINE_FORMAT
+        );
+
+        return [
+            ['role' => 'system', 'content' => ResearchPrompt::SYSTEM_OUTLINE],
+            ['role' => 'user',   'content' => $user],
+        ];
+    }
+
+    private function buildFillMessages(string $title, string $angle, string $section, array $questions): array {
+        $schema = ResearchPrompt::FILL_SECTION_SCHEMAS[$section] ?? '{"items":[]}';
+        $qLines = [];
+        foreach ($questions as $i => $q) {
+            $qLines[] = ($i + 1) . ". " . trim((string)$q);
+        }
+        $user = sprintf(
+            ResearchPrompt::USER_FILL_TEMPLATE,
+            $title, $angle, $section, implode("\n", $qLines), $schema
+        );
+        return [
+            ['role' => 'system', 'content' => ResearchPrompt::SYSTEM_FILL],
+            ['role' => 'user',   'content' => $user],
+        ];
     }
 
     private function buildMessages(array $article): array {
