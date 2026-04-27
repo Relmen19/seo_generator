@@ -89,6 +89,10 @@
       if (!opts.silent) toast(msg, 'err');
       const err = new Error(msg); err.status = res.status; err.data = data; throw err;
     }
+    // Unwrap {success:true, data:...} envelope used by all SEO controllers.
+    if (data && typeof data === 'object' && data.success === true && Object.prototype.hasOwnProperty.call(data, 'data')) {
+      return data.data;
+    }
     return data;
   }
 
