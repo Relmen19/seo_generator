@@ -14,7 +14,8 @@ $pageSubheading = 'Палитры, шрифты и радиусы для ста�
 
 ob_start();
 ?>
-<button type="button" class="btn-primary" style="height:48px;padding:0 20px" @click="newTheme()">
+<button type="button" class="btn-primary" style="height:48px;padding:0 20px"
+        onclick="window.dispatchEvent(new CustomEvent('seo:new-theme'))">
   <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 4v12M4 10h12" stroke-linecap="round"/></svg>
   Новая тема
 </button>
@@ -24,7 +25,9 @@ $topbarRight = ob_get_clean();
 include __DIR__ . '/_layout/header.php';
 ?>
 
-<div x-data="themesPage()" x-init="init()" class="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 lg:gap-8">
+<div x-data="themesPage()" x-init="init()"
+     @seo:new-theme.window="newTheme()"
+     class="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 lg:gap-8">
 
   <aside class="card lg:sticky lg:top-6 self-start max-h-[calc(100vh-160px)] overflow-auto" style="padding:20px">
     <div class="flex items-center justify-between mb-3">
@@ -59,6 +62,7 @@ include __DIR__ . '/_layout/header.php';
         <div>
           <div class="text-6xl mb-4">🎨</div>
           <p class="text-ink-500">Выбери тему слева или создай новую.</p>
+          <button type="button" class="btn-primary mt-5" @click="newTheme()">+ Новая тема</button>
         </div>
       </div>
     </template>
@@ -121,80 +125,135 @@ include __DIR__ . '/_layout/header.php';
 
                 <!-- Colors -->
                 <div class="card" style="padding:24px">
-                  <div class="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 class="text-base font-semibold">Цвета</h3>
-                      <p class="text-xs text-ink-500 mt-0.5">accent, text, surface, border, bg, danger, success, warn, chart-N…</p>
+                  <button type="button" class="section-head" @click="editor.expanded.colors = !editor.expanded.colors">
+                    <span class="section-chev" :class="editor.expanded.colors ? 'open' : ''">▸</span>
+                    <span class="flex-1 text-left">
+                      <span class="text-base font-semibold">Цвета</span>
+                      <span class="block text-xs text-ink-500 mt-0.5">accent, text, surface, border, bg, danger, success, warn, chart-N…</span>
+                    </span>
+                    <span class="badge-soft" x-text="editor.colors.length"></span>
+                  </button>
+                  <div x-show="editor.expanded.colors" x-collapse>
+                    <div class="flex justify-end mb-3 mt-3">
+                      <button type="button" class="btn-soft" @click="addRow('colors')">+ Цвет</button>
                     </div>
-                    <button type="button" class="btn-soft" @click="addRow('colors')">+ Цвет</button>
+                    <ul class="space-y-2">
+                      <template x-for="(row, i) in editor.colors" :key="row._id">
+                        <li class="token-row">
+                          <input type="color" class="token-color" :value="normalizeColor(row.v)" @input="row.v = $event.target.value">
+                          <input type="text" class="input token-key" x-model="row.k" placeholder="accent">
+                          <input type="text" class="input token-val" x-model="row.v" placeholder="#2563EB" style="font-family:ui-monospace,monospace">
+                          <button type="button" class="btn-icon" @click="removeRow('colors', i)" title="Удалить">
+                            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l8 8M14 6l-8 8" stroke-linecap="round"/></svg>
+                          </button>
+                        </li>
+                      </template>
+                      <template x-if="editor.colors.length === 0">
+                        <li class="text-ink-300 text-sm py-2">Нет цветов. Добавь первый.</li>
+                      </template>
+                    </ul>
                   </div>
-                  <ul class="space-y-2">
-                    <template x-for="(row, i) in editor.colors" :key="row._id">
-                      <li class="token-row">
-                        <input type="color" class="token-color" :value="normalizeColor(row.v)" @input="row.v = $event.target.value">
-                        <input type="text" class="input token-key" x-model="row.k" placeholder="accent">
-                        <input type="text" class="input token-val" x-model="row.v" placeholder="#2563EB" style="font-family:ui-monospace,monospace">
-                        <button type="button" class="btn-icon" @click="removeRow('colors', i)" title="Удалить">
-                          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l8 8M14 6l-8 8" stroke-linecap="round"/></svg>
-                        </button>
-                      </li>
-                    </template>
-                    <template x-if="editor.colors.length === 0">
-                      <li class="text-ink-300 text-sm py-2">Нет цветов. Добавь первый.</li>
-                    </template>
-                  </ul>
                 </div>
 
                 <!-- Typography -->
                 <div class="card" style="padding:24px">
-                  <div class="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 class="text-base font-semibold">Типографика</h3>
-                      <p class="text-xs text-ink-500 mt-0.5">font-heading, font-text, font-mono, размеры (size-h1, size-text…)</p>
+                  <button type="button" class="section-head" @click="editor.expanded.fonts = !editor.expanded.fonts">
+                    <span class="section-chev" :class="editor.expanded.fonts ? 'open' : ''">▸</span>
+                    <span class="flex-1 text-left">
+                      <span class="text-base font-semibold">Типографика</span>
+                      <span class="block text-xs text-ink-500 mt-0.5">font-heading, font-text, font-mono, размеры (size-h1, size-text…)</span>
+                    </span>
+                    <span class="badge-soft" x-text="editor.fonts.length"></span>
+                  </button>
+                  <div x-show="editor.expanded.fonts" x-collapse>
+                    <div class="flex justify-end mb-3 mt-3">
+                      <button type="button" class="btn-soft" @click="addRow('fonts')">+ Параметр</button>
                     </div>
-                    <button type="button" class="btn-soft" @click="addRow('fonts')">+ Параметр</button>
+                    <ul class="space-y-2">
+                      <template x-for="(row, i) in editor.fonts" :key="row._id">
+                        <li class="token-row" x-data="combo()">
+                          <span class="token-fontprev" :style="rowFontPreviewStyle(row)">Aa</span>
+                          <input type="text" class="input token-key" x-model="row.k" placeholder="font-text">
+                          <div class="combo-wrap">
+                            <input type="text" class="input token-val" x-model="row.v"
+                                   @focus="open=true; q=row.v||''"
+                                   @input="q=$event.target.value"
+                                   @keydown.escape="open=false"
+                                   placeholder='"Onest", sans-serif'
+                                   style="font-family:ui-monospace,monospace">
+                            <div class="combo-pop" x-show="open" @click.outside="open=false">
+                              <template x-for="(p, idx) in filterPresets(fontPresetsFor(row.k), q)" :key="idx">
+                                <button type="button" class="combo-opt"
+                                        @click="row.v=p; open=false"
+                                        :style="`font-family:${p}`"
+                                        x-text="p"></button>
+                              </template>
+                              <template x-if="filterPresets(fontPresetsFor(row.k), q).length === 0">
+                                <div class="combo-empty">Нет совпадений</div>
+                              </template>
+                            </div>
+                          </div>
+                          <button type="button" class="btn-icon" @click="removeRow('fonts', i)" title="Удалить">
+                            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l8 8M14 6l-8 8" stroke-linecap="round"/></svg>
+                          </button>
+                        </li>
+                      </template>
+                      <template x-if="editor.fonts.length === 0">
+                        <li class="text-ink-300 text-sm py-2">Пусто. Добавь шрифт или размер.</li>
+                      </template>
+                    </ul>
                   </div>
-                  <ul class="space-y-2">
-                    <template x-for="(row, i) in editor.fonts" :key="row._id">
-                      <li class="token-row">
-                        <span class="token-fontprev" :style="rowFontPreviewStyle(row)">Aa</span>
-                        <input type="text" class="input token-key" x-model="row.k" placeholder="font-text">
-                        <input type="text" class="input token-val" x-model="row.v" placeholder='"Onest", sans-serif' style="font-family:ui-monospace,monospace">
-                        <button type="button" class="btn-icon" @click="removeRow('fonts', i)" title="Удалить">
-                          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l8 8M14 6l-8 8" stroke-linecap="round"/></svg>
-                        </button>
-                      </li>
-                    </template>
-                    <template x-if="editor.fonts.length === 0">
-                      <li class="text-ink-300 text-sm py-2">Пусто. Добавь шрифт или размер.</li>
-                    </template>
-                  </ul>
                 </div>
 
                 <!-- Radii -->
                 <div class="card" style="padding:24px">
-                  <div class="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 class="text-base font-semibold">Радиусы</h3>
-                      <p class="text-xs text-ink-500 mt-0.5">sm, md, lg, xl — любые CSS-значения (px, rem, %).</p>
+                  <button type="button" class="section-head" @click="editor.expanded.radii = !editor.expanded.radii">
+                    <span class="section-chev" :class="editor.expanded.radii ? 'open' : ''">▸</span>
+                    <span class="flex-1 text-left">
+                      <span class="text-base font-semibold">Радиусы</span>
+                      <span class="block text-xs text-ink-500 mt-0.5">sm, md, lg, xl — любые CSS-значения (px, rem, %).</span>
+                    </span>
+                    <span class="badge-soft" x-text="editor.radii.length"></span>
+                  </button>
+                  <div x-show="editor.expanded.radii" x-collapse>
+                    <div class="flex justify-end mb-3 mt-3">
+                      <button type="button" class="btn-soft" @click="addRow('radii')">+ Радиус</button>
                     </div>
-                    <button type="button" class="btn-soft" @click="addRow('radii')">+ Радиус</button>
+                    <ul class="space-y-2">
+                      <template x-for="(row, i) in editor.radii" :key="row._id">
+                        <li class="token-row" x-data="combo()">
+                          <span class="token-radprev" :style="`border-radius:${row.v}`"></span>
+                          <input type="text" class="input token-key" x-model="row.k" placeholder="md">
+                          <div class="combo-wrap">
+                            <input type="text" class="input token-val" x-model="row.v"
+                                   @focus="open=true; q=row.v||''"
+                                   @input="q=$event.target.value"
+                                   @keydown.escape="open=false"
+                                   placeholder="12px"
+                                   style="font-family:ui-monospace,monospace">
+                            <div class="combo-pop" x-show="open" @click.outside="open=false">
+                              <template x-for="(p, idx) in filterPresets(radiusPresetsFor(row.k), q)" :key="idx">
+                                <button type="button" class="combo-opt combo-opt-rad"
+                                        @click="row.v=p; open=false">
+                                  <span class="combo-rad-box" :style="`border-radius:${p}`"></span>
+                                  <span x-text="p"></span>
+                                </button>
+                              </template>
+                              <template x-if="filterPresets(radiusPresetsFor(row.k), q).length === 0">
+                                <div class="combo-empty">Нет совпадений</div>
+                              </template>
+                            </div>
+                          </div>
+                          <button type="button" class="btn-icon" @click="removeRow('radii', i)" title="Удалить">
+                            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l8 8M14 6l-8 8" stroke-linecap="round"/></svg>
+                          </button>
+                        </li>
+                      </template>
+                      <template x-if="editor.radii.length === 0">
+                        <li class="text-ink-300 text-sm py-2">Пусто.</li>
+                      </template>
+                    </ul>
                   </div>
-                  <ul class="space-y-2">
-                    <template x-for="(row, i) in editor.radii" :key="row._id">
-                      <li class="token-row">
-                        <span class="token-radprev" :style="`border-radius:${row.v}`"></span>
-                        <input type="text" class="input token-key" x-model="row.k" placeholder="md">
-                        <input type="text" class="input token-val" x-model="row.v" placeholder="12px" style="font-family:ui-monospace,monospace">
-                        <button type="button" class="btn-icon" @click="removeRow('radii', i)" title="Удалить">
-                          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l8 8M14 6l-8 8" stroke-linecap="round"/></svg>
-                        </button>
-                      </li>
-                    </template>
-                    <template x-if="editor.radii.length === 0">
-                      <li class="text-ink-300 text-sm py-2">Пусто.</li>
-                    </template>
-                  </ul>
                 </div>
               </div>
             </template>
@@ -286,14 +345,28 @@ include __DIR__ . '/_layout/header.php';
 .theme-pick-active .theme-pick-on  { background:var(--sun-400); color:var(--ink-900); }
 .theme-pick-active .theme-pick-off { background:rgba(255,255,255,.15); color:var(--sand-300); }
 
+/* collapsible section */
+.section-head { width:100%; display:flex; align-items:center; gap:.75rem; padding:0; background:transparent; border:0; cursor:pointer; font-family:inherit; color:var(--ink-900); }
+.section-chev { display:inline-grid; place-items:center; width:24px; height:24px; border-radius:8px; background:var(--sand-100); color:var(--ink-700); font-size:11px; transition:transform .15s; flex-shrink:0; }
+.section-chev.open { transform:rotate(90deg); }
+
 /* token rows */
 .token-row { display:grid; grid-template-columns: 36px 160px 1fr 40px; gap:.5rem; align-items:center; }
-@media (max-width: 720px) { .token-row { grid-template-columns: 36px 1fr 40px; } .token-row .token-val { grid-column: 1 / -1; } }
+@media (max-width: 720px) { .token-row { grid-template-columns: 36px 1fr 40px; } .token-row .combo-wrap, .token-row .token-val { grid-column: 1 / -1; } }
 .token-color { width:36px; height:36px; padding:0; border:1px solid var(--sand-300); border-radius:12px; background:transparent; cursor:pointer; }
 .token-color::-webkit-color-swatch-wrapper { padding:0; }
 .token-color::-webkit-color-swatch { border:0; border-radius:10px; }
 .token-fontprev { width:36px; height:36px; display:inline-grid; place-items:center; border-radius:12px; background:var(--sand-100); color:var(--ink-900); font-size:18px; font-weight:600; }
 .token-radprev { width:36px; height:36px; background:var(--ink-900); display:inline-block; }
+
+/* combobox */
+.combo-wrap { position:relative; }
+.combo-pop { position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:50; background:var(--sand-50); border:1px solid var(--sand-200); border-radius:14px; box-shadow:var(--shadow-card); padding:4px; max-height:280px; overflow:auto; }
+.combo-opt { display:block; width:100%; text-align:left; padding:.5rem .75rem; border:0; border-radius:10px; background:transparent; color:var(--ink-900); font-family:ui-monospace,monospace; font-size:.8125rem; cursor:pointer; }
+.combo-opt:hover { background:var(--sand-100); }
+.combo-opt-rad { display:flex; align-items:center; gap:.625rem; }
+.combo-rad-box { width:22px; height:22px; background:var(--ink-900); flex-shrink:0; }
+.combo-empty { padding:.625rem .75rem; font-size:.8125rem; color:var(--ink-300); }
 
 /* live preview */
 .theme-preview { border-radius:24px; padding:18px; background:var(--sand-100); display:flex; flex-direction:column; gap:14px; }
@@ -321,6 +394,41 @@ include __DIR__ . '/_layout/header.php';
 <script>
 let __tokenRowSeq = 0;
 const tokenRow = (k, v) => ({ _id: ++__tokenRowSeq, k, v });
+
+const FONT_PRESETS = {
+  'font-heading': ['"Geologica", sans-serif', '"Playfair Display", Georgia, serif', '"Space Grotesk", sans-serif'],
+  'font-text':    ['"Onest", sans-serif', '"Inter", sans-serif', '"Manrope", sans-serif'],
+  'font-mono':    ['ui-monospace, SFMono-Regular, Menlo, monospace', '"JetBrains Mono", monospace', '"Fira Code", monospace'],
+  '_size':        ['14px', '16px', '18px', '20px', '24px', '32px'],
+  '_default':     ['"Onest", sans-serif', '"Inter", sans-serif', '"Geologica", sans-serif', '"Playfair Display", serif', 'ui-monospace, monospace'],
+};
+const RADIUS_PRESETS = {
+  'sm':       ['4px', '6px', '8px'],
+  'md':       ['10px', '12px', '16px'],
+  'lg':       ['16px', '20px', '24px'],
+  'xl':       ['24px', '28px', '32px'],
+  '_default': ['4px', '8px', '12px', '16px', '20px', '24px'],
+};
+
+function combo() {
+  return { open: false, q: '',
+    filterPresets(list, q) {
+      if (!q) return list;
+      const ql = q.toLowerCase();
+      return list.filter(p => p.toLowerCase().includes(ql));
+    },
+    fontPresetsFor(key) {
+      const k = (key || '').toLowerCase().trim();
+      if (FONT_PRESETS[k]) return FONT_PRESETS[k];
+      if (k.startsWith('size')) return FONT_PRESETS._size;
+      return FONT_PRESETS._default;
+    },
+    radiusPresetsFor(key) {
+      const k = (key || '').toLowerCase().trim();
+      return RADIUS_PRESETS[k] || RADIUS_PRESETS._default;
+    },
+  };
+}
 
 function themesPage() {
   return {
@@ -367,6 +475,7 @@ function themesPage() {
         name: t.name || '',
         is_active: t.is_active ? 1 : 0,
         view: 'form',
+        expanded: { colors: true, fonts: true, radii: true },
         colors: Object.entries(tokens.color  || {}).map(([k, v]) => tokenRow(k, v)),
         fonts:  Object.entries(tokens.type   || {}).map(([k, v]) => tokenRow(k, v)),
         radii:  Object.entries(tokens.radius || {}).map(([k, v]) => tokenRow(k, v)),
@@ -389,8 +498,7 @@ function themesPage() {
         this.editor.jsonRaw = JSON.stringify(this.collectTokens(), null, 2);
         this.editor.jsonError = '';
       } else {
-        // form ← json: try parse + load arrays
-        if (!this.applyJson(false)) return;  // stay on json if invalid
+        if (!this.applyJson(false)) return;
       }
       this.editor.view = v;
     },
@@ -424,7 +532,6 @@ function themesPage() {
       return { color: toObj(this.editor.colors), type: toObj(this.editor.fonts), radius: toObj(this.editor.radii) };
     },
 
-    // ---------- preview helpers ----------
     getColor(k, fb)  { const r = this.editor.colors.find(x => x.k === k); return (r && r.v) || fb || '#000000'; },
     getFont(k, fb)   { const r = this.editor.fonts.find(x => x.k === k); return (r && r.v) || fb || 'system-ui, sans-serif'; },
     getRadius(k, fb) { const r = this.editor.radii.find(x => x.k === k); return (r && r.v) || fb || '8px'; },
@@ -449,7 +556,6 @@ function themesPage() {
     previewCalloutStyle() { return `background:${this.getColor('bg','#f8fafc')}; border-left:3px solid ${this.getColor('warn','#f59e0b')}; border-radius:${this.getRadius('md','12px')}`; },
     pillStyle(key) { const c = this.getColor(key, '#888'); return `background:${c}22; color:${c}`; },
 
-    // ---------- save / delete ----------
     async saveTheme() {
       const e = this.editor; if (!e) return;
       if (e.view === 'json' && !this.applyJson(false)) { SEO.toast('Сначала исправь JSON', 'err'); return; }
