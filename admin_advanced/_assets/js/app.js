@@ -118,7 +118,10 @@
       const v = localStorage.getItem(PROFILE_KEY);
       return v ? Number(v) : null;
     },
-    set id(v) { v ? localStorage.setItem(PROFILE_KEY, String(v)) : localStorage.removeItem(PROFILE_KEY); },
+    set id(v) {
+      v ? localStorage.setItem(PROFILE_KEY, String(v)) : localStorage.removeItem(PROFILE_KEY);
+      window.dispatchEvent(new CustomEvent('seo-profile-changed', { detail: { id: v ? Number(v) : null } }));
+    },
     require() {
       const id = this.id;
       if (!id) { toast('Профиль не выбран', 'err'); throw new Error('no profile'); }
@@ -246,6 +249,12 @@
     document.head.appendChild(link);
     await loadScript('https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js');
   };
+
+  // ---------- Alpine stores ----------
+  document.addEventListener('alpine:init', () => {
+    if (!window.Alpine) return;
+    Alpine.store('layout', { hideTopbar: false });
+  });
 
   // ---------- Public ----------
   window.SEO = {

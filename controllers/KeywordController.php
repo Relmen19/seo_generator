@@ -114,7 +114,8 @@ class KeywordController extends AbstractController {
         if ($method === 'POST' && !$jobId) {
             $body = $this->getJsonBody();
             $this->abortIfErrors($this->validateRequired($body, ['seed_keyword']));
-            $jid = $this->service->createJob($body['seed_keyword'], $body['source'] ?? 'manual', $body['config'] ?? []);
+            $pid = isset($body['profile_id']) && $body['profile_id'] !== '' ? (int)$body['profile_id'] : null;
+            $jid = $this->service->createJob($body['seed_keyword'], $body['source'] ?? 'manual', $body['config'] ?? [], $pid);
             $this->success(['id' => $jid], 201);
             return;
         }

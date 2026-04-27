@@ -56,14 +56,16 @@ class KeywordCollectorService {
     }
 
 
-    public function createJob(string $seed, string $source = 'manual', array $config = []): int {
+    public function createJob(string $seed, string $source = 'manual', array $config = [], ?int $profileId = null): int {
         $seed = trim($seed);
         if ($seed === '') throw new RuntimeException('Seed keyword не может быть пустым');
 
-        $this->db->insert(SeoKeywordJob::TABLE, [
+        $row = [
             'seed_keyword' => $seed, 'source' => $source, 'status' => 'pending',
             'config' => !empty($config) ? json_encode($config, JSON_UNESCAPED_UNICODE) : null,
-        ]);
+        ];
+        if ($profileId !== null) $row['profile_id'] = $profileId;
+        $this->db->insert(SeoKeywordJob::TABLE, $row);
         return (int)$this->db->getPdo()->lastInsertId();
     }
 

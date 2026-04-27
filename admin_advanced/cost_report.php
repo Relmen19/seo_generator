@@ -8,9 +8,20 @@ requireAuth();
 require_once __DIR__ . '/../config.php';
 
 use Seo\Service\CostReportService;
+use Seo\Database;
 
-$days       = isset($_GET['days']) ? max(1, min(365, (int)$_GET['days'])) : 30;
-$report     = (new CostReportService())->build($days);
+$days      = isset($_GET['days']) ? max(1, min(365, (int)$_GET['days'])) : 30;
+$profileId = isset($_GET['profile_id']) && $_GET['profile_id'] !== '' ? (int)$_GET['profile_id'] : null;
+
+$profileName = '';
+if ($profileId !== null) {
+    $row = Database::getInstance()->fetchOne(
+        "SELECT name FROM seo_site_profiles WHERE id = ?", [$profileId]
+    );
+    $profileName = $row ? (string)$row['name'] : '';
+}
+
+$report     = (new CostReportService())->build($days, $profileId);
 $strategies = $report['by_strategy'];
 $operations = $report['by_operation'];
 $comparison = $report['comparison'];
@@ -28,11 +39,16 @@ $totalCalls    = array_sum(array_map(static fn($r) => (int)$r['calls'],        $
 $pageTitle      = 'Расходы — SEO admin';
 $activeNav      = 'cost';
 $pageHeading    = 'Расходы';
-$pageSubheading = 'Стоимость генерации за выбранный период';
+$pageSubheading = $profileName !== ''
+    ? 'Профиль: ' . $profileName . ' · период ' . (int)$days . ' дн.'
+    : ($profileId !== null ? 'Профиль #' . (int)$profileId : 'Все профили (профиль не выбран)');
 
 ob_start();
 ?>
 <form method="GET" class="flex items-center gap-2 bg-sand-50 rounded-full pl-4 pr-1 h-12 shadow-rail">
+  <?php if ($profileId !== null): ?>
+    <input type="hidden" name="profile_id" value="<?= (int)$profileId ?>">
+  <?php endif; ?>
   <span class="text-ink-500 text-sm">Период</span>
   <input type="number" name="days" min="1" max="365" value="<?= (int)$days ?>"
          class="w-20 h-9 px-3 rounded-full bg-sand-100 text-sm text-ink-900 outline-none focus:bg-sand-50">
@@ -42,7 +58,12 @@ ob_start();
 <?php
 $topbarRight = ob_get_clean();
 
-$extraHead = '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>';
+<?php
+$autoRedirect = $profileId === null
+    ? '<script>(function(){var id=localStorage.getItem("seo_profile_id");if(id){var u=new URL(location.href);u.searchParams.set("profile_id",id);location.replace(u.toString());}})();</script>'
+    : '';
+$extraHead = $autoRedirect . '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>';
+?>
 
 include __DIR__ . '/_layout/header.php';
 ?>

@@ -19,9 +19,16 @@ class CostReportService
         $this->db = $db ?? Database::getInstance();
     }
 
-    public function build(int $days = 30): array
+    public function build(int $days = 30, ?int $profileId = null): array
     {
         if ($days < 1) $days = 30;
+
+        $articleWhere = '';
+        $articleParams = [$days];
+        if ($profileId !== null) {
+            $articleWhere = ' AND a.profile_id = ?';
+            $articleParams[] = $profileId;
+        }
 
         $perArticle = $this->db->fetchAll(
             "SELECT u.entity_id AS article_id,
@@ -35,9 +42,9 @@ class CostReportService
                LEFT JOIN seo_site_profiles p ON p.id = a.profile_id
               WHERE u.category = 'article_research'
                 AND u.entity_type = 'article'
-                AND u.created_at >= (NOW() - INTERVAL ? DAY)
+                AND u.created_at >= (NOW() - INTERVAL ? DAY)" . $articleWhere . "
               GROUP BY u.entity_id, p.research_strategy",
-            [$days]
+            $articleParams
         );
 
         $byStrategy = [];
@@ -58,6 +65,12 @@ class CostReportService
         unset($row);
         ksort($byStrategy);
 
+        $opWhere = '';
+        $opParams = [$days];
+        if ($profileId !== null) {
+            $opWhere = ' AND profile_id = ?';
+            $opParams[] = $profileId;
+        }
         $byOperation = $this->db->fetchAll(
             "SELECT operation,
                     COUNT(*)               AS calls,
@@ -67,14 +80,15 @@ class CostReportService
                     SUM(cost_usd)          AS cost_usd
                FROM seo_token_usage
               WHERE category = 'article_research'
-                AND created_at >= (NOW() - INTERVAL ? DAY)
+                AND created_at >= (NOW() - INTERVAL ? DAY)" . $opWhere . "
               GROUP BY operation
               ORDER BY total_tokens DESC",
-            [$days]
+            $opParams
         );
 
         return [
             'days'         => $days,
+            'profile_id'   => $profileId,
             'by_strategy'  => $byStrategy,
             'by_operation' => array_map(fn($r) => [
                 'operation'         => $r['operation'] ?? null,
