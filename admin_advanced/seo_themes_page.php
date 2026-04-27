@@ -1,210 +1,283 @@
 <?php
+
+declare(strict_types=1);
+
 require_once __DIR__ . '/../auth.php';
 requireAuth();
+
+require_once __DIR__ . '/../config.php';
+
+$pageTitle      = 'Темы оформления — SEO admin';
+$activeNav      = 'themes';
+$pageHeading    = 'Темы оформления';
+$pageSubheading = 'Палитры, шрифты и радиусы для статей';
+
+ob_start();
 ?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Темы оформления</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
-        .topbar { background: #1e293b; border-bottom: 1px solid #334155; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
-        .topbar h1 { font-size: 1.1rem; color: #f1f5f9; }
-        .topbar nav { display: flex; gap: 8px; }
-        .topbar nav a { color: #94a3b8; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: .85rem; }
-        .topbar nav a:hover { background: #334155; color: #e2e8f0; }
-        .topbar nav a.active { background: #6366f1; color: #fff; }
-        .btn-logout { color: #f87171 !important; }
+<button type="button" class="btn-primary h-12 px-5" @click="newTheme()">
+  <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 4v12M4 10h12" stroke-linecap="round"/></svg>
+  Новая тема
+</button>
+<?php
+$topbarRight = ob_get_clean();
 
-        .container { max-width: 1240px; margin: 24px auto; padding: 0 24px; display: grid; grid-template-columns: 280px 1fr; gap: 16px; }
-        .side { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 12px; height: fit-content; position: sticky; top: 16px; }
-        .side h2 { font-size: .85rem; color: #cbd5e1; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .05em; }
-        .theme-item { padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-bottom: 4px; border: 1px solid transparent; }
-        .theme-item:hover { background: #334155; }
-        .theme-item.active { background: #312e81; border-color: #6366f1; }
-        .theme-code { font-family: ui-monospace, monospace; font-size: .8rem; color: #a5b4fc; }
-        .theme-name { font-size: .9rem; color: #f1f5f9; margin-top: 2px; }
-        .badge { display: inline-block; font-size: .65rem; padding: 1px 6px; border-radius: 4px; background: #064e3b; color: #6ee7b7; margin-left: 6px; }
-        .badge.off { background: #4c1d24; color: #fca5a5; }
+include __DIR__ . '/_layout/header.php';
+?>
 
-        .editor { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; }
-        .row { display: flex; gap: 12px; margin-bottom: 14px; }
-        .row > * { flex: 1; }
-        label { display: block; font-size: .75rem; color: #94a3b8; margin-bottom: 4px; text-transform: uppercase; }
-        input[type=text], textarea, select { width: 100%; background: #0f172a; border: 1px solid #334155; color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font: inherit; font-family: ui-monospace, monospace; font-size: .85rem; }
-        textarea { min-height: 360px; resize: vertical; }
-        .btn { padding: 8px 16px; background: #6366f1; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: .9rem; }
-        .btn:hover { background: #818cf8; }
-        .btn.danger { background: #b91c1c; }
-        .btn.danger:hover { background: #dc2626; }
-        .btn.ghost { background: transparent; border: 1px solid #475569; color: #cbd5e1; }
-        .btn.ghost:hover { background: #334155; }
-        .actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
-        .preview { display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 6px; margin-top: 14px; }
-        .swatch { aspect-ratio: 1; border-radius: 6px; border: 1px solid #334155; position: relative; }
-        .swatch span { position: absolute; bottom: 2px; left: 4px; font-size: .55rem; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6); font-family: ui-monospace, monospace; }
-        .msg { padding: 10px; background: #064e3b; color: #6ee7b7; border-radius: 6px; margin-bottom: 12px; }
-        .msg.err { background: #4c1d24; color: #fca5a5; }
-        .empty { color: #64748b; padding: 40px; text-align: center; }
-    </style>
-</head>
-<body>
-<div class="topbar">
-    <h1>Темы оформления</h1>
-    <nav>
-        <a href="/admin_advanced/seo_page.php">SEO</a>
-        <a href="/admin_advanced/seo_profile_page.php">Профили</a>
-        <a href="/admin_advanced/seo_themes_page.php" class="active">Темы</a>
-        <a href="/logout.php" class="btn-logout">Выйти</a>
-    </nav>
-</div>
+<div x-data="themesPage()" x-init="init()" class="grid grid-cols-1 lg:grid-cols-[320px,1fr] gap-6 lg:gap-8">
 
-<div class="container">
-    <aside class="side">
-        <h2>Темы</h2>
-        <div id="themesList"></div>
-        <button class="btn ghost" style="width:100%;margin-top:8px" onclick="newTheme()">+ Создать</button>
-    </aside>
-    <main class="editor" id="editor">
-        <div class="empty">Выбери тему из списка слева</div>
-    </main>
+  <aside class="card p-5 md:p-6 lg:sticky lg:top-6 self-start max-h-[calc(100vh-160px)] overflow-auto">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-ink-500">Все темы</h2>
+      <span class="badge-soft" x-text="themes.length"></span>
+    </div>
+
+    <template x-if="themes.length === 0">
+      <div class="text-ink-300 text-sm py-6 text-center">Пока пусто</div>
+    </template>
+
+    <ul class="space-y-1">
+      <template x-for="t in themes" :key="t.code">
+        <li>
+          <button type="button" @click="selectTheme(t.code)"
+                  class="w-full text-left rounded-2xl px-3 py-3 transition flex items-start gap-2"
+                  :class="t.code === currentCode ? 'bg-ink-900 text-sand-50' : 'hover:bg-sand-100 text-ink-900'">
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-mono opacity-70" x-text="t.code"></div>
+              <div class="font-semibold text-sm truncate mt-0.5" x-text="t.name"></div>
+            </div>
+            <span class="text-[10px] font-bold uppercase rounded-full px-2 h-5 grid place-items-center"
+                  :class="t.is_active
+                    ? (t.code === currentCode ? 'bg-sun-400 text-ink-900' : 'bg-emerald-100 text-emerald-800')
+                    : (t.code === currentCode ? 'bg-white/15 text-sand-300' : 'bg-sand-200 text-ink-500')"
+                  x-text="t.is_active ? 'on' : 'off'"></span>
+          </button>
+        </li>
+      </template>
+    </ul>
+  </aside>
+
+  <section class="card p-6 md:p-8 min-h-[420px]">
+    <template x-if="!editor">
+      <div class="h-full grid place-items-center text-center text-ink-300 py-20">
+        <div>
+          <div class="text-6xl mb-4">🎨</div>
+          <p class="text-ink-500">Выбери тему слева или создай новую.</p>
+        </div>
+      </div>
+    </template>
+
+    <template x-if="editor">
+      <div>
+        <div class="grid grid-cols-1 md:grid-cols-[200px,1fr,140px] gap-4 mb-6">
+          <div>
+            <label class="label">Код</label>
+            <input type="text" class="input font-mono" x-model="editor.code" :disabled="!editor.isNew" placeholder="my_theme">
+          </div>
+          <div>
+            <label class="label">Название</label>
+            <input type="text" class="input" x-model="editor.name" placeholder="My Theme">
+          </div>
+          <div>
+            <label class="label">Статус</label>
+            <select class="select" x-model.number="editor.is_active">
+              <option value="1">Активна</option>
+              <option value="0">Отключена</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="label !mb-0">Токены (JSON)</label>
+              <button type="button" class="btn-ghost h-8 px-3 text-xs" @click="formatJson()">Форматировать</button>
+            </div>
+            <textarea class="textarea font-mono text-xs" rows="20"
+                      x-model="editor.tokensRaw" @input.debounce.300ms="renderPreview()" spellcheck="false"></textarea>
+            <p class="text-xs mt-1" :class="editor.jsonError ? 'text-ember-500' : 'text-ink-300'"
+               x-text="editor.jsonError || 'Структура: { color:{…}, type:{…}, radius:{…} }'"></p>
+          </div>
+
+          <div>
+            <label class="label">Превью палитры</label>
+            <div class="grid grid-cols-4 sm:grid-cols-5 xl:grid-cols-4 gap-2">
+              <template x-for="(val, key) in previewColors" :key="key">
+                <div class="aspect-square rounded-2xl ring-1 ring-sand-200 relative overflow-hidden"
+                     :style="`background:${val}`">
+                  <span class="absolute bottom-1.5 left-2 text-[10px] font-mono px-1.5 rounded bg-black/30 text-white" x-text="key"></span>
+                </div>
+              </template>
+              <template x-if="Object.keys(previewColors).length === 0">
+                <div class="col-span-full py-8 text-center text-ink-300 text-sm">Нет цветов в JSON</div>
+              </template>
+            </div>
+
+            <template x-if="previewType.length > 0 || previewRadius.length > 0">
+              <div class="mt-5 space-y-3 text-sm">
+                <template x-if="previewType.length > 0">
+                  <div>
+                    <div class="label">Шрифты</div>
+                    <ul class="space-y-1">
+                      <template x-for="row in previewType" :key="row.k">
+                        <li class="flex items-baseline gap-3">
+                          <span class="text-xs text-ink-500 font-mono w-32 shrink-0" x-text="row.k"></span>
+                          <span class="text-ink-900 truncate" x-text="row.v"></span>
+                        </li>
+                      </template>
+                    </ul>
+                  </div>
+                </template>
+                <template x-if="previewRadius.length > 0">
+                  <div>
+                    <div class="label">Радиусы</div>
+                    <div class="flex flex-wrap gap-3">
+                      <template x-for="row in previewRadius" :key="row.k">
+                        <div class="flex flex-col items-center gap-1">
+                          <div class="bg-ink-900" :style="`width:48px;height:48px;border-radius:${row.v}`"></div>
+                          <span class="text-[10px] font-mono text-ink-500" x-text="row.k+': '+row.v"></span>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" class="btn-primary" @click="saveTheme()" :disabled="saving">
+            <span x-show="!saving">Сохранить</span>
+            <span x-show="saving" class="flex items-center gap-2"><span class="spinner"></span>Сохраняю…</span>
+          </button>
+          <template x-if="!editor.isNew">
+            <button type="button" class="btn-danger" @click="deleteTheme()">Удалить</button>
+          </template>
+          <button type="button" class="btn-soft" @click="renderPreview()">Обновить превью</button>
+          <a class="btn-soft" :href="`/public/article-demo.php?theme=${encodeURIComponent(editor.code)}`" target="_blank" rel="noopener">
+            Открыть demo
+          </a>
+        </div>
+      </div>
+    </template>
+  </section>
 </div>
 
 <script>
-const API = '/controllers/router.php?r=themes';
-let themes = [];
-let currentCode = null;
+function themesPage() {
+  return {
+    themes: [],
+    currentCode: null,
+    editor: null,
+    saving: false,
+    previewColors: {},
+    previewType: [],
+    previewRadius: [],
 
-async function api(path, opts = {}) {
-    const r = await fetch(API + path, { ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) } });
-    const j = await r.json();
-    if (!j.success) throw new Error(j.error || 'API error');
-    return j.data;
-}
+    async init() { await this.loadThemes(); },
 
-async function loadThemes() {
-    themes = await api('');
-    renderList();
-}
+    async loadThemes() {
+      try { this.themes = (await SEO.api('themes')) || []; }
+      catch (_) { this.themes = []; }
+    },
 
-function renderList() {
-    const el = document.getElementById('themesList');
-    el.innerHTML = themes.map(t =>
-        `<div class="theme-item ${t.code === currentCode ? 'active' : ''}" onclick="selectTheme('${t.code}')">
-            <div class="theme-code">${t.code}</div>
-            <div class="theme-name">${escapeHtml(t.name)}<span class="badge ${t.is_active ? '' : 'off'}">${t.is_active ? 'on' : 'off'}</span></div>
-        </div>`
-    ).join('');
-}
+    async selectTheme(code) {
+      this.currentCode = code;
+      try {
+        const t = await SEO.api('themes/' + encodeURIComponent(code));
+        this.openEditor(t, false);
+      } catch (_) { /* api handles toast */ }
+    },
 
-function escapeHtml(s) {
-    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
-async function selectTheme(code) {
-    currentCode = code;
-    renderList();
-    const data = await api('/' + encodeURIComponent(code));
-    renderEditor(data, false);
-}
-
-function newTheme() {
-    currentCode = null;
-    renderList();
-    renderEditor({
+    newTheme() {
+      this.currentCode = null;
+      this.openEditor({
         code: '',
         name: '',
         is_active: 1,
         tokens: {
-            color: { accent: '#2563EB', text: '#0f172a', surface: '#ffffff', border: '#e2e8f0', bg: '#ffffff', danger: '#ef4444', success: '#16a34a', warn: '#f59e0b', 'chart-1': '#2563EB', 'chart-2': '#0D9488', 'chart-3': '#8B5CF6', 'chart-4': '#F59E0B', 'chart-5': '#EF4444', 'chart-6': '#16A34A', 'chart-7': '#EC4899', 'chart-8': '#06B6D4' },
-            type: { 'font-text': '"Onest", sans-serif', 'font-heading': '"Geologica", sans-serif' },
-            radius: { sm: '6px', md: '12px', lg: '16px' },
+          color:  { accent:'#2563EB', text:'#0f172a', surface:'#ffffff', border:'#e2e8f0', bg:'#ffffff',
+                    danger:'#ef4444', success:'#16a34a', warn:'#f59e0b',
+                    'chart-1':'#2563EB','chart-2':'#0D9488','chart-3':'#8B5CF6','chart-4':'#F59E0B',
+                    'chart-5':'#EF4444','chart-6':'#16A34A','chart-7':'#EC4899','chart-8':'#06B6D4' },
+          type:   { 'font-text':'"Onest", sans-serif', 'font-heading':'"Geologica", sans-serif' },
+          radius: { sm:'6px', md:'12px', lg:'16px' },
         },
-    }, true);
-}
+      }, true);
+    },
 
-function renderEditor(t, isNew) {
-    const tokensJson = JSON.stringify(t.tokens, null, 2);
-    document.getElementById('editor').innerHTML = `
-        <div id="msg"></div>
-        <div class="row">
-            <div>
-                <label>Код</label>
-                <input type="text" id="fldCode" value="${escapeHtml(t.code)}" ${isNew ? '' : 'disabled'} placeholder="my_theme">
-            </div>
-            <div>
-                <label>Название</label>
-                <input type="text" id="fldName" value="${escapeHtml(t.name)}">
-            </div>
-            <div style="flex:0 0 120px">
-                <label>Активна</label>
-                <select id="fldActive"><option value="1" ${t.is_active ? 'selected' : ''}>Да</option><option value="0" ${!t.is_active ? 'selected' : ''}>Нет</option></select>
-            </div>
-        </div>
-        <div>
-            <label>Токены (JSON)</label>
-            <textarea id="fldTokens">${escapeHtml(tokensJson)}</textarea>
-        </div>
-        <div class="preview" id="preview"></div>
-        <div class="actions">
-            <button class="btn" onclick="saveTheme(${isNew ? 'true' : 'false'})">Сохранить</button>
-            ${isNew ? '' : '<button class="btn danger" onclick="deleteTheme()">Удалить</button>'}
-            <button class="btn ghost" onclick="renderPreview()">Обновить превью</button>
-            <a class="btn ghost" href="/public/article-demo.php?theme=${encodeURIComponent(t.code)}" target="_blank" style="text-decoration:none">Открыть demo</a>
-        </div>`;
-    renderPreview();
-}
+    openEditor(t, isNew) {
+      this.editor = {
+        isNew,
+        code: t.code || '',
+        name: t.name || '',
+        is_active: t.is_active ? 1 : 0,
+        tokensRaw: JSON.stringify(t.tokens || {}, null, 2),
+        jsonError: '',
+      };
+      this.renderPreview();
+    },
 
-function renderPreview() {
-    const el = document.getElementById('preview');
-    if (!el) return;
-    let tokens;
-    try { tokens = JSON.parse(document.getElementById('fldTokens').value); } catch (e) { el.innerHTML = '<div class="msg err">JSON некорректен</div>'; return; }
-    const colors = tokens.color || {};
-    el.innerHTML = Object.entries(colors).map(([k, v]) => `<div class="swatch" style="background:${escapeHtml(v)}"><span>${escapeHtml(k)}</span></div>`).join('');
-}
+    formatJson() {
+      try {
+        const obj = JSON.parse(this.editor.tokensRaw);
+        this.editor.tokensRaw = JSON.stringify(obj, null, 2);
+        this.editor.jsonError = '';
+        this.renderPreview();
+      } catch (e) { this.editor.jsonError = 'JSON некорректен: ' + e.message; }
+    },
 
-async function saveTheme(isNew) {
-    const code = document.getElementById('fldCode').value.trim();
-    const name = document.getElementById('fldName').value.trim();
-    const isActive = document.getElementById('fldActive').value === '1';
-    let tokens;
-    try { tokens = JSON.parse(document.getElementById('fldTokens').value); } catch (e) {
-        showMsg('JSON некорректен: ' + e.message, true); return;
-    }
-    if (!code) { showMsg('code обязателен', true); return; }
-    if (!name) { showMsg('Название обязательно', true); return; }
-    try {
-        const method = isNew ? 'POST' : 'PUT';
-        const path = isNew ? '' : '/' + encodeURIComponent(code);
-        const data = await api(path, { method, body: JSON.stringify({ code, name, tokens, is_active: isActive }) });
-        currentCode = data.code;
-        await loadThemes();
-        await selectTheme(currentCode);
-        showMsg('Сохранено');
-    } catch (e) { showMsg(e.message, true); }
-}
+    renderPreview() {
+      if (!this.editor) return;
+      let parsed;
+      try { parsed = JSON.parse(this.editor.tokensRaw); this.editor.jsonError = ''; }
+      catch (e) { this.editor.jsonError = 'JSON некорректен: ' + e.message; return; }
 
-async function deleteTheme() {
-    if (!currentCode) return;
-    if (!confirm('Удалить тему ' + currentCode + '?')) return;
-    try {
-        await api('/' + encodeURIComponent(currentCode), { method: 'DELETE' });
-        currentCode = null;
-        await loadThemes();
-        document.getElementById('editor').innerHTML = '<div class="empty">Тема удалена</div>';
-    } catch (e) { showMsg(e.message, true); }
-}
+      this.previewColors = parsed.color || {};
+      this.previewType   = Object.entries(parsed.type   || {}).map(([k, v]) => ({ k, v }));
+      this.previewRadius = Object.entries(parsed.radius || {}).map(([k, v]) => ({ k, v }));
+    },
 
-function showMsg(text, isErr) {
-    const m = document.getElementById('msg');
-    if (m) m.innerHTML = `<div class="msg ${isErr ? 'err' : ''}">${escapeHtml(text)}</div>`;
-}
+    async saveTheme() {
+      const e = this.editor; if (!e) return;
+      const code = e.code.trim(), name = e.name.trim();
+      if (!code) { SEO.toast('code обязателен', 'err'); return; }
+      if (!name) { SEO.toast('Название обязательно', 'err'); return; }
 
-loadThemes();
+      let tokens;
+      try { tokens = JSON.parse(e.tokensRaw); }
+      catch (err) { SEO.toast('JSON некорректен: ' + err.message, 'err'); return; }
+
+      this.saving = true;
+      try {
+        const body = { code, name, tokens, is_active: !!e.is_active };
+        const data = e.isNew
+          ? await SEO.api('themes', { method:'POST', body })
+          : await SEO.api('themes/' + encodeURIComponent(code), { method:'PUT', body });
+        SEO.toast('Сохранено', 'ok');
+        this.currentCode = data.code;
+        await this.loadThemes();
+        await this.selectTheme(this.currentCode);
+      } finally { this.saving = false; }
+    },
+
+    async deleteTheme() {
+      if (!this.editor || this.editor.isNew) return;
+      const code = this.editor.code;
+      if (!confirm('Удалить тему ' + code + '?')) return;
+      try {
+        await SEO.api('themes/' + encodeURIComponent(code), { method:'DELETE' });
+        SEO.toast('Удалено', 'ok');
+        this.currentCode = null;
+        this.editor = null;
+        await this.loadThemes();
+      } catch (_) { /* api handles toast */ }
+    },
+  };
+}
 </script>
-</body>
-</html>
+
+<?php include __DIR__ . '/_layout/footer.php'; ?>
