@@ -43,8 +43,8 @@ $pageSubheading = $profileName !== ''
     ? 'Профиль: ' . $profileName . ' · период ' . (int)$days . ' дн.'
     : ($profileId !== null ? 'Профиль #' . (int)$profileId : 'Все профили (профиль не выбран)');
 
-ob_start();
-?>
+ob_start();?>
+
 <form method="GET" class="flex items-center gap-2 bg-sand-50 rounded-full pl-4 pr-1 h-12 shadow-rail">
   <?php if ($profileId !== null): ?>
     <input type="hidden" name="profile_id" value="<?= (int)$profileId ?>">
@@ -57,13 +57,13 @@ ob_start();
 </form>
 <?php
 $topbarRight = ob_get_clean();
+?>
 
 <?php
 $autoRedirect = $profileId === null
     ? '<script>(function(){var id=localStorage.getItem("seo_profile_id");if(id){var u=new URL(location.href);u.searchParams.set("profile_id",id);location.replace(u.toString());}})();</script>'
     : '';
 $extraHead = $autoRedirect . '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>';
-?>
 
 include __DIR__ . '/_layout/header.php';
 ?>

@@ -215,6 +215,15 @@ class SeoSiteProfile extends AbstractEntity {
         $arr = parent::toFullArray();
         $arr['content_brief'] = $this->contentBrief;
         $arr['brand_palette'] = $this->brandPalette;
+        $arr['has_icon'] = !empty($this->iconPath);
+        $iconVersion = 0;
+        if (!empty($this->iconPath) && defined('UPLOADS_DIR')) {
+            $abs = UPLOADS_DIR . $this->iconPath;
+            if (is_file($abs)) {
+                $iconVersion = (int)@filemtime($abs);
+            }
+        }
+        $arr['icon_version'] = $iconVersion;
         return $arr;
     }
 
