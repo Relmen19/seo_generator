@@ -24,7 +24,7 @@ $topbarRight = ob_get_clean();
 include __DIR__ . '/_layout/header.php';
 ?>
 
-<div x-data="themesPage()" x-init="init()" class="grid grid-cols-1 lg:grid-cols-[320px,1fr] gap-6 lg:gap-8">
+<div x-data="themesPage()" x-init="init()" class="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 lg:gap-8">
 
   <aside class="card p-5 md:p-6 lg:sticky lg:top-6 self-start max-h-[calc(100vh-160px)] overflow-auto">
     <div class="flex items-center justify-between mb-3">
@@ -69,7 +69,7 @@ include __DIR__ . '/_layout/header.php';
 
     <template x-if="editor">
       <div>
-        <div class="grid grid-cols-1 md:grid-cols-[200px,1fr,140px] gap-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-[200px_1fr_140px] gap-4 mb-6">
           <div>
             <label class="label">Код</label>
             <input type="text" class="input font-mono" x-model="editor.code" :disabled="!editor.isNew" placeholder="my_theme">
@@ -101,15 +101,14 @@ include __DIR__ . '/_layout/header.php';
 
           <div>
             <label class="label">Превью палитры</label>
-            <div class="grid grid-cols-4 sm:grid-cols-5 xl:grid-cols-4 gap-2">
+            <div class="swatch-grid">
               <template x-for="(val, key) in previewColors" :key="key">
-                <div class="aspect-square rounded-2xl ring-1 ring-sand-200 relative overflow-hidden"
-                     :style="`background:${val}`">
-                  <span class="absolute bottom-1.5 left-2 text-[10px] font-mono px-1.5 rounded bg-black/30 text-white" x-text="key"></span>
+                <div class="swatch" :style="`background:${val}`">
+                  <span class="swatch-label" x-text="key"></span>
                 </div>
               </template>
               <template x-if="Object.keys(previewColors).length === 0">
-                <div class="col-span-full py-8 text-center text-ink-300 text-sm">Нет цветов в JSON</div>
+                <div style="grid-column: 1 / -1" class="py-8 text-center text-ink-300 text-sm">Нет цветов в JSON</div>
               </template>
             </div>
 
