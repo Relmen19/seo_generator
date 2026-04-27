@@ -192,9 +192,79 @@ class ArticleGeneratorService {
 
 
 
+    /**
+     * Recursively decide whether a generated block looks empty.
+     * Treats null, [], {}, and structures whose every leaf string is blank as empty.
+     */
+    private function isBlockEmpty($content): bool {
+        if ($content === null) return true;
+        if (is_string($content)) return trim($content) === '';
+        if (is_array($content)) {
+            if (empty($content)) return true;
+            foreach ($content as $v) {
+                if (!$this->isBlockEmpty($v)) return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns list of [index, name, type] for required template blocks
+     * whose generated content is empty.
+     */
+    private function findMissingRequiredBlocks(array $templateBlocks, array $data): array {
+        $missing = [];
+        foreach ($templateBlocks as $i => $tb) {
+            if (empty($tb['is_required'])) continue;
+            $key = "block_{$i}";
+            $raw = $data[$key] ?? null;
+            $unwrapped = $this->unwrapBlockContent($raw, $tb['type'] ?? '');
+            if ($this->isBlockEmpty($unwrapped)) {
+                $missing[] = [
+                    'index' => $i,
+                    'name'  => $tb['name'] ?? $tb['type'] ?? "block_{$i}",
+                    'type'  => $tb['type'] ?? '',
+                ];
+            }
+        }
+        return $missing;
+    }
+
+    /**
+     * Mark article failed and persist a structured generation_error payload.
+     */
+    private function markGenerationFailed(int $articleId, string $phase, array $details): void {
+        $payload = json_encode(
+            ['phase' => $phase, 'at' => date('c')] + $details,
+            JSON_UNESCAPED_UNICODE
+        );
+        $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, 'id = :id',
+            ['status' => SeoArticle::STATUS_FAILED, 'generation_error' => $payload],
+            [':id' => $articleId]);
+        $this->writeAudit($articleId, 'generation_failed',
+            ['phase' => $phase] + $details);
+    }
+
+    /**
+     * Apply Simple/Advanced mode rules to options.
+     * Simple => skip research + outline (predictable template-only path).
+     * Advanced => research + outline run unless caller already overrode them.
+     */
+    private function applyModeOptions(array $article, array $options): array {
+        $mode = $article['generation_mode'] ?? SeoArticle::MODE_SIMPLE;
+        if ($mode !== SeoArticle::MODE_ADVANCED) {
+            $options['skip_research'] = 1;
+            $options['skip_outline']  = 1;
+        }
+        $options['_mode'] = $mode;
+        return $options;
+    }
+
     public function generateFullPipeline(int $articleId, array $options = []): array {
         $article = $this->loadArticle($articleId);
         $this->applyProfileToPrompts($article['profile_id'] ?? null);
+        $options = $this->applyModeOptions($article, $options);
         if (empty($article['slug'])) {
             $slug = $this->generateSlug($article['title']);
             $this->db->update(SeoArticle::SEO_ARTICLE_TABLE,
@@ -345,6 +415,8 @@ class ArticleGeneratorService {
 
     public function generateFullPipelineSSE(int $articleId, array $options = []): void {
         $article = $this->loadArticle($articleId);
+        $options = $this->applyModeOptions($article, $options);
+        $this->sendSSE('pipeline_mode', ['mode' => $options['_mode']]);
         $control = new GenerationControlService($this->db);
         $control->clearCancel($articleId);
 
@@ -530,6 +602,8 @@ class ArticleGeneratorService {
     }
 
     public function generateAllBlocks(int $articleId, array $options = []): array {
+        $articleHead = $this->loadArticle($articleId);
+        $options = $this->applyModeOptions($articleHead, $options);
         if (empty($options['skip_research'])) {
             $this->ensureResearch($articleId, $options);
         }
@@ -573,6 +647,35 @@ class ArticleGeneratorService {
         ]);
         $result = $this->gpt->chatJson($messages, $gptOptions);
         $data   = $result['data'];
+
+        // Required-block validator: one retry, then mark article failed.
+        $missing = $this->findMissingRequiredBlocks($templateBlocks, is_array($data) ? $data : []);
+        if (!empty($missing)) {
+            $names = array_map(fn($m) => $m['name'], $missing);
+            $reminder = "ВНИМАНИЕ: предыдущая попытка вернула пустыми обязательные блоки: "
+                . implode(', ', $names) . ". Сгенерируй их заново, не оставляй пустых required-полей.";
+            $retryMessages = $messages;
+            $retryMessages[] = ['role' => 'system', 'content' => $reminder];
+            $retry = $this->gpt->chatJson($retryMessages, $gptOptions);
+            $retryData = is_array($retry['data'] ?? null) ? $retry['data'] : [];
+            foreach ($retryData as $k => $v) {
+                if (!$this->isBlockEmpty($v)) $data[$k] = $v;
+            }
+            foreach (['prompt_tokens', 'completion_tokens', 'total_tokens'] as $tk) {
+                $result['usage'][$tk] = ($result['usage'][$tk] ?? 0) + ($retry['usage'][$tk] ?? 0);
+            }
+
+            $stillMissing = $this->findMissingRequiredBlocks($templateBlocks, $data);
+            if (!empty($stillMissing)) {
+                $this->markGenerationFailed($articleId, 'blocks', [
+                    'missing'  => $stillMissing,
+                    'attempts' => 2,
+                ]);
+                throw new RuntimeException(
+                    'Required blocks empty after retry: ' . implode(', ', array_map(fn($m) => $m['name'], $stillMissing))
+                );
+            }
+        }
 
         $existingBlocks = $this->loadArticleBlocks($articleId);
         $blocksGenerated = 0;
@@ -946,30 +1049,43 @@ class ArticleGeneratorService {
 
     public function generateAllBlocksSSE(int $articleId, array $options = [], array &$pipelineUsage = null): void {
         $control = new GenerationControlService($this->db);
+        $articleHead = $this->loadArticle($articleId);
+        $options = $this->applyModeOptions($articleHead, $options);
+        $this->sendSSE('pipeline_mode', ['mode' => $options['_mode']]);
         if (empty($options['skip_research'])) {
             $this->sendSSE('research_start', ['article_id' => $articleId]);
+            $t0 = microtime(true);
             try {
                 $r = $this->ensureResearch($articleId, $options);
                 $this->sendSSE('research_done', [
                     'status' => $r['status'] ?? 'ok',
                     'usage'  => $r['usage'] ?? null,
                     'length' => isset($r['dossier']) ? strlen($r['dossier']) : null,
+                    'duration_ms' => (int)round((microtime(true) - $t0) * 1000),
                 ]);
             } catch (Throwable $e) {
-                $this->sendSSE('research_error', ['error' => $e->getMessage()]);
+                $this->sendSSE('research_error', [
+                    'error' => $e->getMessage(),
+                    'duration_ms' => (int)round((microtime(true) - $t0) * 1000),
+                ]);
             }
         }
         if (empty($options['skip_outline'])) {
             $this->sendSSE('outline_start', ['article_id' => $articleId]);
+            $t0 = microtime(true);
             try {
                 $o = $this->ensureOutline($articleId, $options);
                 $this->sendSSE('outline_done', [
                     'status'   => $o['status'] ?? 'ok',
                     'usage'    => $o['usage'] ?? null,
                     'sections' => $o['sections'] ?? null,
+                    'duration_ms' => (int)round((microtime(true) - $t0) * 1000),
                 ]);
             } catch (Throwable $e) {
-                $this->sendSSE('outline_error', ['error' => $e->getMessage()]);
+                $this->sendSSE('outline_error', [
+                    'error' => $e->getMessage(),
+                    'duration_ms' => (int)round((microtime(true) - $t0) * 1000),
+                ]);
             }
         }
         $article = $this->loadArticle($articleId);
@@ -1026,6 +1142,7 @@ class ArticleGeneratorService {
                 'name' => $tb['name'], 'total' => $totalBlocks,
             ]);
 
+            $tStart = microtime(true);
             try {
                 $allTypes = array_map(fn($t) => $t['type'], $templateBlocks);
                 $messages = $this->prompts->buildBlockPrompt(
@@ -1051,6 +1168,44 @@ class ArticleGeneratorService {
                 }
 
                 $unwrapped = $this->unwrapBlockContent($result['data'], $tb['type'] ?? '');
+
+                // Required-field retry per block
+                $isRequired = !empty($tb['is_required']);
+                if ($isRequired && $this->isBlockEmpty($unwrapped)) {
+                    $this->sendSSE('block_retry', [
+                        'index' => $i,
+                        'name'  => $tb['name'],
+                        'type'  => $tb['type'],
+                        'reason'=> 'empty_required',
+                    ]);
+                    $retryMessages = $messages;
+                    $retryMessages[] = ['role' => 'system', 'content' =>
+                        "Предыдущая попытка вернула пустой required-блок [{$tb['type']}] «{$tb['name']}». "
+                        . "Сгенерируй заново, не оставляй пустого результата."];
+                    $retry = $this->gpt->chatJson($retryMessages, $gptOptions);
+                    foreach (['prompt_tokens', 'completion_tokens', 'total_tokens'] as $k) {
+                        $totalUsage[$k] += ($retry['usage'][$k] ?? 0);
+                    }
+                    $unwrapped = $this->unwrapBlockContent($retry['data'], $tb['type'] ?? '');
+                    if ($this->isBlockEmpty($unwrapped)) {
+                        $this->sendSSE('block_failed', [
+                            'index' => $i, 'name' => $tb['name'], 'type' => $tb['type'],
+                            'reason' => 'empty_required',
+                        ]);
+                        $this->markGenerationFailed($articleId, 'blocks', [
+                            'missing' => [['index' => $i, 'name' => $tb['name'], 'type' => $tb['type']]],
+                            'attempts' => 2,
+                        ]);
+                        $this->sendSSE('error', [
+                            'message' => "Required-блок «{$tb['name']}» остался пустым после повтора. Статья переведена в failed.",
+                        ]);
+                        if ($pipelineUsage !== null) {
+                            foreach ($totalUsage as $k => $v) $pipelineUsage[$k] = ($pipelineUsage[$k] ?? 0) + $v;
+                        }
+                        return;
+                    }
+                }
+
                 $contentJson = json_encode($unwrapped, JSON_UNESCAPED_UNICODE);
                 $existing = $this->findExistingBlock($existingBlocks, $tb);
 
@@ -1074,12 +1229,14 @@ class ArticleGeneratorService {
                     'index' => $i, 'block_id' => $savedBlockId,
                     'type' => $tb['type'], 'name' => $tb['name'],
                     'content' => $unwrapped, 'usage' => $result['usage'],
+                    'duration_ms' => (int)round((microtime(true) - $tStart) * 1000),
                 ]);
 
             } catch (Throwable $e) {
                 $this->sendSSE('block_error', [
                     'index' => $i, 'type' => $tb['type'],
                     'name' => $tb['name'], 'error' => $e->getMessage(),
+                    'duration_ms' => (int)round((microtime(true) - $tStart) * 1000),
                 ]);
             }
         }

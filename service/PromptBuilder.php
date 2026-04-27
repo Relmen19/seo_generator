@@ -73,6 +73,7 @@ class PromptBuilder {
         $user = "Статья: «{$article['title']}»\n";
         if (!empty($article['keywords']))     $user .= "Ключевые слова: {$article['keywords']}\n";
         if (!empty($article['article_plan'])) $user .= "План: {$article['article_plan']}\n";
+        $user .= $this->buildResearchSection($article, "Используй ТОЛЬКО факты, цифры и сравнения из досье ниже. Не выдумывай вне досье.");
         $user .= "ВСЕ блоки — строго по теме «{$article['title']}»!\n\n";
 
         $total = count($templateBlocks);

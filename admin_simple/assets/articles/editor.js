@@ -46,6 +46,9 @@ function renderEditor() {
 
     // Research/Outline UI — advanced-only; markup removed in simple mode.
 
+    const modeSel = el('genModeSelect');
+    if (modeSel) modeSel.value = a.generation_mode === 'advanced' ? 'advanced' : 'simple';
+
     el('metaPubUrl').textContent = a.published_url || '—';
     el('metaVersion').textContent = a.version || 1;
     el('metaModel').textContent = a.gpt_model || '—';

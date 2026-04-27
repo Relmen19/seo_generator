@@ -1,1 +1,7 @@
+# Scheduled tasks executed by the seo_cron container (cron -f).
+#
+# telegram_sender: ticks every minute but is gated by the
+# seo_settings.scheduled_publish_enabled flag. Set value to '1' to enable
+# scheduled Telegram posting; default ships disabled so the cron is a
+# no-op until the user opts in.
 * * * * * www-data cd /var/www/html && php cron/telegram_sender.php >> /var/log/seo_cron.log 2>&1

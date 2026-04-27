@@ -18,6 +18,11 @@ class SeoArticle extends AbstractEntity {
     public const STATUS_PUBLISHED      = 'published';
     public const STATUS_UNPUBLISHED    = 'unpublished';
     public const STATUS_ARCHIVED       = 'archived';
+    public const STATUS_FAILED         = 'failed';
+
+    public const MODE_SIMPLE   = 'simple';
+    public const MODE_ADVANCED = 'advanced';
+    public const MODES = [self::MODE_SIMPLE, self::MODE_ADVANCED];
 
     public const STATUSES = [
         self::STATUS_DRAFT,
@@ -30,6 +35,7 @@ class SeoArticle extends AbstractEntity {
         self::STATUS_PUBLISHED,
         self::STATUS_UNPUBLISHED,
         self::STATUS_ARCHIVED,
+        self::STATUS_FAILED,
     ];
 
     protected ?int $profileId = null;
@@ -55,7 +61,9 @@ class SeoArticle extends AbstractEntity {
     protected bool $tgExport = false;
     protected ?string $themeCode = null;
     protected ?string $gptModel = 'gpt-4o';
+    protected string $generationMode = self::MODE_SIMPLE;
     protected ?array $generationLog = null;
+    protected ?string $generationError = null;
     protected int $version = 1;
     protected ?string $createdBy = null;
 
@@ -136,8 +144,15 @@ class SeoArticle extends AbstractEntity {
         if (array_key_exists('gpt_model', $data)) {
             $this->gptModel = $this->toNullableString($data['gpt_model']);
         }
+        if (array_key_exists('generation_mode', $data)) {
+            $mode = (string)$data['generation_mode'];
+            $this->generationMode = in_array($mode, self::MODES, true) ? $mode : self::MODE_SIMPLE;
+        }
         if (array_key_exists('generation_log', $data)) {
             $this->generationLog = $this->decodeJson($data['generation_log']);
+        }
+        if (array_key_exists('generation_error', $data)) {
+            $this->generationError = $this->toNullableString($data['generation_error']);
         }
         if (array_key_exists('version', $data)) {
             $this->version = (int)$data['version'];
@@ -173,7 +188,9 @@ class SeoArticle extends AbstractEntity {
             'tg_export'        => (int)$this->tgExport,
             'theme_code'       => $this->themeCode,
             'gpt_model'        => $this->gptModel,
+            'generation_mode'  => $this->generationMode,
             'generation_log'   => $this->encodeJson($this->generationLog),
+            'generation_error' => $this->generationError,
             'version'          => $this->version,
             'created_by'       => $this->createdBy,
         ];
@@ -414,6 +431,16 @@ class SeoArticle extends AbstractEntity {
 
     public function isTgExport(): bool { return $this->tgExport; }
     public function setTgExport(bool $v): self { $this->tgExport = $v; return $this; }
+
+    public function getGenerationMode(): string { return $this->generationMode; }
+    public function setGenerationMode(string $v): self {
+        $this->generationMode = in_array($v, self::MODES, true) ? $v : self::MODE_SIMPLE;
+        return $this;
+    }
+    public function isAdvancedMode(): bool { return $this->generationMode === self::MODE_ADVANCED; }
+
+    public function getGenerationError(): ?string { return $this->generationError; }
+    public function setGenerationError(?string $v): self { $this->generationError = $v; return $this; }
 
     public function getCreatedBy(): ?string {
         return $this->createdBy;

@@ -106,6 +106,25 @@ requireAuth();
                     </div>
                     <div class="field-hint">Авто-генерация из заголовка. Можно редактировать вручную.</div>
                 </div>
+                <div class="field">
+                    <label>Режим генерации</label>
+                    <div style="display:flex;flex-direction:column;gap:6px">
+                        <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer">
+                            <input type="radio" name="wizMode" value="simple" checked>
+                            <span>
+                                <b>Простой</b> — старый предсказуемый путь:
+                                шаблон → план → GPT. Без research/outline.
+                            </span>
+                        </label>
+                        <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer">
+                            <input type="radio" name="wizMode" value="advanced">
+                            <span>
+                                <b>Расширенный</b> — добавляет research-досье и
+                                outline. Дольше и дороже, но статья насыщеннее.
+                            </span>
+                        </label>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="modal-foot">
@@ -256,12 +275,26 @@ requireAuth();
         <div class="gen-card-icon">✨</div>
         <div class="gen-card-body">
             <div class="gen-card-title">AI-генерация контента</div>
-            <div class="gen-card-desc">Одна кнопка сгенерирует все блоки и SEO meta-теги статьи. Если research/outline пусты — соберёт их первыми шагами.</div>
+            <div class="gen-card-desc">Одна кнопка сгенерирует все блоки и SEO meta-теги статьи.</div>
+            <div class="gen-card-desc" style="margin-top:6px">
+                <label style="display:inline-flex;gap:6px;align-items:center">
+                    <span>Режим:</span>
+                    <select id="genModeSelect" onchange="changeGenerationMode(this.value)">
+                        <option value="simple">Простой (template→план→GPT)</option>
+                        <option value="advanced">Расширенный (research+outline)</option>
+                    </select>
+                </label>
+            </div>
         </div>
         <button class="btn btn-primary" id="btnGenerate" onclick="generateAll()">
             <span id="genSpin"></span> Сгенерировать всё
         </button>
     </div>
+    <!-- Per-stage progress panel populated by generate.js -->
+    <details class="gen-stages" id="genStagesPanel" style="display:none">
+        <summary>Ход генерации по стадиям</summary>
+        <div class="gen-stages-body" id="genStagesBody"></div>
+    </details>
     <!-- Blocks -->
     <div class="section">
         <div class="section-head">

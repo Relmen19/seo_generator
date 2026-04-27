@@ -128,11 +128,14 @@ async function createArticleFromWiz() {
     btn.disabled = true;
     btn.innerHTML = '<span class="spin spin-white"></span> Создание...';
     try {
+        const modeInput = document.querySelector('input[name="wizMode"]:checked');
+        const mode = modeInput ? modeInput.value : 'simple';
         const res = await api('articles', 'POST', {
             title: el('wizTitleInput').value.trim(),
             slug: el('wizSlugInput').value.trim(),
             template_id: S.wizTemplate,
             profile_id: S.wizProfile,
+            generation_mode: mode,
         });
         closeCreateModal();
         toast('Статья создана', 'ok');

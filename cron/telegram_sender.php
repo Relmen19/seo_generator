@@ -15,7 +15,23 @@ if (PHP_SAPI !== 'cli') {
 
 require_once __DIR__ . '/../config.php';
 
+use Seo\Database;
 use Seo\Service\TelegramPostService;
+
+// Global kill-switch: cron is registered in docker/crontab and ticks every
+// minute, but sending only happens when the user has explicitly enabled it
+// via seo_settings (UI toggle / SQL update).
+try {
+    $row = Database::getInstance()->fetchOne(
+        "SELECT `value` FROM seo_settings WHERE `key` = 'scheduled_publish_enabled'"
+    );
+    if (!$row || (string)$row['value'] !== '1') {
+        exit(0);
+    }
+} catch (Throwable $e) {
+    // Settings table missing => behave as disabled
+    exit(0);
+}
 
 // File lock to prevent overlapping runs
 $lockFile = sys_get_temp_dir() . '/seo_tg_sender.lock';
