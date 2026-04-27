@@ -41,6 +41,23 @@
 .blk-chip { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 14px; border: 2px solid var(--sand-300); background: var(--sand-50); cursor: pointer; transition: .15s; user-select: none; }
 .blk-chip:hover { border-color: var(--ink-700); }
 .blk-chip-on { border-color: var(--ember-500); background: #fff7ed; color: var(--ink-900); box-shadow: 0 0 0 3px rgba(249,115,22,.15); }
+
+/* brief option/rule cards */
+.bf-card { background: #fff; border: 1px solid var(--sand-300); border-radius: 20px; padding: 16px 18px; cursor: pointer; transition: .15s; box-shadow: 0 1px 0 rgba(0,0,0,.02); position: relative; }
+.bf-card:hover { border-color: var(--ink-700); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+.bf-card.bf-on { border-color: var(--ember-500); background: #fffaf2; box-shadow: 0 0 0 3px rgba(217,119,6,.15); }
+.bf-card .bf-icon { width: 40px; height: 40px; border-radius: 14px; background: var(--sand-100); display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
+.bf-card.bf-on .bf-icon { background: var(--ember-500); color: #fff; }
+.bf-card .bf-title { font-weight: 700; font-size: 14px; color: var(--ink-900); line-height: 1.25; }
+.bf-card .bf-sub { font-size: 12px; color: var(--ink-500); margin-top: 4px; line-height: 1.45; }
+.bf-card .bf-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.bf-card .bf-tag { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; background: var(--sand-100); color: var(--ink-700); }
+.bf-card.bf-on .bf-tag { background: rgba(217,119,6,.15); color: var(--ember-500); }
+.bf-card .bf-list { margin-top: 8px; padding-left: 16px; font-size: 12px; color: var(--ink-700); line-height: 1.5; }
+.bf-card .bf-list li::marker { color: var(--ember-500); }
+.bf-card .bf-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-500); margin-top: 10px; margin-bottom: 4px; }
+.bf-card .bf-del { position: absolute; top: 10px; right: 10px; opacity: 0; transition: .15s; }
+.bf-card:hover .bf-del { opacity: 1; }
 .blk-chip-icon { width: 24px; height: 24px; border-radius: 8px; background: var(--sand-200); display: grid; place-items: center; font-size: 12px; flex-shrink: 0; }
 .blk-chip-on .blk-chip-icon { background: var(--ember-500); color: #fff; }
 

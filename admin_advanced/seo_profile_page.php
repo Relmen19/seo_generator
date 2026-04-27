@@ -1116,48 +1116,63 @@ function briefExtras(o, known) {
   return rows.join('');
 }
 
+const BRIEF_ICONS = { audience: '👥', usp: '⭐', competitors: '⚔', voice: '🎙', phrases: '💬' };
+
 function briefOptHtml(stepKey, o) {
   const e = SEO.esc;
   if (!o) return '';
+  const icon = BRIEF_ICONS[stepKey] || '◆';
+
   if (stepKey === 'phrases') {
-    return '<div class="font-mono text-xs">«' + e(typeof o === 'string' ? o : (o.text || '')) + '»</div>' +
-      briefExtras(o, ['text']);
+    return '<div class="bf-icon">' + icon + '</div>' +
+      '<div class="flex-1 min-w-0">' +
+        '<div class="bf-title font-mono">«' + e(typeof o === 'string' ? o : (o.text || '')) + '»</div>' +
+        briefExtras(o, ['text']) +
+      '</div>';
   }
   if (stepKey === 'audience') {
     const pains = (o.pains || []).map(p => '<li>' + e(p) + '</li>').join('');
     const goals = (o.goals || []).map(g => '<li>' + e(g) + '</li>').join('');
-    return '<div><b>' + e(o.label || o.name || '') + '</b>' +
-      (o.description ? '<div class="text-xs text-ink-500 mt-1">' + e(o.description) + '</div>' : '') +
-      (pains ? '<div class="text-xs mt-2"><b>Боли:</b><ul class="list-disc ml-4 mt-0.5">' + pains + '</ul></div>' : '') +
-      (goals ? '<div class="text-xs mt-1"><b>Цели:</b><ul class="list-disc ml-4 mt-0.5">' + goals + '</ul></div>' : '') +
-      briefExtras(o, ['label','name','description','pains','goals']) +
+    return '<div class="bf-icon">' + icon + '</div>' +
+      '<div class="flex-1 min-w-0">' +
+        '<div class="bf-title">' + e(o.label || o.name || '') + '</div>' +
+        (o.description ? '<div class="bf-sub">' + e(o.description) + '</div>' : '') +
+        (pains ? '<div class="bf-section-label">Боли</div><ul class="bf-list">' + pains + '</ul>' : '') +
+        (goals ? '<div class="bf-section-label">Цели</div><ul class="bf-list">' + goals + '</ul>' : '') +
+        briefExtras(o, ['label','name','description','pains','goals']) +
       '</div>';
   }
   if (stepKey === 'usp') {
-    return '<div><b>' + e(o.headline || o.label || '') + '</b>' +
-      (o.why ? '<div class="text-xs text-ink-500 mt-1">' + e(o.why) + '</div>' : '') +
-      briefExtras(o, ['headline','label','why']) +
+    return '<div class="bf-icon">' + icon + '</div>' +
+      '<div class="flex-1 min-w-0">' +
+        '<div class="bf-title">' + e(o.headline || o.label || '') + '</div>' +
+        (o.why ? '<div class="bf-sub">' + e(o.why) + '</div>' : '') +
+        briefExtras(o, ['headline','label','why']) +
       '</div>';
   }
   if (stepKey === 'competitors') {
-    return '<div><b>' + e(o.name || '') + '</b>' +
-      (o.url ? ' <a href="' + e(o.url) + '" target="_blank" class="text-ember-500 underline text-xs">↗</a>' : '') +
-      (o.why_strong ? '<div class="text-xs text-ink-500 mt-1">' + e(o.why_strong) + '</div>' : '') +
-      briefExtras(o, ['name','url','why_strong']) +
+    return '<div class="bf-icon">' + icon + '</div>' +
+      '<div class="flex-1 min-w-0">' +
+        '<div class="bf-title flex items-center gap-2">' + e(o.name || '') +
+          (o.url ? ' <a href="' + e(o.url) + '" target="_blank" class="text-ember-500 text-xs no-underline">↗</a>' : '') +
+        '</div>' +
+        (o.why_strong ? '<div class="bf-sub">' + e(o.why_strong) + '</div>' : '') +
+        briefExtras(o, ['name','url','why_strong']) +
       '</div>';
   }
   if (stepKey === 'voice') {
-    const vibes = Array.isArray(o.vibes) ? o.vibes.map(v => '<span class="badge-soft mr-1">' + e(v) + '</span>').join('') : '';
+    const vibes = Array.isArray(o.vibes) ? '<div class="bf-tags">' + o.vibes.map(v => '<span class="bf-tag">' + e(v) + '</span>').join('') + '</div>' : '';
     const examples = Array.isArray(o.examples)
-      ? o.examples.map(x => '<div class="text-xs text-ink-500 mt-1 font-mono">«' + e(x) + '»</div>').join('')
+      ? '<div class="bf-section-label">Примеры</div>' + o.examples.map(x => '<div class="bf-sub font-mono mt-1">«' + e(x) + '»</div>').join('')
       : '';
-    return '<div><b>' + e(o.archetype || o.label || '') + '</b>' +
-      (vibes ? '<div class="mt-1">' + vibes + '</div>' : '') +
-      examples +
-      briefExtras(o, ['archetype','label','vibes','examples']) +
+    return '<div class="bf-icon">' + icon + '</div>' +
+      '<div class="flex-1 min-w-0">' +
+        '<div class="bf-title">' + e(o.archetype || o.label || '') + '</div>' +
+        vibes + examples +
+        briefExtras(o, ['archetype','label','vibes','examples']) +
       '</div>';
   }
-  return '<div>' + e(JSON.stringify(o)) + '</div>';
+  return '<div class="bf-icon">◆</div><div class="flex-1 min-w-0 font-mono text-xs">' + e(JSON.stringify(o)) + '</div>';
 }
 
 function profilePage() {
@@ -1599,10 +1614,18 @@ function profilePage() {
       if (step.key === 'rules') {
         const renderRules = (list, group) => list.map((r, i) => {
           const on = sel.has(r.rule || '');
-          return `<div class="bf-rule flex items-start gap-2 p-3 rounded-2xl border-2 cursor-pointer transition ${on ? 'border-ink-900 bg-sand-100' : 'border-sand-300'}" data-bf-rule="${e(group)}|${i}">
-            <input type="checkbox" class="mt-1" ${on ? 'checked' : ''}>
-            <div class="flex-1 min-w-0 text-sm"><b>${e(r.rule || '')}</b>${r.why ? '<div class="text-xs text-ink-500 mt-1">' + e(r.why) + '</div>' : ''}</div>
-            <button type="button" class="btn-icon" data-bf-rule-del="${e(group)}|${i}" title="Удалить">✕</button>
+          const ic = group === 'do' ? '✓' : '✕';
+          const cls = group === 'do' ? 'bf-rule-do' : 'bf-rule-dont';
+          return `<div class="bf-card bf-rule ${cls} ${on ? 'bf-on' : ''}" data-bf-rule="${e(group)}|${i}">
+            <div class="flex items-start gap-3">
+              <div class="bf-icon" style="${group==='do'?'background:#d1fae5;color:#065f46':'background:#fee2e2;color:#991b1b'}">${ic}</div>
+              <div class="flex-1 min-w-0">
+                <div class="bf-title">${e(r.rule || '')}</div>
+                ${r.why ? '<div class="bf-sub">' + e(r.why) + '</div>' : ''}
+              </div>
+              <input type="checkbox" class="mt-1 flex-shrink-0" ${on ? 'checked' : ''}>
+            </div>
+            <button type="button" class="btn-icon bf-del" data-bf-rule-del="${e(group)}|${i}" title="Удалить">✕</button>
           </div>`;
         }).join('');
         return `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1627,12 +1650,12 @@ function profilePage() {
       return '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">' + opts.map((o, i) => {
         const k = briefOptKey(o);
         const on = sel.has(k);
-        return `<div class="bf-card p-3 rounded-2xl border-2 cursor-pointer transition ${on ? 'border-ink-900 bg-sand-100' : 'border-sand-300'}" data-bf-opt="${i}" data-bf-single="${single ? '1' : '0'}">
-          <div class="flex items-start gap-2">
-            <input type="${single ? 'radio' : 'checkbox'}" name="bfopt-${e(step.key)}" class="mt-1" ${on ? 'checked' : ''}>
-            <div class="flex-1 min-w-0 text-sm">${briefOptHtml(step.key, o)}</div>
-            <button type="button" class="btn-icon" data-bf-del="${i}" title="Удалить">✕</button>
+        return `<div class="bf-card ${on ? 'bf-on' : ''}" data-bf-opt="${i}" data-bf-single="${single ? '1' : '0'}">
+          <div class="flex items-start gap-3">
+            ${briefOptHtml(step.key, o)}
+            <input type="${single ? 'radio' : 'checkbox'}" name="bfopt-${e(step.key)}" class="mt-1 flex-shrink-0" ${on ? 'checked' : ''}>
           </div>
+          <button type="button" class="btn-icon bf-del" data-bf-del="${i}" title="Удалить">✕</button>
         </div>`;
       }).join('') + '</div>';
     },
