@@ -194,7 +194,21 @@ include __DIR__ . '/_layout/header.php';
                       <template x-for="(row, i) in editor.colors" :key="row._id">
                         <li class="token-row">
                           <input type="color" class="token-color" :value="normalizeColor(row.v)" @input="row.v = $event.target.value">
-                          <input type="text" class="input token-key" x-model="row.k" placeholder="accent">
+                          <div class="combo-wrap" x-data="combo()">
+                            <input type="text" class="input token-key" x-model="row.k"
+                                   @focus="open=true; q=row.k||''"
+                                   @input="q=$event.target.value"
+                                   @keydown.escape="open=false"
+                                   placeholder="accent">
+                            <div class="combo-pop" x-show="open" @click.outside="open=false">
+                              <template x-for="(p, idx) in filterPresets(COLOR_KEYS, q)" :key="idx">
+                                <button type="button" class="combo-opt" @click="row.k=p; open=false" x-text="p"></button>
+                              </template>
+                              <template x-if="filterPresets(COLOR_KEYS, q).length === 0">
+                                <div class="combo-empty">Нет совпадений</div>
+                              </template>
+                            </div>
+                          </div>
                           <input type="text" class="input token-val" x-model="row.v" placeholder="#2563EB" style="font-family:ui-monospace,monospace">
                           <button type="button" class="btn-icon" @click="removeRow('colors', i)" title="Удалить">
                             <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l8 8M14 6l-8 8" stroke-linecap="round"/></svg>
@@ -224,10 +238,24 @@ include __DIR__ . '/_layout/header.php';
                     </div>
                     <ul class="space-y-2">
                       <template x-for="(row, i) in editor.fonts" :key="row._id">
-                        <li class="token-row" x-data="combo()">
+                        <li class="token-row">
                           <span class="token-fontprev" :style="rowFontPreviewStyle(row)">Aa</span>
-                          <input type="text" class="input token-key" x-model="row.k" placeholder="font-text">
-                          <div class="combo-wrap">
+                          <div class="combo-wrap" x-data="combo()">
+                            <input type="text" class="input token-key" x-model="row.k"
+                                   @focus="open=true; q=row.k||''"
+                                   @input="q=$event.target.value"
+                                   @keydown.escape="open=false"
+                                   placeholder="font-text">
+                            <div class="combo-pop" x-show="open" @click.outside="open=false">
+                              <template x-for="(p, idx) in filterPresets(FONT_KEYS, q)" :key="idx">
+                                <button type="button" class="combo-opt" @click="row.k=p; open=false" x-text="p"></button>
+                              </template>
+                              <template x-if="filterPresets(FONT_KEYS, q).length === 0">
+                                <div class="combo-empty">Нет совпадений</div>
+                              </template>
+                            </div>
+                          </div>
+                          <div class="combo-wrap" x-data="combo()">
                             <input type="text" class="input token-val" x-model="row.v"
                                    @focus="open=true; q=row.v||''"
                                    @input="q=$event.target.value"
@@ -274,10 +302,24 @@ include __DIR__ . '/_layout/header.php';
                     </div>
                     <ul class="space-y-2">
                       <template x-for="(row, i) in editor.radii" :key="row._id">
-                        <li class="token-row" x-data="combo()">
+                        <li class="token-row">
                           <span class="token-radprev" :style="`border-radius:${row.v}`"></span>
-                          <input type="text" class="input token-key" x-model="row.k" placeholder="md">
-                          <div class="combo-wrap">
+                          <div class="combo-wrap" x-data="combo()">
+                            <input type="text" class="input token-key" x-model="row.k"
+                                   @focus="open=true; q=row.k||''"
+                                   @input="q=$event.target.value"
+                                   @keydown.escape="open=false"
+                                   placeholder="md">
+                            <div class="combo-pop" x-show="open" @click.outside="open=false">
+                              <template x-for="(p, idx) in filterPresets(RADIUS_KEYS, q)" :key="idx">
+                                <button type="button" class="combo-opt" @click="row.k=p; open=false" x-text="p"></button>
+                              </template>
+                              <template x-if="filterPresets(RADIUS_KEYS, q).length === 0">
+                                <div class="combo-empty">Нет совпадений</div>
+                              </template>
+                            </div>
+                          </div>
+                          <div class="combo-wrap" x-data="combo()">
                             <input type="text" class="input token-val" x-model="row.v"
                                    @focus="open=true; q=row.v||''"
                                    @input="q=$event.target.value"
@@ -447,6 +489,21 @@ include __DIR__ . '/_layout/header.php';
 <script>
 let __tokenRowSeq = 0;
 const tokenRow = (k, v) => ({ _id: ++__tokenRowSeq, k, v });
+
+var COLOR_KEYS = [
+  'accent', 'text', 'surface', 'border', 'bg', 'muted',
+  'danger', 'success', 'warn', 'info',
+  'text-muted', 'text-inverse', 'surface-alt', 'border-strong',
+  'chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5',
+];
+var FONT_KEYS = [
+  'font-heading', 'font-text', 'font-mono',
+  'size-h1', 'size-h2', 'size-h3', 'size-lead', 'size-text', 'size-small', 'size-caption',
+  'line-height-heading', 'line-height-text',
+  'letter-spacing-heading', 'letter-spacing-text',
+  'weight-heading', 'weight-text', 'weight-bold',
+];
+var RADIUS_KEYS = ['none', 'sm', 'md', 'lg', 'xl', '2xl', '3xl', 'full'];
 
 const FONT_PRESETS = {
   'font-heading': [
