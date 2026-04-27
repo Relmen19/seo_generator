@@ -12,6 +12,59 @@ $activeNav      = 'themes';
 $pageHeading    = 'Темы оформления';
 $pageSubheading = 'Палитры, шрифты и радиусы для статей';
 
+$extraHead = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
+  . 'family=Albert+Sans:wght@400;600&'
+  . 'family=Anonymous+Pro&'
+  . 'family=Archivo+Black&'
+  . 'family=Atkinson+Hyperlegible:wght@400;700&'
+  . 'family=Bebas+Neue&'
+  . 'family=Bricolage+Grotesque:wght@400;600;700&'
+  . 'family=Cascadia+Code&'
+  . 'family=Cormorant+Garamond:wght@400;600;700&'
+  . 'family=Crimson+Pro:wght@400;600;700&'
+  . 'family=DM+Mono&'
+  . 'family=DM+Sans:wght@400;500;700&'
+  . 'family=DM+Serif+Display&'
+  . 'family=EB+Garamond:wght@400;600;700&'
+  . 'family=Familjen+Grotesk:wght@400;600;700&'
+  . 'family=Figtree:wght@400;600;700&'
+  . 'family=Fira+Code&'
+  . 'family=Fraunces:wght@400;600;700&'
+  . 'family=Geologica:wght@400;600;700&'
+  . 'family=Hanken+Grotesk:wght@400;600;700&'
+  . 'family=IBM+Plex+Mono&'
+  . 'family=IBM+Plex+Sans:wght@400;600;700&'
+  . 'family=IBM+Plex+Serif:wght@400;600;700&'
+  . 'family=Inconsolata&'
+  . 'family=JetBrains+Mono&'
+  . 'family=Karla:wght@400;600;700&'
+  . 'family=Lato:wght@400;700&'
+  . 'family=Lora:wght@400;600;700&'
+  . 'family=Manrope:wght@400;600;700&'
+  . 'family=Merriweather:wght@400;700&'
+  . 'family=Mulish:wght@400;600;700&'
+  . 'family=Noto+Sans:wght@400;600;700&'
+  . 'family=Nunito+Sans:wght@400;600;700&'
+  . 'family=Onest:wght@400;600;700&'
+  . 'family=Open+Sans:wght@400;600;700&'
+  . 'family=Oswald:wght@400;600;700&'
+  . 'family=Outfit:wght@400;600;700&'
+  . 'family=PT+Sans:wght@400;700&'
+  . 'family=Playfair+Display:wght@400;600;700&'
+  . 'family=Plus+Jakarta+Sans:wght@400;600;700&'
+  . 'family=Public+Sans:wght@400;600;700&'
+  . 'family=Roboto+Mono&'
+  . 'family=Roboto:wght@400;500;700&'
+  . 'family=Sora:wght@400;600;700&'
+  . 'family=Source+Code+Pro&'
+  . 'family=Source+Sans+3:wght@400;600;700&'
+  . 'family=Source+Serif+4:wght@400;600;700&'
+  . 'family=Space+Grotesk:wght@400;600;700&'
+  . 'family=Space+Mono&'
+  . 'family=Unbounded:wght@400;600;700&'
+  . 'family=Work+Sans:wght@400;600;700'
+  . '&display=swap" />';
+
 ob_start();
 ?>
 <button type="button" class="btn-primary" style="height:48px;padding:0 20px"
@@ -396,11 +449,86 @@ let __tokenRowSeq = 0;
 const tokenRow = (k, v) => ({ _id: ++__tokenRowSeq, k, v });
 
 const FONT_PRESETS = {
-  'font-heading': ['"Geologica", sans-serif', '"Playfair Display", Georgia, serif', '"Space Grotesk", sans-serif'],
-  'font-text':    ['"Onest", sans-serif', '"Inter", sans-serif', '"Manrope", sans-serif'],
-  'font-mono':    ['ui-monospace, SFMono-Regular, Menlo, monospace', '"JetBrains Mono", monospace', '"Fira Code", monospace'],
-  '_size':        ['14px', '16px', '18px', '20px', '24px', '32px'],
-  '_default':     ['"Onest", sans-serif', '"Inter", sans-serif', '"Geologica", sans-serif', '"Playfair Display", serif', 'ui-monospace, monospace'],
+  'font-heading': [
+    '"Geologica", sans-serif',
+    '"Playfair Display", Georgia, serif',
+    '"Space Grotesk", sans-serif',
+    '"Bricolage Grotesque", sans-serif',
+    '"Fraunces", Georgia, serif',
+    '"DM Serif Display", Georgia, serif',
+    '"Cormorant Garamond", Georgia, serif',
+    '"Unbounded", sans-serif',
+    '"Archivo Black", sans-serif',
+    '"Bebas Neue", Impact, sans-serif',
+    '"Oswald", sans-serif',
+    '"Lora", Georgia, serif',
+    '"Merriweather", Georgia, serif',
+    '"Source Serif 4", Georgia, serif',
+    '"EB Garamond", Georgia, serif',
+    '"Crimson Pro", Georgia, serif',
+    '"Manrope", sans-serif',
+    '"Outfit", sans-serif',
+    '"Sora", sans-serif',
+    '"Familjen Grotesk", sans-serif',
+  ],
+  'font-text': [
+    '"Onest", sans-serif',
+    '"Inter", sans-serif',
+    '"Manrope", sans-serif',
+    '"IBM Plex Sans", sans-serif',
+    '"Source Sans 3", sans-serif',
+    '"Nunito Sans", sans-serif',
+    '"Work Sans", sans-serif',
+    '"DM Sans", sans-serif',
+    '"Plus Jakarta Sans", sans-serif',
+    '"Public Sans", sans-serif',
+    '"Geist", sans-serif',
+    '"Atkinson Hyperlegible", sans-serif',
+    '"Noto Sans", sans-serif',
+    '"Roboto", sans-serif',
+    '"Open Sans", sans-serif',
+    '"Lato", sans-serif',
+    '"PT Sans", sans-serif',
+    '"Mulish", sans-serif',
+    '"Karla", sans-serif',
+    '"Figtree", sans-serif',
+    '"Albert Sans", sans-serif',
+    '"Hanken Grotesk", sans-serif',
+    '"IBM Plex Serif", Georgia, serif',
+    '"Lora", Georgia, serif',
+    '"Merriweather", Georgia, serif',
+  ],
+  'font-mono': [
+    'ui-monospace, SFMono-Regular, Menlo, monospace',
+    '"JetBrains Mono", monospace',
+    '"Fira Code", monospace',
+    '"IBM Plex Mono", monospace',
+    '"Geist Mono", monospace',
+    '"Source Code Pro", monospace',
+    '"Roboto Mono", monospace',
+    '"Space Mono", monospace',
+    '"DM Mono", monospace',
+    '"Iosevka", monospace',
+    '"Cascadia Code", monospace',
+    '"Inconsolata", monospace',
+    '"Anonymous Pro", monospace',
+  ],
+  '_size': ['12px', '13px', '14px', '15px', '16px', '17px', '18px', '20px', '22px', '24px', '28px', '32px', '40px', '48px'],
+  '_default': [
+    '"Onest", sans-serif',
+    '"Inter", sans-serif',
+    '"Geologica", sans-serif',
+    '"Manrope", sans-serif',
+    '"DM Sans", sans-serif',
+    '"Plus Jakarta Sans", sans-serif',
+    '"IBM Plex Sans", sans-serif',
+    '"Playfair Display", serif',
+    '"Fraunces", serif',
+    '"Lora", serif',
+    '"Merriweather", serif',
+    'ui-monospace, monospace',
+    '"JetBrains Mono", monospace',
+  ],
 };
 const RADIUS_PRESETS = {
   'sm':       ['4px', '6px', '8px'],
