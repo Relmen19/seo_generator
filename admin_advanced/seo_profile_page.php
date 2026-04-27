@@ -185,6 +185,25 @@ include __DIR__ . '/_layout/header.php';
             </div>
           </div>
 
+          <div class="card p-6 md:p-8">
+            <h3 class="text-base font-semibold">Стратегия research</h3>
+            <p class="text-xs text-ink-500 mt-1 mb-4">Как собирается фактура для статьи. Split дешевле и меньше галлюцинаций. Split + Search требует BRAVE_SEARCH_API_KEY.</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <template x-for="opt in researchStrategies" :key="opt.value">
+                <button type="button"
+                        class="fmt-pick"
+                        :class="settings.research_strategy === opt.value ? 'fmt-pick-on' : ''"
+                        @click="settings.research_strategy = opt.value">
+                  <span class="fmt-pick-icon" x-text="opt.icon"></span>
+                  <span class="flex-1 min-w-0">
+                    <span class="block font-semibold text-sm" x-text="opt.title"></span>
+                    <span class="block text-xs text-ink-500 mt-1" x-text="opt.desc"></span>
+                  </span>
+                </button>
+              </template>
+            </div>
+          </div>
+
           <div class="flex justify-end">
             <button type="button" class="btn-primary" @click="saveSettings()" :disabled="saving">
               <span x-show="!saving">Сохранить настройки</span>
@@ -222,66 +241,74 @@ include __DIR__ . '/_layout/header.php';
           </div>
 
           <div class="card p-6 md:p-8">
-            <h3 class="text-base font-semibold mb-4">Цвета и ссылки</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="label">Цветовая схема</label>
-                <div class="flex gap-2 items-center">
-                  <input type="color" class="w-12 h-10 rounded-xl cursor-pointer border border-sand-300" x-model="branding.color_scheme">
-                  <input type="text" class="input flex-1" x-model="branding.color_scheme" placeholder="#6366f1" style="font-family:ui-monospace,monospace">
-                </div>
-              </div>
-              <div><label class="label">Logo URL</label><input type="url" class="input" x-model="branding.logo_url" placeholder="https://example.com/logo.png"></div>
-              <div class="md:col-span-2"><label class="label">Base URL</label><input type="url" class="input" x-model="branding.base_url" placeholder="https://example.com"></div>
-            </div>
-          </div>
-
-          <div class="card p-6 md:p-8">
             <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
               <div>
                 <h3 class="text-base font-semibold">Тема оформления</h3>
                 <p class="text-xs text-ink-500 mt-1">Token-based темы. Управление: <a href="/admin_advanced/seo_themes_page.php" class="underline">страница тем</a>.</p>
               </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <button type="button"
                       class="theme-pick"
                       :class="!branding.default_theme_code ? 'theme-pick-on' : ''"
                       @click="branding.default_theme_code = ''">
-                <div class="theme-pick-prev" style="background:linear-gradient(135deg,#F4EEE2,#DDD3BF)">
-                  <div class="theme-pick-bar" style="background:#171511"></div>
-                  <div class="theme-pick-line" style="background:#3A3530"></div>
-                  <div class="theme-pick-line theme-pick-line-sm" style="background:#6F665B"></div>
+                <div class="tp-stage" style="background:#F4EEE2;color:#171511">
+                  <div class="tp-tag" style="background:rgba(23,21,17,.1);color:#171511;border-radius:6px">CATEGORY</div>
+                  <div class="tp-card" style="background:#FBF8F3;border:1px solid #DDD3BF;border-radius:12px">
+                    <div class="tp-h1">Заголовок статьи</div>
+                    <div class="tp-lead">Базовая тема админки на песочной палитре с ink-акцентами.</div>
+                    <div class="tp-actions">
+                      <span class="tp-btn" style="background:#171511;color:#FBF8F3;border-radius:9999px">Действие</span>
+                      <span class="tp-btn" style="background:transparent;color:#171511;box-shadow:inset 0 0 0 1px #DDD3BF;border-radius:9999px">Ещё</span>
+                    </div>
+                    <div class="tp-pills">
+                      <span class="tp-pill" style="background:#d1fae5;color:#065f46">success</span>
+                      <span class="tp-pill" style="background:rgba(245,200,66,.3);color:#171511">warn</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="theme-pick-name">Legacy theme</div>
-                <div class="theme-pick-desc">CSS-переменные из старой темы</div>
-                <div class="theme-pick-badge" x-show="!branding.default_theme_code">Выбрано</div>
+                <div class="tp-meta">
+                  <div>
+                    <div class="tp-name">Legacy theme</div>
+                    <div class="tp-code">встроенная</div>
+                  </div>
+                  <span class="tp-badge" x-show="!branding.default_theme_code">Выбрано</span>
+                </div>
               </button>
               <template x-for="t in themes" :key="t.code">
                 <button type="button"
                         class="theme-pick"
                         :class="branding.default_theme_code === t.code ? 'theme-pick-on' : ''"
                         @click="branding.default_theme_code = t.code">
-                  <div class="theme-pick-prev"
-                       :style="`background:${(t.tokens && t.tokens.color && t.tokens.color.bg) || '#fff'};border:1px solid ${(t.tokens && t.tokens.color && t.tokens.color.border) || '#e2e8f0'}`">
-                    <div class="theme-pick-bar" :style="`background:${(t.tokens && t.tokens.color && t.tokens.color.accent) || '#2563EB'}`"></div>
-                    <div class="theme-pick-line" :style="`background:${(t.tokens && t.tokens.color && t.tokens.color.text) || '#0f172a'}`"></div>
-                    <div class="theme-pick-line theme-pick-line-sm" :style="`background:${(t.tokens && t.tokens.color && t.tokens.color.text) || '#0f172a'}`"></div>
+                  <div class="tp-stage"
+                       :style="`background:${themeColor(t,'bg','#fff')};color:${themeColor(t,'text','#0f172a')}`">
+                    <div class="tp-tag"
+                         :style="`background:${themeColor(t,'accent','#2563EB')}22;color:${themeColor(t,'accent','#2563EB')};border-radius:${themeRadius(t,'sm','6px')}`">CATEGORY</div>
+                    <div class="tp-card"
+                         :style="`background:${themeColor(t,'surface','#fff')};border:1px solid ${themeColor(t,'border','#e2e8f0')};border-radius:${themeRadius(t,'md','12px')};color:${themeColor(t,'text','#0f172a')}`">
+                      <div class="tp-h1">Заголовок статьи</div>
+                      <div class="tp-lead">Превью с акцентом <span :style="`color:${themeColor(t,'accent','#2563EB')}`">color.accent</span> и обычным текстом.</div>
+                      <div class="tp-actions">
+                        <span class="tp-btn"
+                              :style="`background:${themeColor(t,'accent','#2563EB')};color:#fff;border-radius:${themeRadius(t,'md','12px')}`">Действие</span>
+                        <span class="tp-btn"
+                              :style="`background:transparent;color:${themeColor(t,'accent','#2563EB')};box-shadow:inset 0 0 0 1px ${themeColor(t,'border','#e2e8f0')};border-radius:${themeRadius(t,'md','12px')}`">Ещё</span>
+                      </div>
+                      <div class="tp-pills">
+                        <span class="tp-pill" :style="`background:${themeColor(t,'success','#10b981')}22;color:${themeColor(t,'success','#10b981')}`">success</span>
+                        <span class="tp-pill" :style="`background:${themeColor(t,'warn','#f59e0b')}22;color:${themeColor(t,'warn','#f59e0b')}`">warn</span>
+                      </div>
+                    </div>
                   </div>
-                  <div class="theme-pick-name" x-text="t.name"></div>
-                  <div class="theme-pick-desc" x-text="t.code"></div>
-                  <div class="theme-pick-badge" x-show="branding.default_theme_code === t.code">Выбрано</div>
+                  <div class="tp-meta">
+                    <div class="min-w-0">
+                      <div class="tp-name truncate" x-text="t.name"></div>
+                      <div class="tp-code truncate" x-text="t.code"></div>
+                    </div>
+                    <span class="tp-badge" x-show="branding.default_theme_code === t.code">Выбрано</span>
+                  </div>
                 </button>
               </template>
-            </div>
-            <div class="mt-6">
-              <label class="label">Стратегия research</label>
-              <select class="select" x-model="branding.research_strategy">
-                <option value="single">Single — один большой вызов (legacy)</option>
-                <option value="split">Split — outline + fill по секциям</option>
-                <option value="split_search">Split + Web Search — fill бенчмарков через Brave</option>
-              </select>
-              <p class="text-xs text-ink-500 mt-2">Split дешевле и меньше галлюцинаций. Split+Search требует BRAVE_SEARCH_API_KEY.</p>
             </div>
           </div>
 
@@ -397,8 +424,26 @@ include __DIR__ . '/_layout/header.php';
         <div class="space-y-5 md:space-y-6">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <h3 class="text-base font-semibold">Шаблоны профиля</h3>
-            <button type="button" class="btn-accent" @click="openGenModal()">+ AI-шаблон</button>
+            <div class="flex flex-wrap gap-2">
+              <template x-if="hasBriefData()">
+                <button type="button" class="btn-primary" @click="openGenModalFromBrief()" title="Использует ниша/ICP/УТП из брифа">
+                  ✨ Сгенерировать из брифа
+                </button>
+              </template>
+              <button type="button" class="btn-accent" @click="openGenModal()">+ AI-шаблон</button>
+            </div>
           </div>
+
+          <template x-if="hasBriefData() && !templatesLoading">
+            <div class="card p-4 flex items-start gap-3" style="background:linear-gradient(180deg,#fffbeb,#fff);border-left:3px solid var(--ember-500)">
+              <div class="text-2xl">✨</div>
+              <div class="flex-1 text-sm">
+                <div class="font-semibold mb-1">Сгенерировать шаблоны на основе брифа</div>
+                <div class="text-ink-500 text-xs" x-html="buildBriefSummary() || 'Бриф заполнен — AI учтёт нишу, аудиторию и УТП.'"></div>
+              </div>
+              <button type="button" class="btn-primary text-sm" @click="openGenModalFromBrief()">Запустить</button>
+            </div>
+          </template>
 
           <template x-if="templatesLoading">
             <div class="card p-10 text-center text-ink-300"><span class="spinner"></span> Загрузка…</div>
@@ -409,7 +454,12 @@ include __DIR__ . '/_layout/header.php';
               <div class="text-5xl mb-3">📄</div>
               <h2 class="text-base font-semibold mb-1">Нет шаблонов</h2>
               <p class="text-ink-500 text-sm mb-5">Создайте шаблон через AI — опишите тип статьи, и он подберёт блоки.</p>
-              <button type="button" class="btn-accent" @click="openGenModal()">+ AI-шаблон</button>
+              <div class="flex flex-wrap justify-center gap-2">
+                <template x-if="hasBriefData()">
+                  <button type="button" class="btn-primary" @click="openGenModalFromBrief()">✨ Сгенерировать из брифа</button>
+                </template>
+                <button type="button" class="btn-accent" @click="openGenModal()">+ AI-шаблон</button>
+              </div>
             </div>
           </template>
 
@@ -1012,11 +1062,37 @@ function briefEntitiesToText(e) {
   return lines.join('\n');
 }
 
+function briefExtras(o, known) {
+  const e = SEO.esc;
+  if (!o || typeof o !== 'object') return '';
+  const skip = new Set(known);
+  const rows = [];
+  for (const k of Object.keys(o)) {
+    if (skip.has(k)) continue;
+    const v = o[k];
+    if (v == null || v === '' || (Array.isArray(v) && v.length === 0)) continue;
+    let val;
+    if (Array.isArray(v)) {
+      val = v.map(x => '<li>' + e(typeof x === 'string' ? x : JSON.stringify(x)) + '</li>').join('');
+      val = '<ul class="list-disc ml-4 mt-0.5">' + val + '</ul>';
+    } else if (typeof v === 'object') {
+      val = '<span class="font-mono">' + e(JSON.stringify(v)) + '</span>';
+    } else if (typeof v === 'boolean') {
+      val = v ? '✓' : '—';
+    } else {
+      val = e(String(v));
+    }
+    rows.push('<div class="text-xs mt-1"><b class="text-ink-500">' + e(k) + ':</b> ' + val + '</div>');
+  }
+  return rows.join('');
+}
+
 function briefOptHtml(stepKey, o) {
   const e = SEO.esc;
   if (!o) return '';
   if (stepKey === 'phrases') {
-    return '<div class="font-mono text-xs">«' + e(typeof o === 'string' ? o : (o.text || '')) + '»</div>';
+    return '<div class="font-mono text-xs">«' + e(typeof o === 'string' ? o : (o.text || '')) + '»</div>' +
+      briefExtras(o, ['text']);
   }
   if (stepKey === 'audience') {
     const pains = (o.pains || []).map(p => '<li>' + e(p) + '</li>').join('');
@@ -1025,23 +1101,31 @@ function briefOptHtml(stepKey, o) {
       (o.description ? '<div class="text-xs text-ink-500 mt-1">' + e(o.description) + '</div>' : '') +
       (pains ? '<div class="text-xs mt-2"><b>Боли:</b><ul class="list-disc ml-4 mt-0.5">' + pains + '</ul></div>' : '') +
       (goals ? '<div class="text-xs mt-1"><b>Цели:</b><ul class="list-disc ml-4 mt-0.5">' + goals + '</ul></div>' : '') +
+      briefExtras(o, ['label','name','description','pains','goals']) +
       '</div>';
   }
   if (stepKey === 'usp') {
     return '<div><b>' + e(o.headline || o.label || '') + '</b>' +
-      (o.why ? '<div class="text-xs text-ink-500 mt-1">' + e(o.why) + '</div>' : '') + '</div>';
+      (o.why ? '<div class="text-xs text-ink-500 mt-1">' + e(o.why) + '</div>' : '') +
+      briefExtras(o, ['headline','label','why']) +
+      '</div>';
   }
   if (stepKey === 'competitors') {
     return '<div><b>' + e(o.name || '') + '</b>' +
       (o.url ? ' <a href="' + e(o.url) + '" target="_blank" class="text-ember-500 underline text-xs">↗</a>' : '') +
       (o.why_strong ? '<div class="text-xs text-ink-500 mt-1">' + e(o.why_strong) + '</div>' : '') +
+      briefExtras(o, ['name','url','why_strong']) +
       '</div>';
   }
   if (stepKey === 'voice') {
     const vibes = Array.isArray(o.vibes) ? o.vibes.map(v => '<span class="badge-soft mr-1">' + e(v) + '</span>').join('') : '';
+    const examples = Array.isArray(o.examples)
+      ? o.examples.map(x => '<div class="text-xs text-ink-500 mt-1 font-mono">«' + e(x) + '»</div>').join('')
+      : '';
     return '<div><b>' + e(o.archetype || o.label || '') + '</b>' +
       (vibes ? '<div class="mt-1">' + vibes + '</div>' : '') +
-      (o.examples && o.examples.length ? '<div class="text-xs text-ink-500 mt-2 font-mono">«' + e(o.examples[0]) + '»</div>' : '') +
+      examples +
+      briefExtras(o, ['archetype','label','vibes','examples']) +
       '</div>';
   }
   return '<div>' + e(JSON.stringify(o)) + '</div>';
@@ -1053,6 +1137,11 @@ function profilePage() {
     TOK_CAT_LABELS,
     toneLabels: { professional: 'Профессиональный', friendly: 'Дружелюбный', academic: 'Академический', casual: 'Разговорный', persuasive: 'Убеждающий' },
     langLabels: { ru: 'Русский', en: 'English', uk: 'Українська' },
+    researchStrategies: [
+      { value: 'single',       icon: '◯', title: 'Single', desc: 'Один большой GPT-вызов (legacy).' },
+      { value: 'split',        icon: '◐', title: 'Split',  desc: 'Outline + fill по секциям. Дешевле.' },
+      { value: 'split_search', icon: '⊕', title: 'Split + Search', desc: 'Fill бенчмарков через Brave Search.' },
+    ],
 
     view: 'list',
     loading: true,
@@ -1235,7 +1324,15 @@ function profilePage() {
         description: p.description || '',
         gpt_persona: p.gpt_persona || '',
         gpt_rules: p.gpt_rules || '',
+        research_strategy: p.research_strategy || 'single',
       };
+    },
+
+    themeColor(t, key, fallback) {
+      return (t && t.tokens && t.tokens.color && t.tokens.color[key]) || fallback;
+    },
+    themeRadius(t, key, fallback) {
+      return (t && t.tokens && t.tokens.radius && t.tokens.radius[key]) || fallback;
     },
 
     async saveSettings() {
@@ -1296,7 +1393,6 @@ function profilePage() {
           logo_url: this.branding.logo_url || null,
           base_url: this.branding.base_url || null,
           default_theme_code: this.branding.default_theme_code || null,
-          research_strategy: this.branding.research_strategy || 'single',
         };
         const updated = await SEO.api('profiles/' + this.current.id, { method: 'PUT', body });
         Object.assign(this.current, updated);
@@ -1427,6 +1523,9 @@ function profilePage() {
     },
 
     briefHydrateFromSaved(key) {
+      if (key === 'classify')   return this.briefState.classify   || {};
+      if (key === 'compliance') return this.briefState.compliance || {};
+      if (key === 'rules')      return this.briefState.rules      || { do: [], dont: [] };
       const s = key === 'usp' ? this.briefState.usps : this.briefState[key];
       if (s == null) return null;
       if (key === 'audience' || key === 'voice') return { options: [s] };
@@ -1459,8 +1558,10 @@ function profilePage() {
           <div><label class="label">Язык</label><input type="text" class="input bf-fld" data-bk="language" value="${e(data.language || 'ru')}" placeholder="ru | en | uk"></div>
           <div><label class="label">Регулирование (домен)</label><input type="text" class="input bf-fld" data-bk="regulatory_domain" value="${e(data.regulatory_domain || 'none')}" placeholder="finance | medical | legal | crypto | none"></div>
           <div class="flex items-center gap-3"><label class="label" style="margin:0">Регулируемая ниша</label>
-            <label class="inline-flex items-center cursor-pointer"><input type="checkbox" class="sr-only peer bf-chk" data-bk="regulated" ${data.regulated ? 'checked' : ''}>
-              <span class="w-9 h-5 bg-sand-300 rounded-full relative peer-checked:bg-ember-500"><span class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></span></span>
+            <label class="toggle">
+              <input type="checkbox" class="bf-chk" data-bk="regulated" ${data.regulated ? 'checked' : ''}>
+              <span class="toggle-track"></span>
+              <span class="toggle-thumb"></span>
             </label></div>
           <div class="md:col-span-2"><label class="label">Ключевые сущности (по строке)</label><textarea class="textarea bf-txt" data-bk="entities" rows="3">${e(briefEntitiesToText(data.detected_entities || {}))}</textarea></div>
           <div class="md:col-span-2"><label class="label">Уточняющие вопросы (по строке)</label><textarea class="textarea bf-txt" data-bk="questions" rows="3">${e((data.clarifying_questions || []).join('\n'))}</textarea></div>
@@ -2043,6 +2144,24 @@ function profilePage() {
     },
 
     // ============= AI TEMPLATE GEN (SSE) =============
+
+    hasBriefData() {
+      const b = this.current && this.current.content_brief;
+      return !!(b && typeof b === 'object' && Object.keys(b).length > 0);
+    },
+
+    openGenModalFromBrief() {
+      const brief = (this.current && this.current.content_brief) || {};
+      const niche = (brief.classify && brief.classify.niche) || (this.current && this.current.niche) || '';
+      const icp = (brief.audience && (brief.audience.label || brief.audience.archetype)) || '';
+      const parts = [];
+      if (niche) parts.push('Шаблон статьи для ниши «' + niche + '»');
+      if (icp) parts.push('целевая аудитория: ' + icp);
+      const purpose = parts.join(', ') || 'Универсальный шаблон по брифу профиля';
+      this.openGenModal();
+      this.gen.purpose = purpose;
+      this.gen.hints = 'Используй данные из брифа: УТП, голос бренда, конкурентов, compliance-ограничения.';
+    },
 
     openGenModal() {
       this.gen = {

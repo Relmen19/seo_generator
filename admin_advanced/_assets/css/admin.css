@@ -7,16 +7,22 @@
 [x-cloak] { display: none !important; }
 
 /* Theme picker cards */
-.theme-pick { background: var(--sand-50); border: 2px solid var(--sand-300); border-radius: 16px; padding: 14px; cursor: pointer; transition: .2s; text-align: left; }
+.theme-pick { background: var(--sand-50); border: 2px solid var(--sand-300); border-radius: 18px; padding: 12px; cursor: pointer; transition: .2s; text-align: left; display: block; width: 100%; font-family: inherit; color: inherit; }
 .theme-pick:hover { border-color: var(--ink-700); }
 .theme-pick-on { border-color: var(--ink-900); box-shadow: 0 0 0 3px rgba(23,21,17,.08); }
-.theme-pick-prev { height: 72px; border-radius: 10px; margin-bottom: 10px; padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; overflow: hidden; }
-.theme-pick-bar { height: 4px; border-radius: 2px; width: 40%; }
-.theme-pick-line { height: 5px; border-radius: 2px; opacity: .7; }
-.theme-pick-line-sm { width: 60%; opacity: .4; }
-.theme-pick-name { font-size: .9rem; font-weight: 700; color: var(--ink-900); }
-.theme-pick-desc { font-size: .72rem; color: var(--ink-500); margin-top: 2px; font-family: ui-monospace, monospace; }
-.theme-pick-badge { display: inline-block; font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; padding: 2px 8px; border-radius: 999px; background: var(--ink-900); color: var(--sand-50); margin-top: 8px; }
+.tp-stage { border-radius: 14px; padding: 12px; min-height: 150px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.tp-card { padding: 10px 12px; }
+.tp-tag { display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: .06em; padding: 2px 7px; align-self: flex-start; }
+.tp-h1 { font-size: 14px; font-weight: 700; line-height: 1.2; margin: 4px 0 4px; }
+.tp-lead { font-size: 11px; line-height: 1.45; opacity: .8; }
+.tp-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.tp-btn { display: inline-block; padding: 4px 10px; font-size: 10px; font-weight: 600; border: 0; }
+.tp-pills { display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap; }
+.tp-pill { font-size: 9px; font-weight: 700; padding: 1px 7px; border-radius: 9999px; text-transform: uppercase; letter-spacing: .04em; }
+.tp-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; padding: 0 4px; }
+.tp-name { font-size: .9rem; font-weight: 700; color: var(--ink-900); }
+.tp-code { font-size: .7rem; color: var(--ink-500); font-family: ui-monospace, monospace; }
+.tp-badge { display: inline-block; font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; padding: 2px 8px; border-radius: 999px; background: var(--ink-900); color: var(--sand-50); flex-shrink: 0; }
 
 /* Format picker cards (Telegram) */
 .fmt-pick { background: var(--sand-50); border: 2px solid var(--sand-300); border-radius: 16px; padding: 14px 16px; cursor: pointer; transition: .2s; text-align: left; display: flex; gap: 12px; align-items: flex-start; }
