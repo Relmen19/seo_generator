@@ -1,0 +1,50 @@
+/* admin_advanced — plain CSS only (Tailwind utilities live in HTML;
+ * @apply-based components live in header.php inside <style type="text/tailwindcss">).
+ */
+
+:root {
+  --sand-50:  #FBF8F3;
+  --sand-100: #F4EEE2;
+  --sand-200: #ECE6DC;
+  --sand-300: #DDD3BF;
+  --ink-900:  #171511;
+  --ink-700:  #3A3530;
+  --ink-500:  #6F665B;
+  --ink-300:  #9A9285;
+  --sun-400:  #F5C842;
+  --ember-400:#EF6E51;
+}
+
+html, body { height: 100%; }
+body { font-feature-settings: 'cv11','ss01','ss02'; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--sand-300); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-300); }
+
+:focus-visible { outline: 2px solid var(--sun-400); outline-offset: 2px; border-radius: 6px; }
+
+/* Spinner */
+.spinner { width: 16px; height: 16px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; display: inline-block; animation: seo-spin .7s linear infinite; }
+@keyframes seo-spin { to { transform: rotate(360deg); } }
+
+/* Multi-line clamps */
+.line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Drag handle */
+.drag-handle { cursor: grab; color: var(--ink-300); }
+.drag-handle:hover { color: var(--ink-700); }
+.drag-handle:active { cursor: grabbing; }
+
+/* Select arrow */
+.select-arrow {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 20 20' fill='none' stroke='%236F665B' stroke-width='2'><path d='M5 8l5 5 5-5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  appearance: none;
+}
+
+/* CodeMirror polish (when loaded lazily) */
+.CodeMirror { border-radius: 16px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
