@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Seo;
 
 use PDO;
+use PDOException;
+use Seo\Service\Logger;
+use Throwable;
 
 class Database {
 
@@ -46,25 +49,51 @@ class Database {
     }
 
     public function fetchAll(string $sql, array $params = []): array {
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll();
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll();
+        } catch (PDOException $e) {
+            $this->logFailure('fetchAll', $sql, $params, $e);
+            throw $e;
+        }
     }
 
 
     public function fetchOne(string $sql, array $params = []): ?array {
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-        $row = $stmt->fetch();
-        return $row !== false ? $row : null;
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $row = $stmt->fetch();
+            return $row !== false ? $row : null;
+        } catch (PDOException $e) {
+            $this->logFailure('fetchOne', $sql, $params, $e);
+            throw $e;
+        }
     }
 
 
     public function fetchColumn(string $sql, array $params = []) {
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-        $val = $stmt->fetchColumn();
-        return $val !== false ? $val : null;
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $val = $stmt->fetchColumn();
+            return $val !== false ? $val : null;
+        } catch (PDOException $e) {
+            $this->logFailure('fetchColumn', $sql, $params, $e);
+            throw $e;
+        }
+    }
+
+    private function logFailure(string $op, string $sql, array $params, Throwable $e): void {
+        try {
+            Logger::error(Logger::CHANNEL_DB, "{$op} failed", [
+                'sql'     => preg_replace('/\s+/', ' ', $sql),
+                'params'  => $params,
+                'error'   => $e->getMessage(),
+                'code'    => $e->getCode(),
+            ]);
+        } catch (Throwable $_) { /* ignore */ }
     }
 
 
@@ -79,13 +108,19 @@ class Database {
             implode(', ', $placeholders)
         );
 
-        $stmt = $this->pdo->prepare($sql);
-        foreach ($data as $key => $value) {
-            $stmt->bindValue(':' . $key, $value, $this->pdoType($value));
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            foreach ($data as $key => $value) {
+                $stmt->bindValue(':' . $key, $value, $this->pdoType($value));
+            }
+            $stmt->execute();
+            $id = (int)$this->pdo->lastInsertId();
+            Logger::debug(Logger::CHANNEL_DB, "INSERT {$table}", ['id' => $id, 'columns' => $columns]);
+            return $id;
+        } catch (PDOException $e) {
+            $this->logFailure('insert ' . $table, $sql, $data, $e);
+            throw $e;
         }
-        $stmt->execute();
-
-        return (int)$this->pdo->lastInsertId();
     }
 
 
@@ -102,32 +137,51 @@ class Database {
         $sql = sprintf('UPDATE `%s` SET %s WHERE %s',
             $table, implode(', ', $setClauses), $where);
 
-        $stmt = $this->pdo->prepare($sql);
+        try {
+            $stmt = $this->pdo->prepare($sql);
 
-        foreach ($data as $key => $value) {
-            $stmt->bindValue(':set_' . $key, $value, $this->pdoType($value));
-        }
-        foreach ($whereParams as $key => $value) {
-            $stmt->bindValue($key, $value, $this->pdoType($value));
-        }
+            foreach ($data as $key => $value) {
+                $stmt->bindValue(':set_' . $key, $value, $this->pdoType($value));
+            }
+            foreach ($whereParams as $key => $value) {
+                $stmt->bindValue($key, $value, $this->pdoType($value));
+            }
 
-        $stmt->execute();
-        return $stmt->rowCount();
+            $stmt->execute();
+            $rows = $stmt->rowCount();
+            Logger::debug(Logger::CHANNEL_DB, "UPDATE {$table}", ['rows' => $rows, 'where' => $where]);
+            return $rows;
+        } catch (PDOException $e) {
+            $this->logFailure('update ' . $table, $sql, array_merge($data, $whereParams), $e);
+            throw $e;
+        }
     }
 
 
     public function delete(string $table, string $where, array $params = []): int {
         $sql = sprintf('DELETE FROM `%s` WHERE %s', $table, $where);
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->rowCount();
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $rows = $stmt->rowCount();
+            Logger::info(Logger::CHANNEL_DB, "DELETE {$table}", ['rows' => $rows, 'where' => $where]);
+            return $rows;
+        } catch (PDOException $e) {
+            $this->logFailure('delete ' . $table, $sql, $params, $e);
+            throw $e;
+        }
     }
 
 
     public function execute(string $sql, array $params = []): int {
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->rowCount();
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->rowCount();
+        } catch (PDOException $e) {
+            $this->logFailure('execute', $sql, $params, $e);
+            throw $e;
+        }
     }
 
     public function beginTransaction(): void {
@@ -141,6 +195,7 @@ class Database {
     public function rollback(): void {
         if ($this->pdo->inTransaction()) {
             $this->pdo->rollBack();
+            Logger::warn(Logger::CHANNEL_DB, 'Transaction rolled back');
         }
     }
 

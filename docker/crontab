@@ -4,4 +4,8 @@
 # seo_settings.scheduled_publish_enabled flag. Set value to '1' to enable
 # scheduled Telegram posting; default ships disabled so the cron is a
 # no-op until the user opts in.
-* * * * * www-data cd /var/www/html && php cron/telegram_sender.php >> /var/log/seo_cron.log 2>&1
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+* * * * * www-data cd /var/www/html && /usr/local/bin/php cron/telegram_sender.php >> /var/www/html/logs/cron_stdout.log 2>&1

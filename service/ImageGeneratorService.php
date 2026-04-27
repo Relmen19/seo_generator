@@ -772,7 +772,7 @@ class ImageGeneratorService {
                     $this->db->getPdo()->prepare("DELETE FROM seo_images WHERE id = ?")
                         ->execute([(int)$oldImageId]);
                 } catch (Throwable $e) {
-                    error_log('[ImageGeneratorService] failed to delete stale image #' . $oldImageId . ': ' . $e->getMessage());
+                    \Seo\Service\Logger::warn(\Seo\Service\Logger::CHANNEL_IMAGE, 'Failed to delete stale image', ['image_id' => $oldImageId, 'error' => $e->getMessage()]);
                 }
             }
             return $id;

@@ -33,7 +33,7 @@ abstract class AbstractPhraseFixer implements FixerInterface
             try {
                 $new = $this->rewriteBlock($gpt, $b, $content, $hits);
             } catch (Throwable $e) {
-                error_log("[" . static::class . "] block {$blockId} rewrite failed: " . $e->getMessage());
+                \Seo\Service\Logger::warn(\Seo\Service\Logger::CHANNEL_EDITORIAL, static::class . ' block rewrite failed', ['block_id' => $blockId, 'error' => $e->getMessage()]);
                 continue;
             }
             if (!is_array($new) || empty($new)) continue;

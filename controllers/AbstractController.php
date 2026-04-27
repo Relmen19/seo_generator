@@ -5,15 +5,24 @@ declare(strict_types=1);
 namespace Seo\Controller;
 
 use Seo\Database;
+use Seo\Service\Logger;
 
 abstract class AbstractController {
     protected Database $db;
 
     public function __construct() {
         $this->db = Database::getInstance();
+        Logger::debug(Logger::CHANNEL_CONTROLLER, static::class . ' instantiated');
     }
 
     abstract public function dispatch(string $method, ?string $action, ?int $id): void;
+
+    protected function logDispatch(string $method, ?string $action, ?int $id): void {
+        Logger::debug(Logger::CHANNEL_CONTROLLER, static::class . " dispatch {$method}", [
+            'action' => $action,
+            'id'     => $id,
+        ]);
+    }
 
     protected function getJsonBody(): array {
         $raw = file_get_contents('php://input');
@@ -75,6 +84,9 @@ abstract class AbstractController {
     }
 
     protected function error(string $message, int $code = 400): void {
+        Logger::warn(Logger::CHANNEL_CONTROLLER, static::class . " error response {$code}", [
+            'message' => $message,
+        ]);
         http_response_code($code);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([

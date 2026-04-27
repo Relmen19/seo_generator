@@ -16,7 +16,10 @@ if (PHP_SAPI !== 'cli') {
 require_once __DIR__ . '/../config.php';
 
 use Seo\Database;
+use Seo\Service\Logger;
 use Seo\Service\TelegramPostService;
+
+Logger::info(Logger::CHANNEL_CRON, 'telegram_sender start');
 
 // Global kill-switch: cron is registered in docker/crontab and ticks every
 // minute, but sending only happens when the user has explicitly enabled it
@@ -48,10 +51,15 @@ try {
     $count = $service->processScheduledPosts();
 
     if ($count > 0) {
-        logMessage("Telegram cron: отправлено {$count} постов", 'INFO');
+        Logger::info(Logger::CHANNEL_CRON, "telegram_sender: отправлено {$count} постов");
+    } else {
+        Logger::debug(Logger::CHANNEL_CRON, 'telegram_sender: нет постов к отправке');
     }
 } catch (Throwable $e) {
-    logMessage('Telegram cron error: ' . $e->getMessage());
+    Logger::error(Logger::CHANNEL_CRON, 'telegram_sender error', [
+        'error' => $e->getMessage(),
+        'file'  => $e->getFile() . ':' . $e->getLine(),
+    ]);
     flock($lockFp, LOCK_UN);
     fclose($lockFp);
     exit(1);
@@ -59,4 +67,5 @@ try {
 
 flock($lockFp, LOCK_UN);
 fclose($lockFp);
+Logger::debug(Logger::CHANNEL_CRON, 'telegram_sender done');
 exit(0);

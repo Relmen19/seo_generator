@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Seo\Service;
 
 use RuntimeException;
+use Seo\Service\Logger;
 
 class GptClient {
 
@@ -243,6 +244,16 @@ class GptClient {
         $attempt = 0;
         $lastError = '';
 
+        $model = $payload['model'] ?? 'unknown';
+        $msgCount = is_array($payload['messages'] ?? null) ? count($payload['messages']) : 0;
+        Logger::debug(Logger::CHANNEL_GPT, "POST {$endpoint}", [
+            'model'      => $model,
+            'messages'   => $msgCount,
+            'has_tools'  => isset($payload['tools']),
+            'context'    => $this->logContext,
+        ]);
+        $tStart = microtime(true);
+
         while ($attempt <= $retries) {
             $ch = curl_init($url);
             curl_setopt_array($ch, [
@@ -263,6 +274,10 @@ class GptClient {
             if ($response === false) {
                 $lastError = 'Curl error: ' . curl_error($ch);
                 curl_close($ch);
+                Logger::warn(Logger::CHANNEL_GPT, "Curl failed (attempt {$attempt})", [
+                    'endpoint' => $endpoint,
+                    'error'    => $lastError,
+                ]);
                 $attempt++;
                 if ($attempt <= $retries) {
                     usleep(1000000 * (2 ** ($attempt - 1))); // 1s, 2s
@@ -275,6 +290,10 @@ class GptClient {
 
             if ($httpCode === 429 && $attempt < $retries) {
                 $wait = (int) ($data['error']['retry_after'] ?? (2 ** $attempt));
+                Logger::warn(Logger::CHANNEL_GPT, 'Rate limited (429), retrying', [
+                    'wait_s'  => $wait,
+                    'attempt' => $attempt,
+                ]);
                 sleep(min($wait, 30));
                 $attempt++;
                 continue;
@@ -282,12 +301,31 @@ class GptClient {
 
             if ($httpCode >= 400) {
                 $errMsg = $data['error']['message'] ?? "HTTP {$httpCode}";
+                Logger::error(Logger::CHANNEL_GPT, 'API error', [
+                    'endpoint' => $endpoint,
+                    'http'     => $httpCode,
+                    'error'    => $errMsg,
+                    'model'    => $model,
+                ]);
                 throw new RuntimeException("GPT API error: {$errMsg} (HTTP {$httpCode})");
             }
 
+            $ms = (int)((microtime(true) - $tStart) * 1000);
+            Logger::info(Logger::CHANNEL_GPT, "OK {$endpoint}", [
+                'http'    => $httpCode,
+                'ms'      => $ms,
+                'model'   => $data['model'] ?? $model,
+                'usage'   => $data['usage'] ?? null,
+                'context' => $this->logContext,
+            ]);
             return $data;
         }
 
+        Logger::error(Logger::CHANNEL_GPT, "Exhausted retries", [
+            'endpoint' => $endpoint,
+            'retries'  => $retries,
+            'last'     => $lastError,
+        ]);
         throw new RuntimeException("GPT API failed after {$retries} retries: {$lastError}");
     }
 

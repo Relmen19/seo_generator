@@ -97,7 +97,10 @@ class TokenUsageLogger
             ]);
         } catch (Throwable $e) {
             // Never let logging break a GPT call.
-            error_log('[TokenUsageLogger] insert failed: ' . $e->getMessage());
+            Logger::error(Logger::CHANNEL_DB, 'TokenUsageLogger insert failed', [
+                'error'    => $e->getMessage(),
+                'category' => $category,
+            ]);
         }
     }
 

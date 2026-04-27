@@ -62,7 +62,7 @@ class AiReviewService
                 'max_tokens'  => 700,
             ]);
         } catch (Throwable $e) {
-            error_log('[AiReviewService] GPT call failed: ' . $e->getMessage());
+            \Seo\Service\Logger::error(\Seo\Service\Logger::CHANNEL_EDITORIAL, 'AiReview GPT call failed', ['error' => $e->getMessage()]);
             $this->insertIssue($articleId, 'warn', 'AI-ревью упал: ' . $e->getMessage());
             return null;
         }
@@ -120,7 +120,7 @@ class AiReviewService
                 [$articleId, $severity, 'ai_review', $message, null]
             );
         } catch (Throwable $e) {
-            error_log('[AiReviewService] insert issue failed: ' . $e->getMessage());
+            \Seo\Service\Logger::warn(\Seo\Service\Logger::CHANNEL_EDITORIAL, 'AiReview insert issue failed', ['error' => $e->getMessage()]);
         }
     }
 }

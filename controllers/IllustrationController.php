@@ -165,7 +165,7 @@ class IllustrationController extends AbstractController {
                     $db->getPdo()->prepare("DELETE FROM seo_images WHERE id = ?")
                         ->execute([(int)$existing['image_id']]);
                 } catch (Throwable $e) {
-                    error_log('[IllustrationController] failed to drop old image: ' . $e->getMessage());
+                    \Seo\Service\Logger::warn(\Seo\Service\Logger::CHANNEL_IMAGE, 'Illustration: drop old image failed', ['error' => $e->getMessage()]);
                 }
             }
         } else {
@@ -194,7 +194,7 @@ class IllustrationController extends AbstractController {
                 $db->getPdo()->prepare("DELETE FROM seo_images WHERE id = ?")
                     ->execute([(int)$row['image_id']]);
             } catch (Throwable $e) {
-                error_log('[IllustrationController] failed to drop image on remove: ' . $e->getMessage());
+                \Seo\Service\Logger::warn(\Seo\Service\Logger::CHANNEL_IMAGE, 'Illustration: drop image on remove failed', ['error' => $e->getMessage()]);
             }
         }
         $this->success(['removed' => true, 'kind' => $kind]);

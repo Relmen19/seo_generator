@@ -16,6 +16,9 @@ if (PHP_SAPI !== 'cli') {
 require_once __DIR__ . '/../config.php';
 
 use Seo\Service\CostReportService;
+use Seo\Service\Logger;
+
+Logger::info(Logger::CHANNEL_CRON, 'cost_report start', ['argv' => array_slice($argv, 1)]);
 
 $days = 30;
 $json = false;
@@ -25,6 +28,7 @@ foreach ($argv as $a) {
 }
 
 $report = (new CostReportService())->build($days);
+Logger::debug(Logger::CHANNEL_CRON, 'cost_report built', ['days' => $days, 'strategies' => array_keys($report['by_strategy'] ?? [])]);
 
 if ($json) {
     echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n";

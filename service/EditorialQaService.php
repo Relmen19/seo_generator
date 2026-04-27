@@ -60,7 +60,7 @@ class EditorialQaService
             try {
                 $issues = $rule->run($article, $blocks);
             } catch (Throwable $e) {
-                error_log("[EditorialQaService] rule {$ruleName} failed for article {$articleId}: " . $e->getMessage());
+                \Seo\Service\Logger::warn(\Seo\Service\Logger::CHANNEL_QA, 'QA rule failed', ['rule' => $ruleName, 'article_id' => $articleId, 'error' => $e->getMessage()]);
                 $this->db->execute(
                     'INSERT INTO seo_article_issues (article_id, severity, code, message, block_id)
                      VALUES (?, ?, ?, ?, ?)',
@@ -88,7 +88,7 @@ class EditorialQaService
             try {
                 (new AiReviewService($this->db))->review($article, $blocks);
             } catch (Throwable $e) {
-                error_log("[EditorialQaService] AI-review failed for article {$articleId}: " . $e->getMessage());
+                \Seo\Service\Logger::error(\Seo\Service\Logger::CHANNEL_QA, 'QA AI-review failed', ['article_id' => $articleId, 'error' => $e->getMessage()]);
             }
         }
 

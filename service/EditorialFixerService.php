@@ -93,7 +93,7 @@ class EditorialFixerService
                 try {
                     $updates = $fixer->fix($article, $blocks, $codeIssues, $this->gpt);
                 } catch (Throwable $e) {
-                    error_log("[EditorialFixerService] fixer {$code} failed: " . $e->getMessage());
+                    \Seo\Service\Logger::warn(\Seo\Service\Logger::CHANNEL_EDITORIAL, 'Fixer failed', ['code' => $code, 'error' => $e->getMessage()]);
                     $fixerReport['errors']++;
                     $report['by_code'][$code] = $fixerReport;
                     continue;
@@ -113,7 +113,7 @@ class EditorialFixerService
                         $fixerReport['blocks_updated']++;
                         $updatedBlockIds[$blockId] = true;
                     } catch (Throwable $e) {
-                        error_log("[EditorialFixerService] update block {$blockId} failed: " . $e->getMessage());
+                        \Seo\Service\Logger::warn(\Seo\Service\Logger::CHANNEL_EDITORIAL, 'Fixer update block failed', ['block_id' => $blockId, 'error' => $e->getMessage()]);
                         $fixerReport['errors']++;
                     }
                 }
@@ -150,7 +150,7 @@ class EditorialFixerService
                 )->toArray()
             );
         } catch (Throwable $e) {
-            error_log('[EditorialFixerService] audit insert failed: ' . $e->getMessage());
+            \Seo\Service\Logger::warn(\Seo\Service\Logger::CHANNEL_EDITORIAL, 'Fixer audit insert failed', ['error' => $e->getMessage()]);
         }
     }
 }

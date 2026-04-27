@@ -50,7 +50,7 @@ class EmptyChartFixer implements FixerInterface
             try {
                 $new = $this->callGpt($gpt, $article, $block, $content, $schema, $dossier);
             } catch (Throwable $e) {
-                error_log("[EmptyChartFixer] block {$blockId} failed: " . $e->getMessage());
+                \Seo\Service\Logger::warn(\Seo\Service\Logger::CHANNEL_EDITORIAL, 'EmptyChartFixer block failed', ['block_id' => $blockId, 'error' => $e->getMessage()]);
                 continue;
             }
             if (!is_array($new) || empty($new)) continue;

@@ -58,9 +58,7 @@ try {
     }
 } catch (\Throwable $e) {
     // Трекер никогда не должен падать — молча логируем
-    if (SEO_DEBUG) {
-        error_log('SEO track error: ' . $e->getMessage());
-    }
+    \Seo\Service\Logger::warn(\Seo\Service\Logger::CHANNEL_CONTROLLER, 'Track endpoint error', ['error' => $e->getMessage()]);
 }
 
 // ─── Ответ ──────────────────────────────────────────────────

@@ -25,6 +25,9 @@ use Seo\Controller\SiteProfileController;
 use Seo\Controller\TelegramController;
 use Seo\Controller\ThemeController;
 use Seo\Controller\ArticleQaController;
+use Seo\Service\Logger;
+
+$_seo_t0 = microtime(true);
 
 $routes = [
     'catalogs'        => CatalogController::class,
@@ -61,8 +64,15 @@ if (strpos($route, '?') !== false) {
         $_GET = array_merge($_GET, $additionalParams);
     }
 }
+$_GET['r'] = $route;
+
+Logger::info(Logger::CHANNEL_ROUTER, "{$method} /{$route}", [
+    'ip'    => $_SERVER['REMOTE_ADDR'] ?? null,
+    'query' => $_GET,
+]);
 
 if ($route === '') {
+    Logger::warn(Logger::CHANNEL_ROUTER, 'Empty route', ['method' => $method]);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
         'success' => false,
@@ -90,6 +100,9 @@ if (isset($segments[1])) {
 }
 
 if (!isset($routes[$resource])) {
+    Logger::warn(Logger::CHANNEL_ROUTER, "Unknown resource '{$resource}'", [
+        'available' => array_keys($routes),
+    ]);
     http_response_code(404);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
@@ -103,9 +116,25 @@ if (!isset($routes[$resource])) {
 try {
     $controllerClass = $routes[$resource];
 
+    Logger::debug(Logger::CHANNEL_ROUTER, 'Dispatch', [
+        'controller' => $controllerClass,
+        'action'     => $action,
+        'id'         => $id,
+    ]);
+
     $controller = new $controllerClass();
     $controller->dispatch($method, $action, $id);
+
+    Logger::info(Logger::CHANNEL_ROUTER, "Done {$method} /{$route}", [
+        'ms' => (int)((microtime(true) - $_seo_t0) * 1000),
+    ]);
 } catch (PDOException $e) {
+    Logger::error(Logger::CHANNEL_DB, 'PDOException in router', [
+        'route'   => $route,
+        'message' => $e->getMessage(),
+        'code'    => $e->getCode(),
+        'file'    => $e->getFile() . ':' . $e->getLine(),
+    ]);
     http_response_code(500);
     header('Content-Type: application/json; charset=utf-8');
     $response = ['success' => false, 'error' => 'Ошибка базы данных'];
@@ -119,6 +148,13 @@ try {
     echo json_encode($response, JSON_UNESCAPED_UNICODE);
     exit;
 } catch (Throwable $e) {
+    Logger::error(Logger::CHANNEL_ROUTER, 'Unhandled exception', [
+        'route'   => $route,
+        'class'   => get_class($e),
+        'message' => $e->getMessage(),
+        'file'    => $e->getFile() . ':' . $e->getLine(),
+        'trace'   => $e->getTraceAsString(),
+    ]);
     http_response_code(500);
     header('Content-Type: application/json; charset=utf-8');
     $response = ['success' => false, 'error' => 'Внутренняя ошибка сервера'];

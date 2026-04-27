@@ -363,7 +363,7 @@ class ArticleResearchService
                 'max_tokens'  => 600,
             ]);
         } catch (\Throwable $e) {
-            error_log('[ArticleResearchService] prune failed: ' . $e->getMessage());
+            \Seo\Service\Logger::warn(\Seo\Service\Logger::CHANNEL_GENERATOR, 'ArticleResearch prune failed', ['error' => $e->getMessage()]);
             return null;
         }
 
@@ -405,7 +405,7 @@ class ArticleResearchService
             $this->db->update(SeoArticle::SEO_ARTICLE_TABLE, 'id = :aid',
                 ['research_status' => $phase], [':aid' => $articleId]);
         } catch (\Throwable $e) {
-            error_log('[ArticleResearchService] setPhase failed: ' . $e->getMessage());
+            \Seo\Service\Logger::warn(\Seo\Service\Logger::CHANNEL_GENERATOR, 'ArticleResearch setPhase failed', ['error' => $e->getMessage()]);
         }
     }
 
@@ -711,7 +711,7 @@ class ArticleResearchService
             $this->db->insert(SeoAuditLog::SEO_AUDIT_LOG_TABLE,
                 SeoAuditLog::articleAction($articleId, $action, 'system/research', ['details' => $json])->toArray());
         } catch (\Throwable $e) {
-            error_log('[ArticleResearchService] audit failed: ' . $e->getMessage());
+            \Seo\Service\Logger::warn(\Seo\Service\Logger::CHANNEL_GENERATOR, 'ArticleResearch audit failed', ['error' => $e->getMessage()]);
         }
     }
 }

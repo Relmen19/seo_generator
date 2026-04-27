@@ -300,7 +300,7 @@ class ArticleOutlineService
             $this->db->insert(SeoAuditLog::SEO_AUDIT_LOG_TABLE,
                 SeoAuditLog::articleAction($articleId, $action, 'system/outline', ['details' => $json])->toArray());
         } catch (\Throwable $e) {
-            error_log('[ArticleOutlineService] audit failed: ' . $e->getMessage());
+            \Seo\Service\Logger::warn(\Seo\Service\Logger::CHANNEL_GENERATOR, 'ArticleOutline audit failed', ['error' => $e->getMessage()]);
         }
     }
 }

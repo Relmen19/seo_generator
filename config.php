@@ -114,8 +114,26 @@ spl_autoload_register(static function (string $class): void {
 
 require_once SEO_ROOT . '/Database.php';
 
-function logMessage(string $message, string $level = 'ERROR'): void {
-    $logFile   = SEO_ROOT . '/error.log';
-    $timestamp = date('Y-m-d H:i:s');
-    file_put_contents($logFile, "[{$timestamp}] [{$level}] {$message}\n", FILE_APPEND | LOCK_EX);
+/**
+ * Legacy logger — delegates to channel-based Seo\Service\Logger.
+ * New code should call seo_log_*() helpers or Logger directly.
+ */
+function logMessage(string $message, string $level = 'ERROR', string $channel = 'app', array $context = []): void {
+    $lvl = strtoupper($level);
+    $map = ['DEBUG' => 'debug', 'INFO' => 'info', 'WARN' => 'warn', 'WARNING' => 'warn', 'ERROR' => 'error'];
+    $method = $map[$lvl] ?? 'info';
+    \Seo\Service\Logger::{$method}($channel, $message, $context);
+}
+
+function seo_log_debug(string $channel, string $message, array $context = []): void {
+    \Seo\Service\Logger::debug($channel, $message, $context);
+}
+function seo_log_info(string $channel, string $message, array $context = []): void {
+    \Seo\Service\Logger::info($channel, $message, $context);
+}
+function seo_log_warn(string $channel, string $message, array $context = []): void {
+    \Seo\Service\Logger::warn($channel, $message, $context);
+}
+function seo_log_error(string $channel, string $message, array $context = []): void {
+    \Seo\Service\Logger::error($channel, $message, $context);
 }
