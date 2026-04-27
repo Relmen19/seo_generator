@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 $topbarRight = $topbarRight ?? '';
 ?>
-<header x-data x-show="!($store.layout && $store.layout.hideTopbar)" x-cloak
+<header id="seo-topbar"
         class="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
   <div class="flex-1 min-w-0">
     <?php if ($pageHeading): ?>

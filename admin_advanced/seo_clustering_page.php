@@ -47,16 +47,8 @@ include __DIR__ . '/_layout/header.php';
         <h2 class="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-3">Новая задача</h2>
         <div class="space-y-3">
           <div>
-            <label class="label">Базовый запрос</label>
-            <textarea class="textarea" rows="3" x-model="newJob.seed" placeholder="ключевое слово 1, ключевое слово 2"></textarea>
-          </div>
-          <div>
-            <label class="label">Метод сбора</label>
-            <select class="select" x-model="newJob.source">
-              <option value="gpt">GPT-генерация запросов</option>
-              <option value="manual">Ручной ввод</option>
-              <option value="yandex">Yandex Wordstat API</option>
-            </select>
+            <label class="label">Название задачи</label>
+            <input type="text" class="input" x-model="newJob.name" placeholder="Например: Лендинг — лето 2026">
           </div>
           <button type="button" class="btn-primary w-full" @click="createJob()" :disabled="creating">
             <span x-show="!creating">Создать задачу</span>
@@ -469,7 +461,7 @@ function semanticPage() {
     progress: 0,
     tab: 'clusters',
     collectOpen: false,
-    newJob: { seed: '', source: 'gpt' },
+    newJob: { name: '' },
     collect: { source: 'gpt', max: 200, text: '' },
     allClusters: [],
     view: { status: '', group: '', sort: 'priority_desc', layout: 'grid' },
@@ -513,20 +505,17 @@ function semanticPage() {
     },
 
     async createJob() {
-      const seed = this.newJob.seed.trim();
-      if (!seed) { SEO.toast('Введите базовый запрос', 'err'); return; }
+      const name = (this.newJob.name || '').trim();
+      if (!name) { SEO.toast('Введите название задачи', 'err'); return; }
       this.creating = true;
       try {
-        const body = { seed_keyword: seed, source: this.newJob.source, profile_id: this.profileId };
+        const body = { name, profile_id: this.profileId };
         const data = await SEO.api('keywords/jobs', { method: 'POST', body });
-        this.newJob.seed = '';
+        this.newJob.name = '';
         SEO.toast('Задача создана', 'ok');
         await this.loadJobs();
         await this.selectJob(data.id);
-        if (this.newJob.source === 'gpt') {
-          this.collect.source = 'gpt';
-          await this.doCollectDirect('gpt', { max_keywords: 200 });
-        }
+        this.collectOpen = true;
       } catch (e) { SEO.toast('Ошибка: ' + e.message, 'err'); }
       this.creating = false;
     },

@@ -247,24 +247,38 @@ include __DIR__ . '/_layout/header.php';
                 <p class="text-xs text-ink-500 mt-1">Token-based темы. Управление: <a href="/admin_advanced/seo_themes_page.php" class="underline">страница тем</a>.</p>
               </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
               <button type="button"
                       class="theme-pick"
                       :class="!branding.default_theme_code ? 'theme-pick-on' : ''"
                       @click="branding.default_theme_code = ''">
                 <div class="tp-stage" style="background:#F4EEE2;color:#171511">
                   <div class="tp-tag" style="background:rgba(23,21,17,.1);color:#171511;border-radius:6px">CATEGORY</div>
-                  <div class="tp-card" style="background:#FBF8F3;border:1px solid #DDD3BF;border-radius:12px">
-                    <div class="tp-h1">Заголовок статьи</div>
-                    <div class="tp-lead">Базовая тема админки на песочной палитре с ink-акцентами.</div>
+                  <div class="tp-card" style="background:#FBF8F3;border:1px solid #DDD3BF;border-radius:14px">
+                    <div class="tp-h1">Как вкус меняет восприятие</div>
+                    <div class="tp-lead">Подзаголовок задаёт тон — здесь смотрятся <span style="color:#D97706">акцентные слова</span>.</div>
+                    <div class="tp-body">Тело статьи использует обычный текст с цветом ink. Радиусы применяются к карточкам, кнопкам и плашкам.</div>
                     <div class="tp-actions">
-                      <span class="tp-btn" style="background:#171511;color:#FBF8F3;border-radius:9999px">Действие</span>
-                      <span class="tp-btn" style="background:transparent;color:#171511;box-shadow:inset 0 0 0 1px #DDD3BF;border-radius:9999px">Ещё</span>
+                      <span class="tp-btn" style="background:#171511;color:#FBF8F3;border-radius:9999px">Главная</span>
+                      <span class="tp-btn" style="background:transparent;color:#171511;box-shadow:inset 0 0 0 1px #DDD3BF;border-radius:9999px">Вторая</span>
+                    </div>
+                    <div class="tp-callout" style="background:rgba(245,200,66,.18);border-color:#D97706;color:#171511">
+                      <div class="tp-callout-title" style="color:#D97706">Внимание</div>
+                      Блок с цветом warn поверх surface.
                     </div>
                     <div class="tp-pills">
                       <span class="tp-pill" style="background:#d1fae5;color:#065f46">success</span>
                       <span class="tp-pill" style="background:rgba(245,200,66,.3);color:#171511">warn</span>
+                      <span class="tp-pill" style="background:#fee2e2;color:#991b1b">danger</span>
                     </div>
+                  </div>
+                  <div class="tp-swatches">
+                    <div class="tp-swatch" style="background:#F4EEE2"></div>
+                    <div class="tp-swatch" style="background:#FBF8F3"></div>
+                    <div class="tp-swatch" style="background:#171511"></div>
+                    <div class="tp-swatch" style="background:#D97706"></div>
+                    <div class="tp-swatch" style="background:#10b981"></div>
+                    <div class="tp-swatch" style="background:#f59e0b"></div>
                   </div>
                 </div>
                 <div class="tp-meta">
@@ -285,19 +299,34 @@ include __DIR__ . '/_layout/header.php';
                     <div class="tp-tag"
                          :style="`background:${themeColor(t,'accent','#2563EB')}22;color:${themeColor(t,'accent','#2563EB')};border-radius:${themeRadius(t,'sm','6px')}`">CATEGORY</div>
                     <div class="tp-card"
-                         :style="`background:${themeColor(t,'surface','#fff')};border:1px solid ${themeColor(t,'border','#e2e8f0')};border-radius:${themeRadius(t,'md','12px')};color:${themeColor(t,'text','#0f172a')}`">
-                      <div class="tp-h1">Заголовок статьи</div>
-                      <div class="tp-lead">Превью с акцентом <span :style="`color:${themeColor(t,'accent','#2563EB')}`">color.accent</span> и обычным текстом.</div>
+                         :style="`background:${themeColor(t,'surface','#fff')};border:1px solid ${themeColor(t,'border','#e2e8f0')};border-radius:${themeRadius(t,'md','14px')};color:${themeColor(t,'text','#0f172a')}`">
+                      <div class="tp-h1">Как вкус меняет восприятие</div>
+                      <div class="tp-lead">Подзаголовок задаёт тон — здесь смотрятся <span :style="`color:${themeColor(t,'accent','#2563EB')}`">акцентные слова</span>.</div>
+                      <div class="tp-body">Тело статьи использует обычный текст. Радиусы применяются к карточкам, кнопкам и плашкам.</div>
                       <div class="tp-actions">
                         <span class="tp-btn"
-                              :style="`background:${themeColor(t,'accent','#2563EB')};color:#fff;border-radius:${themeRadius(t,'md','12px')}`">Действие</span>
+                              :style="`background:${themeColor(t,'accent','#2563EB')};color:#fff;border-radius:${themeRadius(t,'md','12px')}`">Главная</span>
                         <span class="tp-btn"
-                              :style="`background:transparent;color:${themeColor(t,'accent','#2563EB')};box-shadow:inset 0 0 0 1px ${themeColor(t,'border','#e2e8f0')};border-radius:${themeRadius(t,'md','12px')}`">Ещё</span>
+                              :style="`background:transparent;color:${themeColor(t,'accent','#2563EB')};box-shadow:inset 0 0 0 1px ${themeColor(t,'border','#e2e8f0')};border-radius:${themeRadius(t,'md','12px')}`">Вторая</span>
+                      </div>
+                      <div class="tp-callout"
+                           :style="`background:${themeColor(t,'warn','#f59e0b')}1A;border-color:${themeColor(t,'warn','#f59e0b')};border-radius:${themeRadius(t,'sm','6px')}`">
+                        <div class="tp-callout-title" :style="`color:${themeColor(t,'warn','#f59e0b')}`">Внимание</div>
+                        Блок с цветом warn поверх surface.
                       </div>
                       <div class="tp-pills">
                         <span class="tp-pill" :style="`background:${themeColor(t,'success','#10b981')}22;color:${themeColor(t,'success','#10b981')}`">success</span>
                         <span class="tp-pill" :style="`background:${themeColor(t,'warn','#f59e0b')}22;color:${themeColor(t,'warn','#f59e0b')}`">warn</span>
+                        <span class="tp-pill" :style="`background:${themeColor(t,'danger','#ef4444')}22;color:${themeColor(t,'danger','#ef4444')}`">danger</span>
                       </div>
+                    </div>
+                    <div class="tp-swatches">
+                      <div class="tp-swatch" :style="`background:${themeColor(t,'bg','#fff')}`"></div>
+                      <div class="tp-swatch" :style="`background:${themeColor(t,'surface','#fff')}`"></div>
+                      <div class="tp-swatch" :style="`background:${themeColor(t,'text','#0f172a')}`"></div>
+                      <div class="tp-swatch" :style="`background:${themeColor(t,'accent','#2563EB')}`"></div>
+                      <div class="tp-swatch" :style="`background:${themeColor(t,'success','#10b981')}`"></div>
+                      <div class="tp-swatch" :style="`background:${themeColor(t,'danger','#ef4444')}`"></div>
                     </div>
                   </div>
                   <div class="tp-meta">
@@ -1272,7 +1301,7 @@ function profilePage() {
         SEO.profile.id = id;
         this.view = 'workspace';
         this.tab = 'overview';
-        if (window.Alpine && Alpine.store('layout')) Alpine.store('layout').hideTopbar = true;
+        const _tb = document.getElementById('seo-topbar'); if (_tb) _tb.style.display = 'none';
         await this.switchTab('overview');
       } catch (_) {}
     },
@@ -1280,7 +1309,7 @@ function profilePage() {
     goToList() {
       this.current = null;
       this.view = 'list';
-      if (window.Alpine && Alpine.store('layout')) Alpine.store('layout').hideTopbar = false;
+      const _tb = document.getElementById('seo-topbar'); if (_tb) _tb.style.display = '';
       this.loadProfiles();
     },
 
