@@ -622,10 +622,12 @@ include __DIR__ . '/_layout/header.php';
   </div>
 
   <!-- ============================================================ LINKS drawer ============================== -->
-  <div x-show="listTab === 'links'" class="drawer-split" :data-drawer="lnk ? 'open' : 'closed'">
-    <div class="drawer-list overflow-auto" style="max-height: 78vh">
+  <div x-show="listTab === 'links'"
+       x-transition:enter="anim-fade-in"
+       class="drawer-split" :data-drawer="lnk ? 'open' : 'closed'">
+    <div class="drawer-list anim-stagger overflow-auto" style="max-height: 78vh">
       <template x-for="l in filteredLinks()" :key="l.id">
-        <button class="drawer-list-item" :class="{ 'is-active': lnk && lnk.id === l.id }" @click="openLink(l.id)">
+        <button class="drawer-list-item press-shrink" :class="{ 'is-active': lnk && lnk.id === l.id }" @click="openLink(l.id)">
           <span class="drawer-list-title" x-text="l.label || l.key"></span>
           <span class="drawer-list-sub" x-text="l.description || l.url || '—'"></span>
         </button>
@@ -633,7 +635,9 @@ include __DIR__ . '/_layout/header.php';
       <div x-show="!links.length" class="p-6 text-ink-500 text-sm text-center">Ссылок нет. Нажмите «+ Ссылка».</div>
     </div>
 
-    <div class="drawer-editor" x-show="lnk" x-cloak>
+    <div class="drawer-editor" x-show="lnk" x-cloak
+         x-transition:enter="anim-slide-up" x-transition:leave="anim-fade-in"
+         :key="lnk && lnk.id">
       <div class="flex items-center gap-2 mb-4">
         <button class="drawer-back-btn" @click="closeLinkEditor()">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4l-4 4 4 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -642,7 +646,7 @@ include __DIR__ . '/_layout/header.php';
         <h2 class="text-xl font-bold flex-1 truncate" x-text="lnk?.id ? (lnk.label || lnk.key || ('Ссылка #' + lnk.id)) : 'Новая ссылка'"></h2>
       </div>
 
-      <div class="space-y-3">
+      <div class="space-y-3 anim-stagger">
         <div class="grid md:grid-cols-2 gap-3">
           <div>
             <label class="label">Ключ</label>
@@ -693,10 +697,12 @@ include __DIR__ . '/_layout/header.php';
   </div>
 
   <!-- ============================================================ PUBLISH targets drawer =================== -->
-  <div x-show="listTab === 'targets'" class="drawer-split" :data-drawer="tgt ? 'open' : 'closed'">
-    <div class="drawer-list overflow-auto" style="max-height: 78vh">
+  <div x-show="listTab === 'targets'"
+       x-transition:enter="anim-fade-in"
+       class="drawer-split" :data-drawer="tgt ? 'open' : 'closed'">
+    <div class="drawer-list anim-stagger overflow-auto" style="max-height: 78vh">
       <template x-for="t in filteredTargets()" :key="t.id">
-        <button class="drawer-list-item" :class="{ 'is-active': tgt && tgt.id === t.id }" @click="openTarget(t.id)">
+        <button class="drawer-list-item press-shrink" :class="{ 'is-active': tgt && tgt.id === t.id }" @click="openTarget(t.id)">
           <span class="drawer-list-title" x-text="t.name"></span>
           <span class="drawer-list-sub" x-text="(t.type === 'ftp' ? 'FTP' : 'Self-hosted') + ' · ' + (t.base_url || '—')"></span>
         </button>
@@ -704,7 +710,9 @@ include __DIR__ . '/_layout/header.php';
       <div x-show="!targets.length" class="p-6 text-ink-500 text-sm text-center">Площадок нет. Нажмите «+ Площадка».</div>
     </div>
 
-    <div class="drawer-editor" x-show="tgt" x-cloak>
+    <div class="drawer-editor" x-show="tgt" x-cloak
+         x-transition:enter="anim-slide-up" x-transition:leave="anim-fade-in"
+         :key="tgt && tgt.id">
       <div class="flex items-center gap-2 mb-4">
         <button class="drawer-back-btn" @click="closeTargetEditor()">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4l-4 4 4 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -713,7 +721,7 @@ include __DIR__ . '/_layout/header.php';
         <h2 class="text-xl font-bold flex-1 truncate" x-text="tgt?.id ? (tgt.name || ('Площадка #' + tgt.id)) : 'Новая площадка'"></h2>
       </div>
 
-      <div class="space-y-3">
+      <div class="space-y-3 anim-stagger">
         <div class="grid md:grid-cols-2 gap-3">
           <div>
             <label class="label">Название</label>
@@ -741,7 +749,7 @@ include __DIR__ . '/_layout/header.php';
 
         <!-- SELF-HOSTED config -->
         <template x-if="tgt && tgt.type === 'selfhosted'">
-          <div class="card-tinted space-y-3">
+          <div class="card-tinted space-y-3 anim-pop">
             <div class="text-xs text-ink-500 font-medium uppercase tracking-wide">Параметры self-hosted</div>
             <div>
               <label class="label">Хост</label>
@@ -764,7 +772,7 @@ include __DIR__ . '/_layout/header.php';
 
         <!-- FTP config -->
         <template x-if="tgt && tgt.type === 'ftp'">
-          <div class="card-tinted space-y-3">
+          <div class="card-tinted space-y-3 anim-pop">
             <div class="text-xs text-ink-500 font-medium uppercase tracking-wide">Параметры FTP</div>
             <div class="grid md:grid-cols-3 gap-3">
               <div class="md:col-span-2">
