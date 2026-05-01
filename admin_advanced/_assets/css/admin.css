@@ -677,14 +677,20 @@ body[data-focus="on"] main { margin-top: 1.25rem !important; }
   min-width: 0;
 }
 .cat-tree-item:hover:not(.is-active) { background: var(--sand-50); transform: translateX(2px); }
-.cat-tree-item.is-active { color: var(--sand-50); }
+/* Active row has a solid dark fill so the name stays readable even when the
+   morph-pill is mid-transition or measured before tree expand/collapse. */
+.cat-tree-item.is-active {
+  color: var(--sand-50);
+  background: var(--ink-900);
+  box-shadow: var(--shadow-card);
+}
 .cat-tree-item.is-active .cat-tree-slug,
 .cat-tree-item.is-active .cat-tree-count { color: var(--sand-200); border-color: var(--sand-300); background: rgba(255,255,255,.12); }
 
 .cat-tree-name {
   font-weight: 600; font-size: .9rem; line-height: 1.2;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  flex: 1; min-width: 0;
+  flex: 1 1 auto; min-width: 4ch;
 }
 .cat-tree-slug {
   font-size: .7rem; color: var(--ink-300);
@@ -702,8 +708,10 @@ body[data-focus="on"] main { margin-top: 1.25rem !important; }
   flex-shrink: 0;
 }
 
-/* The shared morph pill on .cat-tree must skip the toggle column. */
-.cat-tree .drawer-list-pill { left: calc(.35rem + 22px); right: .35rem; }
+/* Active row uses its own solid bg (above), so hide the shared morph-pill
+   inside cat-tree — the pill spans full list width and would visually clash
+   with depth-indented rows. */
+.cat-tree .drawer-list-pill { display: none; }
 
 /* ============================================================
  * Catalog editor — duplicate hint, parent picker, sort row
@@ -744,6 +752,38 @@ body[data-focus="on"] main { margin-top: 1.25rem !important; }
 .cat-dup-pill:hover { background: var(--ink-900); color: var(--sand-50); border-color: var(--ink-900); transform: translateY(-1px); }
 .cat-dup-path { color: var(--ink-300); font-size: .68rem; }
 .cat-dup-pill:hover .cat-dup-path { color: var(--sand-200); }
+.cat-dup-text { font-weight: 600; }
+.cat-dup-dismiss {
+  margin-left: auto;
+  padding: 3px 10px;
+  background: transparent;
+  border: 1px dashed var(--ink-300);
+  border-radius: 9999px;
+  font-size: .72rem; color: var(--ink-700);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
+}
+.cat-dup-dismiss:hover { background: var(--ink-900); color: var(--sand-50); border-color: var(--ink-900); border-style: solid; }
+
+.cat-dup-ok {
+  margin-top: 6px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  padding: 6px 10px;
+  background: rgba(76, 175, 80, .08);
+  border: 1px solid rgba(76, 175, 80, .25);
+  border-radius: 12px;
+  font-size: .75rem; color: var(--ink-500);
+  animation: seo-fade-in var(--motion-base) var(--motion-ease) both;
+}
+.cat-dup-ok-icon { color: #2e7d32; font-weight: 700; }
+.cat-dup-undo {
+  margin-left: auto;
+  padding: 2px 8px;
+  background: transparent; border: 0;
+  font-size: .7rem; color: var(--ink-500); cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.cat-dup-undo:hover { color: var(--ink-900); }
 
 .cat-parent-trigger {
   display: flex; align-items: center; gap: .5rem;

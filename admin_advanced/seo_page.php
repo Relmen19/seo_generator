@@ -632,7 +632,7 @@ include __DIR__ . '/_layout/header.php';
                    placeholder="Например: Кулинария">
             <div x-show="catNameDups.length" class="cat-dup-hint">
               <span class="cat-dup-icon">⚠</span>
-              Похожие уже есть:
+              <span class="cat-dup-text">Похожие уже есть:</span>
               <template x-for="d in catNameDups" :key="d.id">
                 <button class="cat-dup-pill" @click="openCatalog(d.id)"
                         :title="'Перейти к: ' + d._path">
@@ -640,6 +640,15 @@ include __DIR__ . '/_layout/header.php';
                   <span class="cat-dup-path" x-show="d._parentPath" x-text="' · ' + d._parentPath"></span>
                 </button>
               </template>
+              <button class="cat-dup-dismiss" @click="dismissCatDups()"
+                      title="Это разные каталоги — не предупреждать про это название">
+                Это разные каталоги
+              </button>
+            </div>
+            <div x-show="cat?._dupDismissed && !catNameDups.length && cat?.name" class="cat-dup-ok">
+              <span class="cat-dup-ok-icon">✓</span>
+              Похожие имена разрешены для этого каталога.
+              <button class="cat-dup-undo" @click="undoCatDupDismiss()" title="Снова показывать предупреждение">↺ отменить</button>
             </div>
           </div>
           <div>
@@ -2117,11 +2126,17 @@ function seoApp() {
       try {
         const body = { ...this.cat };
         delete body.articles_count;
+        delete body._dupDismissed;
         const isNew = !this.cat.id;
+        const dismissedAtSave = this.cat._dupDismissed; // normName if user dismissed
         const r = isNew
           ? await SEO.api('catalogs', { method: 'POST', body })
           : await SEO.api('catalogs/' + this.cat.id, { method: 'PUT', body });
         if (r) Object.assign(this.cat, r);
+        // Promote in-memory dismissal to localStorage now that we have an id.
+        if (dismissedAtSave && this.cat.id) {
+          this._setDupDismissed(this.cat.id, dismissedAtSave);
+        }
         await this.loadCatalogs();
         SEO.toast('Сохранено', 'ok');
       } catch (_) {}
@@ -2132,7 +2147,9 @@ function seoApp() {
         message: 'Удалить «' + this.cat.name + '»?' + (this.cat.articles_count ? ' Связано статей: ' + this.cat.articles_count + '.' : ''),
         onConfirm: async () => {
           try {
-            await SEO.api('catalogs/' + this.cat.id, { method: 'DELETE' });
+            const delId = this.cat.id;
+            await SEO.api('catalogs/' + delId, { method: 'DELETE' });
+            this._setDupDismissed(delId, null);
             this.cat = null;
             this.current = { kind: null, id: null };
             await this.loadCatalogs();
@@ -2176,10 +2193,52 @@ function seoApp() {
       }
       return v1[b.length];
     },
+    // ---- duplicate-warning dismissal (persisted in localStorage) ----
+    _dupKey() { return 'seo_cat_dup_ok_' + (this.profileId || 0); },
+    _dupMap() {
+      try { return JSON.parse(localStorage.getItem(this._dupKey()) || '{}') || {}; }
+      catch (_) { return {}; }
+    },
+    _setDupDismissed(catId, normName) {
+      const m = this._dupMap();
+      if (normName) m[catId] = normName; else delete m[catId];
+      try { localStorage.setItem(this._dupKey(), JSON.stringify(m)); } catch (_) {}
+    },
+    _isDupDismissed(catId, normName) {
+      const m = this._dupMap();
+      return catId != null && m[catId] && m[catId] === normName;
+    },
+    dismissCatDups() {
+      if (!this.cat) return;
+      const norm = this._normalize(this.cat.name);
+      if (this.cat.id) this._setDupDismissed(this.cat.id, norm);
+      this.cat._dupDismissed = norm;
+      this.catNameDups = [];
+    },
+    undoCatDupDismiss() {
+      if (!this.cat) return;
+      if (this.cat.id) this._setDupDismissed(this.cat.id, null);
+      this.cat._dupDismissed = false;
+      this.catRecomputeDups();
+    },
     catRecomputeDups() {
       if (!this.cat) { this.catNameDups = []; return; }
       const q = this._normalize(this.cat.name);
       if (q.length < 2) { this.catNameDups = []; return; }
+      // Honour dismissal: persisted (saved cat) or in-memory (new cat).
+      if (this.cat.id && this._isDupDismissed(this.cat.id, q)) {
+        this.cat._dupDismissed = q;
+        this.catNameDups = [];
+        return;
+      }
+      if (!this.cat.id && this.cat._dupDismissed === q) {
+        this.catNameDups = [];
+        return;
+      }
+      // Name changed away from dismissed value — clear stale flag.
+      if (this.cat._dupDismissed && this.cat._dupDismissed !== q) {
+        this.cat._dupDismissed = false;
+      }
       const selfId = this.cat.id;
       const out = [];
       for (const c of this.flatCatalogs) {
