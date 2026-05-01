@@ -627,7 +627,7 @@ include __DIR__ . '/_layout/header.php';
        class="drawer-split" :data-drawer="lnk ? 'open' : 'closed'">
     <div class="drawer-list anim-stagger" style="max-height: 78vh"
          x-ref="linksList"
-         x-init="$watch('lnk', () => $nextTick(() => SEO.morphPill(this, 'linksList', lnk && lnk.id)))">
+         x-init="$watch('lnk', v => $nextTick(() => SEO.morphPill($refs.linksList, pill, 'linksList', v && v.id)))">
       <div class="drawer-list-pill" :class="{ 'is-visible': lnk && lnk.id }"
            :style="SEO.pillStyle(pill.linksList)"></div>
       <template x-for="l in filteredLinks()" :key="l.id">
@@ -707,7 +707,7 @@ include __DIR__ . '/_layout/header.php';
        class="drawer-split" :data-drawer="tgt ? 'open' : 'closed'">
     <div class="drawer-list anim-stagger" style="max-height: 78vh"
          x-ref="targetsList"
-         x-init="$watch('tgt', () => $nextTick(() => SEO.morphPill(this, 'targetsList', tgt && tgt.id)))">
+         x-init="$watch('tgt', v => $nextTick(() => SEO.morphPill($refs.targetsList, pill, 'targetsList', v && v.id)))">
       <div class="drawer-list-pill" :class="{ 'is-visible': tgt && tgt.id }"
            :style="SEO.pillStyle(pill.targetsList)"></div>
       <template x-for="t in filteredTargets()" :key="t.id">

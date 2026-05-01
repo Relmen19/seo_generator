@@ -269,20 +269,19 @@
    *
    * In the Alpine component:
    *   pill: { myList: null },
-   *   $watch('activeId', () => $nextTick(() => SEO.morphPill(this, 'myList', activeId)))
+   *   $watch('activeId', v => $nextTick(() =>
+   *     SEO.morphPill($refs.myList, pill, 'myList', v && v.id)
+   *   ))
    *
    * The pill element animates between rows via CSS transition on
-   * transform/height (vars --pill-top / --pill-h), so no per-row
-   * repaint and no JS animation loop.
+   * transform/height (vars --pill-top / --pill-h), so there's no
+   * per-row repaint and no JS animation loop.
    */
-  function morphPill(component, refName, rowId) {
-    const list = component.$refs && component.$refs[refName];
-    if (!list) return;
-    if (!rowId) { component.pill[refName] = null; return; }
-    const row = list.querySelector('[data-row-id="' + rowId + '"]');
-    component.pill[refName] = row
-      ? { top: row.offsetTop, height: row.offsetHeight }
-      : null;
+  function morphPill(listEl, pillState, key, rowId) {
+    if (!listEl || !pillState) return;
+    if (!rowId) { pillState[key] = null; return; }
+    const row = listEl.querySelector('[data-row-id="' + rowId + '"]');
+    pillState[key] = row ? { top: row.offsetTop, height: row.offsetHeight } : null;
   }
   function pillStyle(p) {
     return p
