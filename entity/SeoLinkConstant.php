@@ -9,7 +9,7 @@ class SeoLinkConstant extends AbstractEntity {
 
     public const SEO_LINKS_TABLE = 'seo_link_constants';
 
-    protected ?int $articleId = null;
+    protected ?int $profileId = null;
     protected string $key = '';
     protected string $url = '';
     protected bool $isActive = true;
@@ -19,8 +19,8 @@ class SeoLinkConstant extends AbstractEntity {
     protected ?string $description = null;
 
     protected function hydrate(array $data): void {
-        if (array_key_exists('article_id', $data)) {
-            $this->articleId = $this->toNullableInt($data['article_id']);
+        if (array_key_exists('profile_id', $data)) {
+            $this->profileId = $this->toNullableInt($data['profile_id']);
         }
         if (array_key_exists('key', $data)) {
             $this->key = (string)$data['key'];
@@ -47,7 +47,8 @@ class SeoLinkConstant extends AbstractEntity {
 
     public function toArray(): array {
         return [
-            'article_id'  => $this->articleId,
+            'profile_id'  => $this->profileId,
+            'article_id'  => null,
             'key'         => $this->key,
             'url'         => $this->url,
             'label'       => $this->label,
@@ -56,10 +57,6 @@ class SeoLinkConstant extends AbstractEntity {
             'description' => $this->description,
             'is_active'   => (int)$this->isActive,
         ];
-    }
-
-    public function isGlobal(): bool {
-        return $this->articleId === null;
     }
 
     public function getPlaceholder(): string {
@@ -91,12 +88,12 @@ class SeoLinkConstant extends AbstractEntity {
         );
     }
 
-    public function getArticleId(): ?int {
-        return $this->articleId;
+    public function getProfileId(): ?int {
+        return $this->profileId;
     }
 
-    public function setArticleId(?int $articleId): self {
-        $this->articleId = $articleId;
+    public function setProfileId(?int $profileId): self {
+        $this->profileId = $profileId;
         return $this;
     }
 

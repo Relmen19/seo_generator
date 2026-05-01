@@ -54,7 +54,7 @@ class PageAssembler
     {
         $article  = $this->loadArticle($articleId);
         $blocks   = $this->loadBlocks($articleId);
-        $links    = $this->loadLinks($articleId);
+        $links    = $this->loadLinks((int)($article['profile_id'] ?? 0));
         $template = $article['template_id']
             ? $this->loadTemplate((int)$article['template_id'])
             : null;
@@ -422,11 +422,12 @@ class PageAssembler
         );
     }
 
-    private function loadLinks(int $articleId): array
+    private function loadLinks(int $profileId): array
     {
+        if ($profileId <= 0) return [];
         return $this->db->fetchAll(
-            "SELECT * FROM " . SeoLinkConstant::SEO_LINKS_TABLE . " WHERE article_id IS NULL OR article_id = ?",
-            [$articleId]
+            "SELECT * FROM " . SeoLinkConstant::SEO_LINKS_TABLE . " WHERE profile_id = ?",
+            [$profileId]
         );
     }
 

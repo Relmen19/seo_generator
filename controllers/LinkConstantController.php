@@ -7,13 +7,13 @@ namespace Seo\Controller;
 use Seo\Entity\SeoLinkConstant;
 
 /*
-   GET    /links                  — список (глобальные + по статье)
-   GET    /links/{id}             — одна ссылка
-   GET    /links/resolve          — разрешить все ссылки для статьи (article_id)
-   POST   /links                  — создать
-   PUT    /links/{id}             — обновить
-   PUT    /links/bulk-replace     — массовая замена URL по ключу
-   DELETE /links/{id}             — удалить
+   GET    /links?profile_id={pid}    — список ссылок профиля
+   GET    /links/{id}                — одна ссылка
+   GET    /links/resolve?article_id  — карта ссылок (по профилю статьи) или profile_id напрямую
+   POST   /links                     — создать (profile_id обязателен)
+   PUT    /links/{id}                — обновить
+   PUT    /links/bulk-replace        — массовая замена URL по ключу
+   DELETE /links/{id}                — удалить
  */
 class LinkConstantController extends AbstractController {
 
@@ -46,20 +46,17 @@ class LinkConstantController extends AbstractController {
     }
 
     private function index(): void {
-        $articleId = $this->getParam('article_id');
-        $globalOnly = $this->getParam('global');
-
-        $where  = '1=1';
-        $params = [];
-
-        if ($globalOnly === '1') {
-            $where .= ' AND article_id IS NULL';
-        } elseif ($articleId !== null) {
-            $where .= ' AND (article_id IS NULL OR article_id = :article_id)';
-            $params[':article_id'] = (int)$articleId;
+        $profileId = $this->getParam('profile_id');
+        if ($profileId === null || $profileId === '') {
+            $this->error('profile_id обязателен');
         }
 
-        $rows = $this->db->fetchAll("SELECT * FROM " . SeoLinkConstant::SEO_LINKS_TABLE . " WHERE {$where} ORDER BY `key`", $params);
+        $rows = $this->db->fetchAll(
+            "SELECT * FROM " . SeoLinkConstant::SEO_LINKS_TABLE . "
+             WHERE profile_id = :pid
+             ORDER BY `key`",
+            [':pid' => (int)$profileId]
+        );
 
         $items = array_map(fn(array $r) => (new SeoLinkConstant($r))->toFullArray(), $rows);
 
@@ -75,25 +72,31 @@ class LinkConstantController extends AbstractController {
     }
 
     private function resolve(): void {
+        $profileId = $this->getParam('profile_id');
         $articleId = $this->getParam('article_id');
-        if ($articleId === null) $this->error('article_id обязателен');
+
+        if (($profileId === null || $profileId === '') && $articleId !== null) {
+            $row = $this->db->fetchOne("SELECT profile_id FROM seo_articles WHERE id = :id", [':id' => (int)$articleId]);
+            $profileId = $row['profile_id'] ?? null;
+        }
+
+        if ($profileId === null || $profileId === '') {
+            $this->error('profile_id или article_id обязателен');
+        }
 
         $rows = $this->db->fetchAll(
-            "SELECT * FROM " . SeoLinkConstant::SEO_LINKS_TABLE . "
-             WHERE article_id IS NULL OR article_id = :aid
-             ORDER BY article_id ASC",
-            [':aid' => (int)$articleId]
+            "SELECT * FROM " . SeoLinkConstant::SEO_LINKS_TABLE . " WHERE profile_id = :pid",
+            [':pid' => (int)$profileId]
         );
 
         $map = [];
         foreach ($rows as $row) {
             $link = new SeoLinkConstant($row);
             $map[$link->getKey()] = [
-                'url'       => $link->getUrl(),
-                'label'     => $link->getLabel(),
-                'target'    => $link->getTarget(),
-                'nofollow'  => $link->isNofollow(),
-                'is_global' => $link->isGlobal(),
+                'url'      => $link->getUrl(),
+                'label'    => $link->getLabel(),
+                'target'   => $link->getTarget(),
+                'nofollow' => $link->isNofollow(),
             ];
         }
 
@@ -102,17 +105,16 @@ class LinkConstantController extends AbstractController {
 
     private function create(): void {
         $data = $this->getJsonBody();
-        $this->abortIfErrors($this->validateRequired($data, ['key', 'url']));
+        $this->abortIfErrors($this->validateRequired($data, ['key', 'url', 'profile_id']));
 
-
-        $articleId = isset($data['article_id']) ? (int)$data['article_id'] : null;
+        $profileId = (int)$data['profile_id'];
         $existingKey = $this->db->fetchOne(
-            "SELECT id FROM " . SeoLinkConstant::SEO_LINKS_TABLE . " WHERE `key` = :k AND article_id <=> :aid",
-            [':k' => $data['key'], ':aid' => $articleId]);
+            "SELECT id FROM " . SeoLinkConstant::SEO_LINKS_TABLE . " WHERE `key` = :k AND profile_id = :pid",
+            [':k' => $data['key'], ':pid' => $profileId]
+        );
 
         if ($existingKey !== null) {
-            $scope = $articleId ? "для статьи #{$articleId}" : 'глобально';
-            $this->error("Ключ '{$data['key']}' уже существует {$scope}", 409);
+            $this->error("Ключ '{$data['key']}' уже существует в этом профиле", 409);
         }
 
         $link = new SeoLinkConstant($data);

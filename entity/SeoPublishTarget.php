@@ -8,31 +8,34 @@ class SeoPublishTarget extends AbstractEntity {
 
     public const SEO_PUBLISH_TARGET_TABLE = 'seo_publish_targets';
 
-    public const TYPE_HOSTIA = 'hostia';
-    public const TYPE_FTP    = 'ftp';
-    public const TYPE_SSH    = 'ssh';
-    public const TYPE_API    = 'api';
+    public const TYPE_SELFHOSTED = 'selfhosted';
+    public const TYPE_FTP        = 'ftp';
 
     public const TYPES = [
-        self::TYPE_HOSTIA,
+        self::TYPE_SELFHOSTED,
         self::TYPE_FTP,
-        self::TYPE_SSH,
-        self::TYPE_API,
     ];
 
+    protected ?int $profileId = null;
     protected string $name = '';
-    protected string $type = self::TYPE_HOSTIA;
+    protected string $type = self::TYPE_SELFHOSTED;
     protected array $config = [];
     protected string $baseUrl = '';
     protected bool $isActive = true;
 
 
     protected function hydrate(array $data): void {
+        if (array_key_exists('profile_id', $data)) {
+            $this->profileId = $this->toNullableInt($data['profile_id']);
+        }
         if (array_key_exists('name', $data)) {
             $this->name = (string)$data['name'];
         }
         if (array_key_exists('type', $data)) {
-            $this->type = (string)$data['type'];
+            $type = (string)$data['type'];
+            // legacy: 'hostia' renamed to 'selfhosted' in migration 042
+            if ($type === 'hostia') $type = self::TYPE_SELFHOSTED;
+            $this->type = $type;
         }
         if (array_key_exists('config', $data)) {
             $this->config = $this->decodeJson($data['config']) ?? [];
@@ -48,12 +51,22 @@ class SeoPublishTarget extends AbstractEntity {
 
     public function toArray(): array {
         return [
-            'name'      => $this->name,
-            'type'      => $this->type,
-            'config'    => $this->encodeJson($this->config),
-            'base_url'  => $this->baseUrl,
-            'is_active' => (int)$this->isActive,
+            'profile_id' => $this->profileId,
+            'name'       => $this->name,
+            'type'       => $this->type,
+            'config'     => $this->encodeJson($this->config),
+            'base_url'   => $this->baseUrl,
+            'is_active'  => (int)$this->isActive,
         ];
+    }
+
+    public function getProfileId(): ?int {
+        return $this->profileId;
+    }
+
+    public function setProfileId(?int $id): self {
+        $this->profileId = $id;
+        return $this;
     }
 
     /**

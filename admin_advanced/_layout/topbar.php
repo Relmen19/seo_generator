@@ -7,37 +7,33 @@ declare(strict_types=1);
 
 $topbarRight = $topbarRight ?? '';
 ?>
-<header id="seo-topbar"
-        class="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+<header id="seo-topbar" class="flex items-center gap-4">
   <div class="flex-1 min-w-0">
     <?php if ($pageHeading): ?>
-      <h1 class="text-3xl md:text-4xl font-bold tracking-tight"><?= htmlspecialchars($pageHeading, ENT_QUOTES, 'UTF-8') ?></h1>
+      <h1 class="text-2xl md:text-3xl font-bold tracking-tight truncate"><?= htmlspecialchars($pageHeading, ENT_QUOTES, 'UTF-8') ?></h1>
     <?php endif; ?>
     <?php if ($pageSubheading): ?>
-      <p class="text-ink-500 mt-1 text-sm md:text-base"><?= htmlspecialchars($pageSubheading, ENT_QUOTES, 'UTF-8') ?></p>
+      <p class="text-ink-500 mt-0.5 text-xs md:text-sm truncate"><?= htmlspecialchars($pageSubheading, ENT_QUOTES, 'UTF-8') ?></p>
     <?php endif; ?>
   </div>
 
-  <div class="flex items-center gap-3">
+  <div class="flex items-center gap-2 shrink-0">
     <?php if ($topbarRight): ?>
       <?= $topbarRight ?>
     <?php endif; ?>
 
-    <div x-data="profileChip()" x-init="init()" x-show="profile" x-cloak
-         class="flex items-center gap-2 bg-sand-100 rounded-full pl-1 pr-4 py-1 shadow-rail">
+    <a x-data="profileChip()" x-init="init()" x-show="profile" x-cloak
+       href="/admin_advanced/seo_profile_page.php"
+       title="Сменить профиль"
+       class="block w-9 h-9 rounded-full overflow-hidden bg-sand-100 ring-1 ring-sand-200 hover:ring-ink-300 transition">
       <template x-if="profile && profile.has_icon">
-        <img :src="iconUrl()" alt="" class="w-8 h-8 rounded-full object-cover bg-sand-50">
+        <img :src="iconUrl()" :alt="profile.name" class="w-full h-full object-cover">
       </template>
       <template x-if="profile && !profile.has_icon">
-        <span class="w-8 h-8 rounded-full bg-ink-900 text-sand-50 grid place-items-center text-xs font-semibold"
+        <span class="w-full h-full grid place-items-center bg-ink-900 text-sand-50 text-xs font-semibold"
               x-text="initials()"></span>
       </template>
-      <span class="text-sm font-semibold text-ink-900" x-text="profile ? profile.name : ''"></span>
-      <a href="/admin_advanced/seo_profile_page.php" title="Сменить профиль"
-         class="text-ink-500 hover:text-ink-900 ml-1">
-        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor"><path d="M3 6l5 5 5-5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </a>
-    </div>
+    </a>
   </div>
 </header>
 

@@ -40,10 +40,11 @@ class PublishTargetController extends AbstractController{
         $params = [];
 
         $profileId = $this->getParam('profile_id');
-        if ($profileId !== null && $profileId !== '') {
-            $where .= ' AND (profile_id = :profile_id OR profile_id IS NULL)';
-            $params[':profile_id'] = (int)$profileId;
+        if ($profileId === null || $profileId === '') {
+            $this->error('profile_id обязателен');
         }
+        $where .= ' AND profile_id = :profile_id';
+        $params[':profile_id'] = (int)$profileId;
 
         $rows = $this->db->fetchAll("SELECT * FROM " . SeoPublishTarget::SEO_PUBLISH_TARGET_TABLE . " WHERE {$where} ORDER BY name", $params);
         $items = array_map(fn(array $r) => (new SeoPublishTarget($r))->toFullArray(), $rows);
@@ -58,7 +59,11 @@ class PublishTargetController extends AbstractController{
 
     private function create(): void {
         $data = $this->getJsonBody();
-        $this->abortIfErrors($this->validateRequired($data, ['name', 'base_url']));
+        $this->abortIfErrors($this->validateRequired($data, ['name', 'base_url', 'profile_id', 'type']));
+
+        if (!in_array($data['type'], SeoPublishTarget::TYPES, true)) {
+            $this->error('Недопустимый тип площадки');
+        }
 
         $target = new SeoPublishTarget($data);
         $newId = $this->db->insert(SeoPublishTarget::SEO_PUBLISH_TARGET_TABLE, $target->toArray());

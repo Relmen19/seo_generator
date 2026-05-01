@@ -42,18 +42,13 @@ class PublishService {
             ? json_decode($target['config'], true) ?? []
             : ($target['config'] ?? []);
 
-        switch ($target['type']) {
-            case 'hostia':
-                $this->deployHostia($html, $remotePath, $config, $target);
+        $type = $target['type'] === 'hostia' ? 'selfhosted' : $target['type'];
+        switch ($type) {
+            case 'selfhosted':
+                $this->deploySelfhosted($html, $remotePath, $config, $target);
                 break;
             case 'ftp':
                 $this->deployFtp($html, $remotePath, $config);
-                break;
-            case 'ssh':
-                $this->deploySsh($html, $remotePath, $config);
-                break;
-            case 'api':
-                $this->deployApi($html, $remotePath, $config, $article);
                 break;
             default:
                 throw new RuntimeException("Неизвестный тип хоста: {$target['type']}");
@@ -96,11 +91,10 @@ class PublishService {
                     ? json_decode($target['config'], true) ?? []
                     : ($target['config'] ?? []);
                 try {
-                    switch ($target['type']) {
-                        case 'hostia': $this->deleteHostia($publishedPath, $config, $target); break;
-                        case 'ftp':    $this->deleteFtp($publishedPath, $config); break;
-                        case 'ssh':    $this->deleteSsh($publishedPath, $config); break;
-                        case 'api':    $this->deleteApi($publishedPath, $config, $article); break;
+                    $type = $target['type'] === 'hostia' ? 'selfhosted' : $target['type'];
+                    switch ($type) {
+                        case 'selfhosted': $this->deleteSelfhosted($publishedPath, $config, $target); break;
+                        case 'ftp':        $this->deleteFtp($publishedPath, $config); break;
                     }
                 } catch (Throwable $e) {
                     logMessage("Unpublish delete failed for target {$target['name']}: " . $e->getMessage());
@@ -131,7 +125,7 @@ class PublishService {
         return $this->renderer->render($articleId, true);
     }
 
-    private function deployHostia(string $html, string $path, array $config, array $target): void {
+    private function deploySelfhosted(string $html, string $path, array $config, array $target): void {
         $baseUrl  = rtrim($target['base_url'], '/');
         $endpoint = !empty($config['publish_endpoint'])
             ? $config['publish_endpoint']
@@ -219,105 +213,6 @@ class PublishService {
     }
 
 
-    private function deploySsh(string $html, string $path, array $config): void {
-        $host = $config['host'] ?? '';
-        $user = $config['username'] ?? '';
-        $port = (int)($config['port'] ?? 22);
-        $root = rtrim($config['document_root'] ?? '', '/');
-        $key  = $config['private_key'] ?? '';
-        $pass = $config['password'] ?? '';
-
-        if (!function_exists('ssh2_connect')) {
-            throw new RuntimeException('SSH: расширение php-ssh2 не установлено');
-        }
-
-        $conn = ssh2_connect($host, $port);
-        if (!$conn) {
-            throw new RuntimeException("SSH: не удалось подключиться к {$host}:{$port}");
-        }
-
-        if ($key && file_exists($key)) {
-            $pubKey = $key . '.pub';
-            if (!ssh2_auth_pubkey_file($conn, $user, $pubKey, $key)) {
-                throw new RuntimeException('SSH: ошибка аутентификации по ключу');
-            }
-        } elseif ($pass) {
-            if (!ssh2_auth_password($conn, $user, $pass)) {
-                throw new RuntimeException('SSH: ошибка аутентификации по паролю');
-            }
-        } else {
-            throw new RuntimeException('SSH: нужен password или private_key');
-        }
-
-        $fullPath = $root . '/' . $path;
-        $dir = dirname($fullPath);
-
-        ssh2_exec($conn, "mkdir -p " . escapeshellarg($dir));
-
-        $sftp = ssh2_sftp($conn);
-        if (!$sftp) {
-            throw new RuntimeException('SSH: не удалось открыть SFTP');
-        }
-
-        $stream = fopen("ssh2.sftp://{$sftp}{$fullPath}", 'w');
-        if (!$stream) {
-            throw new RuntimeException("SSH: не удалось открыть файл {$fullPath}");
-        }
-        fwrite($stream, $html);
-        fclose($stream);
-    }
-
-    private function deployApi(string $html, string $path, array $config, array $article): void {
-        $endpoint = $config['endpoint'] ?? '';
-        $method   = strtoupper($config['method'] ?? 'POST');
-        $headers  = $config['headers'] ?? [];
-
-        if (!$endpoint) {
-            throw new RuntimeException('API: endpoint обязателен в config');
-        }
-
-        $payload = json_encode([
-            'article_id' => $article['id'],
-            'slug'       => $article['slug'],
-            'title'      => $article['title'],
-            'path'       => $path,
-            'html'       => $html,
-            'meta'       => [
-                'title'       => $article['meta_title'],
-                'description' => $article['meta_description'],
-                'keywords'    => $article['meta_keywords'],
-            ],
-        ], JSON_UNESCAPED_UNICODE);
-
-        $curlHeaders = ['Content-Type: application/json'];
-        foreach ($headers as $k => $v) {
-            $curlHeaders[] = "{$k}: {$v}";
-        }
-
-        $ch = curl_init($endpoint);
-        curl_setopt_array($ch, [
-            CURLOPT_CUSTOMREQUEST  => $method,
-            CURLOPT_POSTFIELDS     => $payload,
-            CURLOPT_HTTPHEADER     => $curlHeaders,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 30,
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-        if ($response === false) {
-            $err = curl_error($ch);
-            curl_close($ch);
-            throw new RuntimeException("API deploy failed: {$err}");
-        }
-        curl_close($ch);
-
-        if ($httpCode >= 400) {
-            throw new RuntimeException("API deploy error: HTTP {$httpCode}");
-        }
-    }
-
     private function deleteFromTargets(array $article, string $path): void {
         $targets = $this->db->fetchAll("SELECT * FROM seo_publish_targets WHERE is_active = 1");
 
@@ -327,18 +222,13 @@ class PublishService {
                 : ($target['config'] ?? []);
 
             try {
-                switch ($target['type']) {
-                    case 'hostia':
-                        $this->deleteHostia($path, $config, $target);
+                $type = $target['type'] === 'hostia' ? 'selfhosted' : $target['type'];
+                switch ($type) {
+                    case 'selfhosted':
+                        $this->deleteSelfhosted($path, $config, $target);
                         break;
                     case 'ftp':
                         $this->deleteFtp($path, $config);
-                        break;
-                    case 'ssh':
-                        $this->deleteSsh($path, $config);
-                        break;
-                    case 'api':
-                        $this->deleteApi($path, $config, $article);
                         break;
                 }
             } catch (Throwable $e) {
@@ -347,7 +237,7 @@ class PublishService {
         }
     }
 
-    private function deleteHostia(string $path, array $config, array $target): void {
+    private function deleteSelfhosted(string $path, array $config, array $target): void {
         $baseUrl  = rtrim($target['base_url'], '/');
         $endpoint = !empty($config['publish_endpoint'])
             ? $config['publish_endpoint']
@@ -411,64 +301,6 @@ class PublishService {
         @ftp_rmdir($ftp, dirname($fullPath));
 
         ftp_close($ftp);
-    }
-
-    private function deleteSsh(string $path, array $config): void {
-        $host = $config['host'] ?? '';
-        $user = $config['username'] ?? '';
-        $port = (int)($config['port'] ?? 22);
-        $root = rtrim($config['document_root'] ?? '', '/');
-        $key  = $config['private_key'] ?? '';
-        $pass = $config['password'] ?? '';
-
-        if (!function_exists('ssh2_connect')) return;
-
-        $conn = ssh2_connect($host, $port);
-        if (!$conn) return;
-
-        if ($key && file_exists($key)) {
-            $pubKey = $key . '.pub';
-            if (!ssh2_auth_pubkey_file($conn, $user, $pubKey, $key)) return;
-        } elseif ($pass) {
-            if (!ssh2_auth_password($conn, $user, $pass)) return;
-        } else {
-            return;
-        }
-
-        $fullPath = $root . '/' . $path;
-        ssh2_exec($conn, "rm -f " . escapeshellarg($fullPath));
-        ssh2_exec($conn, "rmdir --ignore-fail-on-non-empty " . escapeshellarg(dirname($fullPath)));
-    }
-
-    private function deleteApi(string $path, array $config, array $article): void {
-        $endpoint = $config['endpoint'] ?? '';
-        $headers  = $config['headers'] ?? [];
-
-        if (!$endpoint) return;
-
-        $payload = json_encode([
-            'action'     => 'delete',
-            'article_id' => $article['id'],
-            'slug'       => $article['slug'],
-            'path'       => $path,
-        ], JSON_UNESCAPED_UNICODE);
-
-        $curlHeaders = ['Content-Type: application/json'];
-        foreach ($headers as $k => $v) {
-            $curlHeaders[] = "{$k}: {$v}";
-        }
-
-        $ch = curl_init($endpoint);
-        curl_setopt_array($ch, [
-            CURLOPT_CUSTOMREQUEST  => 'DELETE',
-            CURLOPT_POSTFIELDS     => $payload,
-            CURLOPT_HTTPHEADER     => $curlHeaders,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 30,
-        ]);
-
-        curl_exec($ch);
-        curl_close($ch);
     }
 
     private function buildCatalogPath(array $article): string {

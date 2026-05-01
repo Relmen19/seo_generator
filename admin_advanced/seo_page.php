@@ -17,7 +17,6 @@ $pageHeading    = 'Статьи';
 $pageSubheading = 'Генерация, редактура, публикация и Telegram-постинг';
 
 $topbarRight = '
-  <div id="seo-profile-slot" class="flex items-center gap-3"></div>
   <button class="btn-primary" @click="openCreateArticle()">
     <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4v12M4 10h12" stroke-linecap="round"/></svg>
     Новая статья
@@ -38,7 +37,6 @@ include __DIR__ . '/_layout/header.php';
         </template>
       </div>
       <div class="flex-1"></div>
-      <span class="text-sm text-ink-500" x-show="profile" x-text="profile ? ('Профиль: ' + profile.name) : ''"></span>
     </div>
 
     <!-- ARTICLES filters -->
@@ -89,16 +87,10 @@ include __DIR__ . '/_layout/header.php';
       <input class="input flex-1 min-w-[240px]" placeholder="Поиск площадки…" x-model.debounce.300ms="filters.qTgt">
       <button class="btn-primary" @click="openCreateTarget()">+ Площадка</button>
     </div>
-
-    <!-- AUDIT toolbar -->
-    <div x-show="listTab === 'audit'" class="flex flex-wrap gap-2">
-      <input class="input flex-1 min-w-[240px]" placeholder="Поиск в журнале…" x-model.debounce.300ms="filters.qAud" @input="loadAudit()">
-      <button class="btn-soft" @click="loadAudit()">Обновить</button>
-    </div>
   </section>
 
-  <!-- ============================================================ MAIN GRID ====================================== -->
-  <div class="grid xl:grid-cols-[440px_1fr] gap-6">
+  <!-- ============================================================ MAIN GRID (articles / catalogs / templates) === -->
+  <div x-show="['articles','catalogs','templates'].includes(listTab)" class="grid xl:grid-cols-[440px_1fr] gap-6">
 
     <!-- ------------------------------------------------------- LEFT: list -->
     <section class="card p-0 overflow-hidden">
@@ -156,47 +148,6 @@ include __DIR__ . '/_layout/header.php';
           <div x-show="!templates.length" class="p-6 text-ink-500 text-sm">Шаблонов нет.</div>
         </div>
 
-        <!-- LINKS list -->
-        <div x-show="listTab === 'links'">
-          <template x-for="l in filteredLinks()" :key="l.id">
-            <button @click="openLink(l.id)"
-                    class="w-full text-left px-4 py-3 border-b border-sand-200 hover:bg-sand-100 flex flex-col gap-1"
-                    :class="{ 'bg-sand-100': current.kind === 'link' && current.id === l.id }">
-              <span class="font-medium line-clamp-2" x-text="l.anchor || l.url"></span>
-              <span class="text-xs text-ink-500 line-clamp-2" x-text="l.url"></span>
-            </button>
-          </template>
-          <div x-show="!links.length" class="p-6 text-ink-500 text-sm">Ссылок нет.</div>
-        </div>
-
-        <!-- TARGETS list -->
-        <div x-show="listTab === 'targets'">
-          <template x-for="t in filteredTargets()" :key="t.id">
-            <button @click="openTarget(t.id)"
-                    class="w-full text-left px-4 py-3 border-b border-sand-200 hover:bg-sand-100 flex flex-col gap-1"
-                    :class="{ 'bg-sand-100': current.kind === 'target' && current.id === t.id }">
-              <span class="font-medium" x-text="t.name"></span>
-              <span class="text-xs text-ink-500" x-text="t.kind + ' · ' + (t.url || '—')"></span>
-            </button>
-          </template>
-          <div x-show="!targets.length" class="p-6 text-ink-500 text-sm">Площадок нет.</div>
-        </div>
-
-        <!-- AUDIT list -->
-        <div x-show="listTab === 'audit'">
-          <template x-for="(e, i) in audit" :key="i">
-            <button @click="openAuditEntry(e)"
-                    class="w-full text-left px-4 py-3 border-b border-sand-200 hover:bg-sand-100 flex flex-col gap-1">
-              <div class="flex items-center gap-2">
-                <span class="badge badge-soft" x-text="e.action || '?'"></span>
-                <span class="font-medium line-clamp-1 flex-1" x-text="e.entity_label || (e.entity_type + ' #' + e.entity_id)"></span>
-                <span class="text-xs text-ink-500" x-text="fmtDate(e.created_at)"></span>
-              </div>
-              <span class="text-xs text-ink-500 line-clamp-1" x-text="e.user_email || '—'"></span>
-            </button>
-          </template>
-          <div x-show="!audit.length" class="p-6 text-ink-500 text-sm">Журнал пуст.</div>
-        </div>
 
       </div>
     </section>
@@ -582,7 +533,7 @@ include __DIR__ . '/_layout/header.php';
               <select class="select" x-model="pub.targetId">
                 <option :value="null">Площадка не выбрана</option>
                 <template x-for="t in targets" :key="t.id">
-                  <option :value="t.id" x-text="t.name + ' (' + t.kind + ')'"></option>
+                  <option :value="t.id" x-text="t.name + ' (' + (t.type === 'ftp' ? 'FTP' : 'Self-hosted') + ')'"></option>
                 </template>
               </select>
               <button class="btn-soft" @click="previewPublish()" :disabled="!pub.targetId || pub.busy">Предпросмотр</button>
@@ -667,77 +618,194 @@ include __DIR__ . '/_layout/header.php';
         </div>
       </div>
 
-      <div x-show="current.kind === 'link' && lnk" class="card space-y-4">
-        <h2 class="text-xl font-bold" x-text="lnk?.id ? 'Ссылка #' + lnk.id : 'Новая ссылка'"></h2>
-        <div><label class="label">Anchor</label><input class="input" x-model="lnk.anchor"></div>
-        <div><label class="label">URL</label><input class="input" x-model="lnk.url"></div>
-        <div class="grid md:grid-cols-2 gap-3">
-          <div>
-            <label class="label">Тип</label>
-            <select class="select" x-model="lnk.kind">
-              <option value="internal">Внутренняя</option>
-              <option value="external">Внешняя</option>
-              <option value="affiliate">Партнёрская</option>
-            </select>
-          </div>
-          <div>
-            <label class="label">Атрибут rel</label>
-            <input class="input" x-model="lnk.rel" placeholder="nofollow noopener…">
-          </div>
-        </div>
-        <div><label class="label">Заметка</label><textarea class="textarea" rows="2" x-model="lnk.note"></textarea></div>
-        <div class="flex gap-2">
-          <button class="btn-primary" @click="saveLink()">Сохранить</button>
-          <button class="btn-danger" x-show="lnk.id" @click="confirmDeleteLink()">Удалить</button>
-        </div>
+    </section>
+  </div>
+
+  <!-- ============================================================ LINKS drawer ============================== -->
+  <div x-show="listTab === 'links'" class="drawer-split" :data-drawer="lnk ? 'open' : 'closed'">
+    <div class="drawer-list overflow-auto" style="max-height: 78vh">
+      <template x-for="l in filteredLinks()" :key="l.id">
+        <button class="drawer-list-item" :class="{ 'is-active': lnk && lnk.id === l.id }" @click="openLink(l.id)">
+          <span class="drawer-list-title" x-text="l.label || l.key"></span>
+          <span class="drawer-list-sub" x-text="l.description || l.url || '—'"></span>
+        </button>
+      </template>
+      <div x-show="!links.length" class="p-6 text-ink-500 text-sm text-center">Ссылок нет. Нажмите «+ Ссылка».</div>
+    </div>
+
+    <div class="drawer-editor" x-show="lnk" x-cloak>
+      <div class="flex items-center gap-2 mb-4">
+        <button class="drawer-back-btn" @click="closeLinkEditor()">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4l-4 4 4 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          К списку
+        </button>
+        <h2 class="text-xl font-bold flex-1 truncate" x-text="lnk?.id ? (lnk.label || lnk.key || ('Ссылка #' + lnk.id)) : 'Новая ссылка'"></h2>
       </div>
 
-      <div x-show="current.kind === 'target' && tgt" class="card space-y-4">
-        <h2 class="text-xl font-bold" x-text="tgt?.id ? 'Площадка #' + tgt.id : 'Новая площадка'"></h2>
+      <div class="space-y-3">
         <div class="grid md:grid-cols-2 gap-3">
-          <div><label class="label">Название</label><input class="input" x-model="tgt.name"></div>
           <div>
-            <label class="label">Тип</label>
-            <select class="select" x-model="tgt.kind">
-              <option value="wordpress">WordPress</option>
-              <option value="webhook">Webhook</option>
-              <option value="static">Static</option>
-              <option value="custom">Custom</option>
+            <label class="label">Ключ</label>
+            <input class="input" x-model="lnk.key" placeholder="home, contacts, …">
+          </div>
+          <div>
+            <label class="label">Подпись</label>
+            <input class="input" x-model="lnk.label" placeholder="Главная">
+          </div>
+        </div>
+        <div>
+          <label class="label">URL</label>
+          <input class="input" x-model="lnk.url" placeholder="https://…">
+        </div>
+        <div class="grid md:grid-cols-3 gap-3">
+          <div>
+            <label class="label">target</label>
+            <select class="select" x-model="lnk.target">
+              <option value="_self">_self</option>
+              <option value="_blank">_blank</option>
             </select>
           </div>
-          <div><label class="label">URL</label><input class="input" x-model="tgt.url"></div>
-          <div><label class="label">Логин / API user</label><input class="input" x-model="tgt.login"></div>
-          <div><label class="label">Пароль / токен</label><input class="input" type="password" x-model="tgt.secret"></div>
+          <div>
+            <label class="label">nofollow</label>
+            <select class="select" x-model.number="lnk.nofollow">
+              <option :value="0">нет</option>
+              <option :value="1">да</option>
+            </select>
+          </div>
           <div>
             <label class="label">Активна</label>
-            <select class="select" x-model="tgt.is_active">
+            <select class="select" x-model.number="lnk.is_active">
               <option :value="1">Да</option>
               <option :value="0">Нет</option>
             </select>
           </div>
         </div>
-        <div><label class="label">Заметка</label><textarea class="textarea" rows="2" x-model="tgt.note"></textarea></div>
-        <div class="flex gap-2">
+        <div>
+          <label class="label">Описание</label>
+          <textarea class="textarea" rows="3" x-model="lnk.description" placeholder="Где используется, особенности…"></textarea>
+        </div>
+        <div class="flex gap-2 pt-2">
+          <button class="btn-primary" @click="saveLink()">Сохранить</button>
+          <button class="btn-danger" x-show="lnk.id" @click="confirmDeleteLink()">Удалить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ PUBLISH targets drawer =================== -->
+  <div x-show="listTab === 'targets'" class="drawer-split" :data-drawer="tgt ? 'open' : 'closed'">
+    <div class="drawer-list overflow-auto" style="max-height: 78vh">
+      <template x-for="t in filteredTargets()" :key="t.id">
+        <button class="drawer-list-item" :class="{ 'is-active': tgt && tgt.id === t.id }" @click="openTarget(t.id)">
+          <span class="drawer-list-title" x-text="t.name"></span>
+          <span class="drawer-list-sub" x-text="(t.type === 'ftp' ? 'FTP' : 'Self-hosted') + ' · ' + (t.base_url || '—')"></span>
+        </button>
+      </template>
+      <div x-show="!targets.length" class="p-6 text-ink-500 text-sm text-center">Площадок нет. Нажмите «+ Площадка».</div>
+    </div>
+
+    <div class="drawer-editor" x-show="tgt" x-cloak>
+      <div class="flex items-center gap-2 mb-4">
+        <button class="drawer-back-btn" @click="closeTargetEditor()">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4l-4 4 4 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          К списку
+        </button>
+        <h2 class="text-xl font-bold flex-1 truncate" x-text="tgt?.id ? (tgt.name || ('Площадка #' + tgt.id)) : 'Новая площадка'"></h2>
+      </div>
+
+      <div class="space-y-3">
+        <div class="grid md:grid-cols-2 gap-3">
+          <div>
+            <label class="label">Название</label>
+            <input class="input" x-model="tgt.name" placeholder="Прод">
+          </div>
+          <div>
+            <label class="label">Тип</label>
+            <select class="select" x-model="tgt.type">
+              <option value="selfhosted">Self-hosted (deploy/publish.php)</option>
+              <option value="ftp">FTP</option>
+            </select>
+          </div>
+          <div class="md:col-span-2">
+            <label class="label">Base URL <span class="text-ink-300 text-xs">— используется для построения публичных ссылок</span></label>
+            <input class="input" x-model="tgt.base_url" placeholder="https://example.com">
+          </div>
+          <div>
+            <label class="label">Активна</label>
+            <select class="select" x-model.number="tgt.is_active">
+              <option :value="1">Да</option>
+              <option :value="0">Нет</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- SELF-HOSTED config -->
+        <template x-if="tgt && tgt.type === 'selfhosted'">
+          <div class="card-tinted space-y-3">
+            <div class="text-xs text-ink-500 font-medium uppercase tracking-wide">Параметры self-hosted</div>
+            <div>
+              <label class="label">Хост</label>
+              <input class="input" x-model="tgt.config.host" placeholder="194.87.138.88">
+            </div>
+            <div>
+              <label class="label">Document root</label>
+              <input class="input" x-model="tgt.config.document_root" placeholder="/var/www/html/aurum">
+            </div>
+            <div>
+              <label class="label">Publish endpoint <span class="text-ink-300 text-xs">— куда POST'ить (если пусто, base_url + /admin/seo_generator/deploy/publish.php)</span></label>
+              <input class="input" x-model="tgt.config.publish_endpoint" placeholder="http://194.87.138.88:8080/deploy/publish.php">
+            </div>
+            <div>
+              <label class="label">Заметка</label>
+              <input class="input" x-model="tgt.config.note">
+            </div>
+          </div>
+        </template>
+
+        <!-- FTP config -->
+        <template x-if="tgt && tgt.type === 'ftp'">
+          <div class="card-tinted space-y-3">
+            <div class="text-xs text-ink-500 font-medium uppercase tracking-wide">Параметры FTP</div>
+            <div class="grid md:grid-cols-3 gap-3">
+              <div class="md:col-span-2">
+                <label class="label">Хост</label>
+                <input class="input" x-model="tgt.config.host" placeholder="ftp.example.com">
+              </div>
+              <div>
+                <label class="label">Порт</label>
+                <input class="input" type="number" x-model.number="tgt.config.port" placeholder="21">
+              </div>
+            </div>
+            <div class="grid md:grid-cols-2 gap-3">
+              <div>
+                <label class="label">Username</label>
+                <input class="input" x-model="tgt.config.username">
+              </div>
+              <div>
+                <label class="label">Password</label>
+                <input class="input" type="password" x-model="tgt.config.password">
+              </div>
+            </div>
+            <div>
+              <label class="label">Document root</label>
+              <input class="input" x-model="tgt.config.document_root" placeholder="/public_html">
+            </div>
+            <div>
+              <label class="label">SSL</label>
+              <select class="select" x-model.number="tgt.config.ssl">
+                <option :value="0">Нет</option>
+                <option :value="1">Да (FTPS)</option>
+              </select>
+            </div>
+          </div>
+        </template>
+
+        <div class="flex gap-2 pt-2">
           <button class="btn-primary" @click="saveTarget()">Сохранить</button>
           <button class="btn-danger" x-show="tgt.id" @click="confirmDeleteTarget()">Удалить</button>
         </div>
       </div>
-
-      <div x-show="current.kind === 'audit' && auditItem" class="card space-y-3">
-        <h2 class="text-xl font-bold">Запись журнала</h2>
-        <div class="grid md:grid-cols-2 gap-2 text-sm">
-          <div><span class="label">Действие</span><span class="font-mono" x-text="auditItem?.action"></span></div>
-          <div><span class="label">Сущность</span><span class="font-mono" x-text="auditItem?.entity_type + ' #' + auditItem?.entity_id"></span></div>
-          <div><span class="label">Пользователь</span><span x-text="auditItem?.user_email || '—'"></span></div>
-          <div><span class="label">Когда</span><span x-text="fmtDate(auditItem?.created_at)"></span></div>
-        </div>
-        <div>
-          <label class="label">Метаданные</label>
-          <pre class="card-tinted text-xs font-mono whitespace-pre-wrap" x-text="JSON.stringify(auditItem?.meta || {}, null, 2)"></pre>
-        </div>
-      </div>
-
-    </section>
+    </div>
   </div>
 
   <!-- ============================================================ BLOCK EDITOR (modal-style) ====================== -->
@@ -849,8 +917,7 @@ function seoApp() {
       { id: 'catalogs', label: 'Рубрики' },
       { id: 'templates', label: 'Шаблоны' },
       { id: 'links', label: 'Ссылки' },
-      { id: 'targets', label: 'Площадки' },
-      { id: 'audit', label: 'Журнал' },
+      { id: 'targets', label: 'Публикация' },
     ],
     articleTabs: [
       { id: 'main',     label: 'Основное' },
@@ -858,7 +925,7 @@ function seoApp() {
       { id: 'blocks',   label: 'Блоки' },
       { id: 'images',   label: 'Изображения' },
       { id: 'telegram', label: 'Telegram' },
-      { id: 'publish',  label: 'Публикация' },
+      { id: 'publish',  label: 'Размещение' },
       { id: 'qa',       label: 'QA' },
     ],
     listTab: 'articles',
@@ -869,15 +936,15 @@ function seoApp() {
     saving: false,
     dirty: false,
     current: { kind: null, id: null },
-    filters: { q: '', status: '', catalogId: '', sort: 'updated_desc', qCat: '', qTpl: '', qLnk: '', qTgt: '', qAud: '' },
+    filters: { q: '', status: '', catalogId: '', sort: 'updated_desc', qCat: '', qTpl: '', qLnk: '', qTgt: '' },
 
     // collections
-    articles: [], catalogs: [], flatCatalogs: [], templates: [], links: [], targets: [], audit: [],
+    articles: [], catalogs: [], flatCatalogs: [], templates: [], links: [], targets: [],
     blockTypeSchemas: {},
 
     // detail state
     art: null, blocks: [], images: [], illust: { hero: null, og: null, busyHero: false, busyOg: false },
-    cat: null, tpl: null, lnk: null, tgt: null, auditItem: null,
+    cat: null, tpl: null, lnk: null, tgt: null,
 
     prep: { researchOpen: false, research: '', researchBusy: false, outline: '', outlineMode: 'cards', outlineSections: [], outlineBusy: false, plan: '' },
     gen:  { open: false, running: false, abort: null, log: [], progress: 0, message: '' },
@@ -904,11 +971,10 @@ function seoApp() {
         this.loadCatalogs(),
         this.loadTemplates(),
         this.loadTargets(),
+        this.loadLinks(),
         this.loadBlockTypes(),
         this.loadArticles(),
       ]);
-      // expose openCreateArticle to topbar slot
-      window.openCreateArticle = () => this.openCreateArticle();
     },
 
     async loadProfile() {
@@ -918,22 +984,13 @@ function seoApp() {
       } catch (_) {}
     },
 
-    renderProfileSlot() {
-      const slot = document.getElementById('seo-profile-slot');
-      if (!slot || !this.profile) return;
-      slot.innerHTML = SEO.profile.iconHtml(this.profile, 32) +
-        '<span class="text-sm font-medium ml-2">' + SEO.esc(this.profile.name) + '</span>';
-    },
-
     // ============================================================ TABS ==
     setListTab(t) {
       this.listTab = t;
-      if (t === 'links' && !this.links.length) this.loadLinks();
-      if (t === 'audit') this.loadAudit();
     },
 
     resetFilters() {
-      this.filters = { q: '', status: '', catalogId: '', sort: 'updated_desc', qCat: '', qTpl: '', qLnk: '', qTgt: '', qAud: '' };
+      this.filters = { q: '', status: '', catalogId: '', sort: 'updated_desc', qCat: '', qTpl: '', qLnk: '', qTgt: '' };
       this.loadArticles();
     },
 
@@ -997,7 +1054,12 @@ function seoApp() {
     filteredLinks() {
       const q = (this.filters.qLnk || '').toLowerCase();
       if (!q) return this.links;
-      return this.links.filter(l => (l.anchor || '').toLowerCase().includes(q) || (l.url || '').toLowerCase().includes(q));
+      return this.links.filter(l =>
+        (l.key || '').toLowerCase().includes(q) ||
+        (l.label || '').toLowerCase().includes(q) ||
+        (l.url || '').toLowerCase().includes(q) ||
+        (l.description || '').toLowerCase().includes(q)
+      );
     },
 
     // ============================================================ TARGETS ==
@@ -1009,18 +1071,6 @@ function seoApp() {
       const q = (this.filters.qTgt || '').toLowerCase();
       if (!q) return this.targets;
       return this.targets.filter(t => (t.name || '').toLowerCase().includes(q));
-    },
-
-    // ============================================================ AUDIT ==
-    async loadAudit() {
-      const params = new URLSearchParams({ profile_id: String(this.profileId), limit: '200' });
-      if (this.filters.qAud) params.set('q', this.filters.qAud);
-      const data = await SEO.api('audit-log?' + params.toString());
-      this.audit = data || [];
-    },
-    openAuditEntry(e) {
-      this.auditItem = e;
-      this.current = { kind: 'audit', id: null };
     },
 
     // ============================================================ BLOCK TYPES ==
@@ -1633,30 +1683,32 @@ function seoApp() {
 
     // ============================================================ LINK editor ==
     openCreateLink() {
-      this.current = { kind: 'link', id: null };
-      this.lnk = { id: null, profile_id: this.profileId, anchor: '', url: '', kind: 'internal', rel: '', note: '' };
+      this.lnk = { id: null, profile_id: this.profileId, key: '', url: '', label: '', target: '_blank', nofollow: 0, is_active: 1, description: '' };
     },
     async openLink(id) {
-      this.current = { kind: 'link', id };
-      this.lnk = await SEO.api('links/' + id);
+      const r = await SEO.api('links/' + id);
+      this.lnk = { ...r, nofollow: r.nofollow ? 1 : 0, is_active: r.is_active ? 1 : 0 };
     },
+    closeLinkEditor() { this.lnk = null; },
     async saveLink() {
+      if (!this.lnk.key || !this.lnk.url) { SEO.toast('Ключ и URL обязательны', 'err'); return; }
       try {
+        const body = { ...this.lnk, profile_id: this.profileId };
         const isNew = !this.lnk.id;
         const r = isNew
-          ? await SEO.api('links', { method: 'POST', body: this.lnk })
-          : await SEO.api('links/' + this.lnk.id, { method: 'PUT', body: this.lnk });
-        Object.assign(this.lnk, r || {});
+          ? await SEO.api('links', { method: 'POST', body })
+          : await SEO.api('links/' + this.lnk.id, { method: 'PUT', body });
+        if (r) this.lnk = { ...r, nofollow: r.nofollow ? 1 : 0, is_active: r.is_active ? 1 : 0 };
         await this.loadLinks(); SEO.toast('Сохранено', 'ok');
       } catch (_) {}
     },
     confirmDeleteLink() {
       this.modal.confirm = {
-        title: 'Удалить ссылку', message: 'Удалить эту ссылку?',
+        title: 'Удалить ссылку', message: 'Удалить ссылку «' + (this.lnk.key || this.lnk.label || '') + '»?',
         onConfirm: async () => {
           try {
             await SEO.api('links/' + this.lnk.id, { method: 'DELETE' });
-            this.current = { kind: null, id: null }; this.lnk = null;
+            this.lnk = null;
             await this.loadLinks(); SEO.toast('Удалено', 'ok');
           } catch (_) {}
         }
@@ -1665,20 +1717,32 @@ function seoApp() {
 
     // ============================================================ TARGET editor ==
     openCreateTarget() {
-      this.current = { kind: 'target', id: null };
-      this.tgt = { id: null, profile_id: this.profileId, name: '', kind: 'wordpress', url: '', login: '', secret: '', is_active: 1, note: '' };
+      this.tgt = {
+        id: null, profile_id: this.profileId,
+        name: '', type: 'selfhosted', base_url: '', is_active: 1,
+        config: { host: '', document_root: '', publish_endpoint: '', note: '' },
+      };
     },
     async openTarget(id) {
-      this.current = { kind: 'target', id };
-      this.tgt = await SEO.api('publish-targets/' + id);
+      const r = await SEO.api('publish-targets/' + id);
+      this.tgt = { ...r, config: r.config || {}, is_active: r.is_active ? 1 : 0 };
+      // ensure config has all keys for the active type so x-model bindings stay reactive
+      if (this.tgt.type === 'selfhosted') {
+        this.tgt.config = Object.assign({ host: '', document_root: '', publish_endpoint: '', note: '' }, this.tgt.config);
+      } else if (this.tgt.type === 'ftp') {
+        this.tgt.config = Object.assign({ host: '', port: 21, username: '', password: '', document_root: '', ssl: 0 }, this.tgt.config);
+      }
     },
+    closeTargetEditor() { this.tgt = null; },
     async saveTarget() {
+      if (!this.tgt.name || !this.tgt.base_url) { SEO.toast('Название и base_url обязательны', 'err'); return; }
       try {
+        const body = { ...this.tgt, profile_id: this.profileId };
         const isNew = !this.tgt.id;
         const r = isNew
-          ? await SEO.api('publish-targets', { method: 'POST', body: this.tgt })
-          : await SEO.api('publish-targets/' + this.tgt.id, { method: 'PUT', body: this.tgt });
-        Object.assign(this.tgt, r || {});
+          ? await SEO.api('publish-targets', { method: 'POST', body })
+          : await SEO.api('publish-targets/' + this.tgt.id, { method: 'PUT', body });
+        if (r) this.tgt = { ...r, config: r.config || {}, is_active: r.is_active ? 1 : 0 };
         await this.loadTargets(); SEO.toast('Сохранено', 'ok');
       } catch (_) {}
     },
@@ -1688,7 +1752,7 @@ function seoApp() {
         onConfirm: async () => {
           try {
             await SEO.api('publish-targets/' + this.tgt.id, { method: 'DELETE' });
-            this.current = { kind: null, id: null }; this.tgt = null;
+            this.tgt = null;
             await this.loadTargets(); SEO.toast('Удалено', 'ok');
           } catch (_) {}
         }
