@@ -625,9 +625,15 @@ include __DIR__ . '/_layout/header.php';
   <div x-show="listTab === 'links'"
        x-transition:enter="anim-fade-in"
        class="drawer-split" :data-drawer="lnk ? 'open' : 'closed'">
-    <div class="drawer-list anim-stagger overflow-auto" style="max-height: 78vh">
+    <div class="drawer-list anim-stagger" style="max-height: 78vh"
+         x-ref="linksList"
+         x-init="$watch('lnk', () => $nextTick(() => syncPill('linksList', lnk && lnk.id)))">
+      <div class="drawer-list-pill" :class="{ 'is-visible': lnk && lnk.id }"
+           :style="`--pill-top: ${pill.linksList?.top || 0}px; --pill-h: ${pill.linksList?.height || 0}px;`"></div>
       <template x-for="l in filteredLinks()" :key="l.id">
-        <button class="drawer-list-item press-shrink" :class="{ 'is-active': lnk && lnk.id === l.id }" @click="openLink(l.id)">
+        <button class="drawer-list-item press-shrink" :class="{ 'is-active': lnk && lnk.id === l.id }"
+                :data-row-id="l.id"
+                @click="openLink(l.id)">
           <span class="drawer-list-title" x-text="l.label || l.key"></span>
           <span class="drawer-list-sub" x-text="l.description || l.url || '—'"></span>
         </button>
@@ -636,8 +642,7 @@ include __DIR__ . '/_layout/header.php';
     </div>
 
     <div class="drawer-editor" x-show="lnk" x-cloak
-         x-transition:enter="anim-slide-up" x-transition:leave="anim-fade-in"
-         :key="lnk && lnk.id">
+         x-transition:enter="anim-slide-up" x-transition:leave="anim-fade-in">
       <div class="flex items-center gap-2 mb-4">
         <button class="drawer-back-btn" @click="closeLinkEditor()">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4l-4 4 4 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -700,9 +705,15 @@ include __DIR__ . '/_layout/header.php';
   <div x-show="listTab === 'targets'"
        x-transition:enter="anim-fade-in"
        class="drawer-split" :data-drawer="tgt ? 'open' : 'closed'">
-    <div class="drawer-list anim-stagger overflow-auto" style="max-height: 78vh">
+    <div class="drawer-list anim-stagger" style="max-height: 78vh"
+         x-ref="targetsList"
+         x-init="$watch('tgt', () => $nextTick(() => syncPill('targetsList', tgt && tgt.id)))">
+      <div class="drawer-list-pill" :class="{ 'is-visible': tgt && tgt.id }"
+           :style="`--pill-top: ${pill.targetsList?.top || 0}px; --pill-h: ${pill.targetsList?.height || 0}px;`"></div>
       <template x-for="t in filteredTargets()" :key="t.id">
-        <button class="drawer-list-item press-shrink" :class="{ 'is-active': tgt && tgt.id === t.id }" @click="openTarget(t.id)">
+        <button class="drawer-list-item press-shrink" :class="{ 'is-active': tgt && tgt.id === t.id }"
+                :data-row-id="t.id"
+                @click="openTarget(t.id)">
           <span class="drawer-list-title" x-text="t.name"></span>
           <span class="drawer-list-sub" x-text="(t.type === 'ftp' ? 'FTP' : 'Self-hosted') + ' · ' + (t.base_url || '—')"></span>
         </button>
@@ -711,8 +722,7 @@ include __DIR__ . '/_layout/header.php';
     </div>
 
     <div class="drawer-editor" x-show="tgt" x-cloak
-         x-transition:enter="anim-slide-up" x-transition:leave="anim-fade-in"
-         :key="tgt && tgt.id">
+         x-transition:enter="anim-slide-up" x-transition:leave="anim-fade-in">
       <div class="flex items-center gap-2 mb-4">
         <button class="drawer-back-btn" @click="closeTargetEditor()">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4l-4 4 4 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -965,6 +975,24 @@ function seoApp() {
 
     // drag
     _dragIndex: null,
+
+    // shared-element "magic move" pill positions per ref name
+    pill: { linksList: null, targetsList: null },
+
+    /**
+     * Move/resize the shared highlight pill in a drawer-list.
+     * Reads the active row's offset relative to the list container; the
+     * pill's CSS uses these as transform/height targets, so the change
+     * animates via `transition` on the pill (no per-row repaint).
+     */
+    syncPill(refName, rowId) {
+      const list = this.$refs[refName];
+      if (!list) return;
+      if (!rowId) { this.pill[refName] = null; return; }
+      const row = list.querySelector('[data-row-id="' + rowId + '"]');
+      if (!row) { this.pill[refName] = null; return; }
+      this.pill[refName] = { top: row.offsetTop, height: row.offsetHeight };
+    },
 
     // ============================================================ INIT ==
     async init() {
