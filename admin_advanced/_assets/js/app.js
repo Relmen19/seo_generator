@@ -308,15 +308,18 @@
    */
   function flipReorder(container, mutate) {
     if (!container || typeof mutate !== 'function') { if (mutate) mutate(); return; }
+    const isItem = (el) => el && el.nodeType === 1 && el.tagName !== 'TEMPLATE';
     const before = new Map();
     Array.from(container.children).forEach((el) => {
-      if (el.nodeType !== 1) return;
+      if (!isItem(el)) return;
       before.set(el, el.getBoundingClientRect().top);
     });
     mutate();
-    requestAnimationFrame(() => {
+    // Alpine flushes reactive DOM updates as microtasks. Wait for that
+    // microtask, then double-rAF so layout is settled before we measure.
+    Promise.resolve().then(() => requestAnimationFrame(() => requestAnimationFrame(() => {
       Array.from(container.children).forEach((el) => {
-        if (el.nodeType !== 1) return;
+        if (!isItem(el)) return;
         const oldTop = before.get(el);
         if (oldTop == null) return;
         const dy = oldTop - el.getBoundingClientRect().top;
@@ -334,7 +337,7 @@
         };
         el.addEventListener('transitionend', cleanup);
       });
-    });
+    })));
   }
 
   // ---------- Public ----------

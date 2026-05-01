@@ -27,7 +27,7 @@ include __DIR__ . '/_layout/header.php';
 ?>
 
 <div x-data="seoApp()" x-init="init()"
-     x-effect="SEO.setFocus(listTab === 'templates' && current.kind === 'template' && !!tpl)"
+     x-effect="SEO.setFocus(listTab === 'templates' && current.kind === 'template' && !!tpl && !_tplClosing)"
      class="space-y-6">
 
   <!-- ============================================================ TOP BAR (filters + tabs) ========================== -->
@@ -595,7 +595,7 @@ include __DIR__ . '/_layout/header.php';
   <!-- ============================================================ TEMPLATES drawer ========================== -->
   <div x-show="listTab === 'templates'"
        x-transition:enter="anim-fade-in"
-       class="drawer-split" :data-drawer="tpl ? 'open' : 'closed'">
+       class="drawer-split" :data-drawer="(tpl && !_tplClosing) ? 'open' : 'closed'">
 
     <div class="drawer-list anim-stagger" style="max-height: 78vh"
          x-ref="templatesList"
@@ -614,8 +614,7 @@ include __DIR__ . '/_layout/header.php';
       <div x-show="!templates.length" class="p-6 text-ink-500 text-sm text-center">Шаблонов нет. Нажмите «+ Шаблон».</div>
     </div>
 
-    <div class="drawer-editor" x-show="tpl" x-cloak
-         x-transition:enter="anim-slide-up" x-transition:leave="anim-fade-in">
+    <div class="drawer-editor" x-show="tpl" x-cloak>
 
       <div class="flex items-center gap-2 mb-4 flex-wrap">
         <button class="drawer-back-btn" @click="closeTemplateEditor()">
@@ -1163,6 +1162,7 @@ function seoApp() {
     tplBlockPicker: false,
     tplBlockPickerQuery: '',
     _tplBlockUid: 1,
+    _tplClosing: false,
 
     // ============================================================ INIT ==
     async init() {
@@ -1875,6 +1875,7 @@ function seoApp() {
 
     // ============================================================ TEMPLATE editor ==
     openCreateTemplate() {
+      this._cancelTplClose();
       this.current = { kind: 'template', id: null };
       this.tpl = this._wrapTemplate({
         id: null, profile_id: this.profileId,
@@ -1887,6 +1888,7 @@ function seoApp() {
       this._tplOriginalBlockIds = [];
     },
     async openTemplate(id) {
+      this._cancelTplClose();
       this.current = { kind: 'template', id };
       const t = await SEO.api('templates/' + id);
       this.tpl = this._wrapTemplate(t);
@@ -1894,8 +1896,22 @@ function seoApp() {
       this._tplOriginalBlockIds = (t.blocks || []).map(b => b.id);
     },
     closeTemplateEditor() {
-      this.tpl = null;
-      this.current = { kind: null, id: null };
+      if (!this.tpl || this._tplClosing) return;
+      // Flip data-drawer to "closed" while keeping `tpl` truthy so the
+      // editor stays mounted during the slide-out. Null it after the
+      // CSS transition finishes (matches --motion-slow ~620ms).
+      this._tplClosing = true;
+      this.tplBlockPicker = false;
+      this._tplCloseTimer = setTimeout(() => {
+        this.tpl = null;
+        this.current = { kind: null, id: null };
+        this._tplClosing = false;
+        this._tplCloseTimer = null;
+      }, 640);
+    },
+    _cancelTplClose() {
+      if (this._tplCloseTimer) { clearTimeout(this._tplCloseTimer); this._tplCloseTimer = null; }
+      this._tplClosing = false;
     },
     setTplView(v) {
       if (v === this.tplView) return;

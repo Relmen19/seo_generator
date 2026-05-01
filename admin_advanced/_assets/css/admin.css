@@ -379,7 +379,7 @@ body { font-feature-settings: 'cv11','ss01','ss02'; }
   padding: 1.25rem;
   box-shadow: 0 2px 6px rgba(23,21,17,.05), 0 12px 32px rgba(23,21,17,.06);
   border: 1px solid var(--sand-200);
-  overflow: hidden;
+  overflow: hidden;                       /* clipped during close transition */
   min-height: 60vh;
   opacity: 1;
   transform: translateX(0);
@@ -389,7 +389,7 @@ body { font-feature-settings: 'cv11','ss01','ss02'; }
     padding   var(--motion-base) var(--motion-ease),
     box-shadow var(--motion-base) var(--motion-ease);
 }
-.drawer-split[data-drawer="open"]   .drawer-editor { animation: seo-slide-up var(--motion-slow) var(--motion-ease) both; }
+.drawer-split[data-drawer="open"]   .drawer-editor { animation: seo-slide-up var(--motion-slow) var(--motion-ease) both; overflow: visible; }
 .drawer-split[data-drawer="closed"] .drawer-editor { opacity: 0; transform: translateX(20px); padding: 0; border: 0; box-shadow: none; }
 
 /* Editor inner sections animate in with stagger when drawer opens */
@@ -578,12 +578,12 @@ body[data-focus="on"] main { margin-top: 1.25rem !important; }
 .tpl-picker-pop {
   position: absolute;
   top: calc(100% + 8px); right: 0;
-  z-index: 60;
+  z-index: 80;
   width: min(360px, 90vw);
-  background: var(--sand-50);
-  border: 1px solid var(--sand-200);
+  background: #ffffff;
+  border: 1px solid var(--sand-300);
   border-radius: 18px;
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 8px 24px rgba(23,21,17,.12), 0 2px 6px rgba(23,21,17,.06);
   padding: 10px;
   transform-origin: top right;
 }
