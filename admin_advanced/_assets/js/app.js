@@ -299,6 +299,44 @@
     document.body.dataset.focus = on ? 'on' : 'off';
   }
 
+  /**
+   * FLIP reorder: capture child positions, run the mutation, then animate
+   * each child from its old top to its new top. Use it to make Alpine
+   * x-for reorders feel like a continuous move instead of a snap.
+   *
+   *   SEO.flipReorder($refs.list, () => arr.splice(...))
+   */
+  function flipReorder(container, mutate) {
+    if (!container || typeof mutate !== 'function') { if (mutate) mutate(); return; }
+    const before = new Map();
+    Array.from(container.children).forEach((el) => {
+      if (el.nodeType !== 1) return;
+      before.set(el, el.getBoundingClientRect().top);
+    });
+    mutate();
+    requestAnimationFrame(() => {
+      Array.from(container.children).forEach((el) => {
+        if (el.nodeType !== 1) return;
+        const oldTop = before.get(el);
+        if (oldTop == null) return;
+        const dy = oldTop - el.getBoundingClientRect().top;
+        if (!dy) return;
+        el.style.transition = 'none';
+        el.style.transform = 'translateY(' + dy + 'px)';
+        // Force reflow then animate to identity.
+        el.offsetHeight; // eslint-disable-line no-unused-expressions
+        el.style.transition = 'transform var(--motion-base) var(--motion-glide)';
+        el.style.transform = '';
+        const cleanup = () => {
+          el.style.transition = '';
+          el.style.transform = '';
+          el.removeEventListener('transitionend', cleanup);
+        };
+        el.addEventListener('transitionend', cleanup);
+      });
+    });
+  }
+
   // ---------- Public ----------
   window.SEO = {
     $, on, ready, esc, escAttr, debounce, fmtNum, fmtCost,
@@ -306,6 +344,6 @@
     SearchSelect,
     loadChartJs, loadCodeMirror,
     morphPill, pillStyle,
-    setFocus,
+    setFocus, flipReorder,
   };
 })();

@@ -455,14 +455,22 @@ body[data-focus="on"] .focus-collapse {
 [data-focus="on"] .focus-shrink-pad,
 body[data-focus="on"] .focus-shrink-pad { padding: .5rem 1rem !important; }
 
+/* Topbar collapses straight up — children render at native size, no
+   transform scaling, just height + opacity ease out. */
 #seo-topbar {
-  transform-origin: left top;
+  overflow: hidden;
   transition:
-    transform var(--motion-base) var(--motion-ease),
-    opacity   var(--motion-base) var(--motion-ease);
+    max-height var(--motion-base) var(--motion-ease),
+    opacity    var(--motion-base) var(--motion-ease),
+    margin     var(--motion-base) var(--motion-ease);
 }
-body[data-focus="on"] #seo-topbar { transform: translateY(-6px) scaleY(.55); opacity: .55; }
-body[data-focus="on"] #seo-topbar:hover { transform: none; opacity: 1; }
+body[data-focus="on"] #seo-topbar {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  pointer-events: none;
+}
 /* Tighten the gap between the (shrunken) topbar and the main content */
 main { transition: margin-top var(--motion-base) var(--motion-ease); }
 body[data-focus="on"] main { margin-top: 1.25rem !important; }
@@ -535,6 +543,62 @@ body[data-focus="on"] main { margin-top: 1.25rem !important; }
   font-family: inherit;
 }
 .tpl-field-add:hover { border-color: var(--ink-700); color: var(--ink-900); }
+
+/* Collapsible body — uses grid-rows: 0fr ↔ 1fr trick for smooth height
+   without measuring. Inner wrapper is the only direct child. */
+.tpl-block-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows var(--motion-base) var(--motion-ease),
+    opacity            var(--motion-base) var(--motion-ease),
+    margin-top         var(--motion-base) var(--motion-ease);
+  opacity: 1;
+}
+.tpl-block-body > .tpl-block-body-inner {
+  overflow: hidden;
+  display: flex; flex-direction: column; gap: 10px;
+  min-height: 0;
+}
+.tpl-block-body.is-collapsed { grid-template-rows: 0fr; opacity: 0; margin-top: 0; }
+
+.tpl-block-toggle {
+  display: inline-grid; place-items: center;
+  width: 1.75rem; height: 1.75rem;
+  border: 0; background: transparent;
+  border-radius: 9999px;
+  color: var(--ink-500); cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease), transform var(--motion-base) var(--motion-spring);
+}
+.tpl-block-toggle:hover { background: var(--sand-100); color: var(--ink-900); }
+.tpl-block-toggle.is-collapsed { transform: rotate(-90deg); }
+
+/* Popover for + Блок picker — anchored under the trigger button */
+.tpl-picker-anchor { position: relative; }
+.tpl-picker-pop {
+  position: absolute;
+  top: calc(100% + 8px); right: 0;
+  z-index: 60;
+  width: min(360px, 90vw);
+  background: var(--sand-50);
+  border: 1px solid var(--sand-200);
+  border-radius: 18px;
+  box-shadow: var(--shadow-card);
+  padding: 10px;
+  transform-origin: top right;
+}
+.tpl-picker-list { display: flex; flex-direction: column; gap: 2px; max-height: 320px; overflow: auto; padding-right: 2px; }
+.tpl-picker-item {
+  display: flex; align-items: center; gap: 8px;
+  text-align: left;
+  padding: 8px 12px;
+  background: transparent; border: 0; border-radius: 12px;
+  cursor: pointer; color: var(--ink-900); font: inherit; font-size: .875rem;
+  transition: background-color var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
+}
+.tpl-picker-item:hover { background: var(--sand-100); transform: translateX(2px); }
+.tpl-picker-item .tpl-picker-code { color: var(--ink-300); font-family: ui-monospace, monospace; font-size: 11px; margin-left: auto; }
+.tpl-picker-item .tpl-picker-cat { font-size: 10px; padding: 1px 7px; border-radius: 9999px; background: var(--sand-100); color: var(--ink-500); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
 
 /* ===== Toggle switch (sibling-based, animates correctly) ===== */
 .toggle { position: relative; display: inline-block; width: 2.25rem; height: 1.25rem; cursor: pointer; flex-shrink: 0; }

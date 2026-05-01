@@ -25,7 +25,7 @@ $extraHead      = $extraHead      ?? '';
 $hideTopbar     = $hideTopbar     ?? false;
 
 $adminUser = htmlspecialchars($_SESSION['seo_user'] ?? 'admin', ENT_QUOTES, 'UTF-8');
-$assetVer  = '11';
+$assetVer  = '12';
 ?><!doctype html>
 <html lang="ru">
 <head>

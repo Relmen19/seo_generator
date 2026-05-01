@@ -669,43 +669,49 @@ include __DIR__ . '/_layout/header.php';
               Блоки шаблона
               <span class="text-ink-300 normal-case font-normal" x-text="'(' + (tpl.blocks?.length || 0) + ')'"></span>
             </h3>
-            <button class="btn-soft" @click="openTplBlockPicker()">
-              <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4v12M4 10h12" stroke-linecap="round"/></svg>
-              Блок
-            </button>
-          </div>
+            <button class="btn-ghost text-xs" @click="toggleAllTplBlocks()" x-text="anyBlockExpanded() ? 'Свернуть всё' : 'Развернуть всё'"></button>
+            <div class="tpl-picker-anchor"
+                 @keydown.escape.window="tplBlockPicker = false"
+                 @click.outside="tplBlockPicker = false">
+              <button class="btn-soft"
+                      @click="openTplBlockPicker()"
+                      @mouseenter="openTplBlockPicker()">
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4v12M4 10h12" stroke-linecap="round"/></svg>
+                Блок
+              </button>
 
-          <!-- block-type picker overlay -->
-          <div x-show="tplBlockPicker" x-cloak class="modal-backdrop"
-               x-transition:enter="anim-fade-in"
-               @click.self="tplBlockPicker = false">
-            <div class="modal-card p-5 anim-pop">
-              <div class="flex items-center gap-2 mb-3">
-                <h3 class="text-lg font-bold flex-1">Выберите тип блока</h3>
-                <button class="btn-icon" @click="tplBlockPicker = false" title="Закрыть">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8" stroke-linecap="round"/></svg>
-                </button>
-              </div>
-              <input class="input mb-3" placeholder="Поиск по типу или названию…" x-model="tplBlockPickerQuery">
-              <div class="grid sm:grid-cols-2 gap-2 max-h-[60vh] overflow-auto pr-1 anim-stagger">
-                <template x-for="entry in filteredBlockTypeOptions()" :key="entry[0]">
-                  <button class="bf-card hover-lift press-shrink text-left"
-                          @click="addTemplateBlock(entry[0]); tplBlockPicker = false">
-                    <div class="bf-title" x-text="entry[1].label || entry[0]"></div>
-                    <div class="bf-sub font-mono" x-text="entry[0]"></div>
-                  </button>
-                </template>
-                <div x-show="!filteredBlockTypeOptions().length" class="text-ink-300 text-sm p-4 col-span-full text-center">
-                  Ничего не найдено.
+              <div x-show="tplBlockPicker" x-cloak class="tpl-picker-pop anim-pop">
+                <input class="input mb-2" placeholder="Поиск типа блока…"
+                       x-model="tplBlockPickerQuery"
+                       x-ref="tplPickerInput"
+                       @keydown.escape="tplBlockPicker = false"
+                       @keydown.enter.prevent="(() => { const o = filteredBlockTypeOptions().slice(0,8); if (o.length) { addTemplateBlock(o[0][0]); tplBlockPicker = false; } })()">
+                <div class="tpl-picker-list">
+                  <template x-for="entry in filteredBlockTypeOptions().slice(0, 8)" :key="entry[0]">
+                    <button class="tpl-picker-item"
+                            @click="addTemplateBlock(entry[0]); tplBlockPicker = false">
+                      <span class="font-semibold flex-1 truncate" x-text="entry[1].label || entry[0]"></span>
+                      <span x-show="entry[1].category" class="tpl-picker-cat" x-text="entry[1].category"></span>
+                      <span class="tpl-picker-code" x-text="entry[0]"></span>
+                    </button>
+                  </template>
+                  <div x-show="!filteredBlockTypeOptions().length" class="text-ink-300 text-sm p-2 text-center">
+                    Ничего не найдено.
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="space-y-2 anim-stagger">
+          <div class="space-y-2 anim-stagger" x-ref="tplBlocksList">
             <template x-for="(b, i) in tpl.blocks" :key="b._uid">
               <div class="tpl-block-card anim-slide-up" :class="{ 'is-required': b.is_required }">
                 <div class="tpl-block-head">
+                  <button class="tpl-block-toggle" :class="{ 'is-collapsed': b._collapsed }"
+                          @click="b._collapsed = !b._collapsed"
+                          :title="b._collapsed ? 'Развернуть' : 'Свернуть'">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
                   <span class="tpl-block-num" x-text="i + 1"></span>
                   <input class="input flex-1" style="min-width:160px" x-model="b.name" placeholder="Имя блока (видно админу)">
                   <span class="tpl-block-type-pill" :title="blockTypeLabel(b.type)" x-text="b.type"></span>
@@ -720,40 +726,44 @@ include __DIR__ . '/_layout/header.php';
                   </button>
                 </div>
 
-                <div>
-                  <label class="label">Подсказка для GPT</label>
-                  <textarea class="textarea text-xs" rows="2" x-model="b._hint" placeholder="Что и как сгенерировать…"></textarea>
-                </div>
+                <div class="tpl-block-body" :class="{ 'is-collapsed': b._collapsed }">
+                  <div class="tpl-block-body-inner">
+                    <div>
+                      <label class="label">Подсказка для GPT</label>
+                      <textarea class="textarea text-xs" rows="2" x-model="b._hint" placeholder="Что и как сгенерировать…"></textarea>
+                    </div>
 
-                <div>
-                  <label class="label">Поля блока</label>
-                  <div class="flex flex-wrap gap-1.5 items-center">
-                    <template x-for="(f, fi) in b._fields" :key="f + ':' + fi">
-                      <span class="tpl-field-pill">
-                        <span x-text="f"></span>
-                        <button @click="removeBlockField(b, fi)" title="Убрать">×</button>
+                    <div>
+                      <label class="label">Поля блока</label>
+                      <div class="flex flex-wrap gap-1.5 items-center">
+                        <template x-for="(f, fi) in b._fields" :key="f + ':' + fi">
+                          <span class="tpl-field-pill">
+                            <span x-text="f"></span>
+                            <button @click="removeBlockField(b, fi)" title="Убрать">×</button>
+                          </span>
+                        </template>
+                        <template x-for="fname in suggestedBlockFields(b)" :key="'sug-'+fname">
+                          <button class="tpl-field-add"
+                                  @click="addBlockField(b, fname)"
+                                  :title="'Доступное поле блока: ' + fname"
+                                  x-text="'+ ' + fname"></button>
+                        </template>
+                        <span x-show="!b._fields.length && !suggestedBlockFields(b).length"
+                              class="text-xs text-ink-300">
+                          У этого типа блока нет настраиваемых полей.
+                        </span>
+                      </div>
+                    </div>
+
+                    <label class="flex items-center gap-2 text-xs text-ink-500">
+                      <span class="toggle">
+                        <input type="checkbox" :checked="!!b.is_required" @change="b.is_required = $event.target.checked ? 1 : 0">
+                        <span class="toggle-track"></span><span class="toggle-thumb"></span>
                       </span>
-                    </template>
-                    <template x-for="fname in suggestedBlockFields(b)" :key="'sug-'+fname">
-                      <button class="tpl-field-add"
-                              @click="addBlockField(b, fname)"
-                              :title="'Доступное поле блока: ' + fname"
-                              x-text="'+ ' + fname"></button>
-                    </template>
-                    <span x-show="!b._fields.length && !suggestedBlockFields(b).length"
-                          class="text-xs text-ink-300">
-                      У этого типа блока нет настраиваемых полей.
-                    </span>
+                      Обязательный блок
+                    </label>
                   </div>
                 </div>
-
-                <label class="flex items-center gap-2 text-xs text-ink-500">
-                  <span class="toggle">
-                    <input type="checkbox" :checked="!!b.is_required" @change="b.is_required = $event.target.checked ? 1 : 0">
-                    <span class="toggle-track"></span><span class="toggle-thumb"></span>
-                  </span>
-                  Обязательный блок
-                </label>
               </div>
             </template>
             <div x-show="!tpl.blocks || !tpl.blocks.length"
@@ -1273,8 +1283,29 @@ function seoApp() {
     async loadBlockTypes() {
       try {
         const data = await SEO.api('block-types', { silent: true });
-        this.blockTypeSchemas = data || {};
+        // API returns an array of full block-type rows. Normalize to a map
+        // keyed by `code` and pre-extract `label` + `fields` so the rest of
+        // the UI can stay shape-agnostic.
+        const map = {};
+        const list = Array.isArray(data) ? data : (data ? Object.values(data) : []);
+        list.forEach((bt) => {
+          if (!bt || !bt.code) return;
+          const fields = this._extractSchemaFields(bt.json_schema);
+          map[bt.code] = {
+            ...bt,
+            label: bt.display_name || bt.label || bt.code,
+            fields,
+          };
+        });
+        this.blockTypeSchemas = map;
       } catch (_) { this.blockTypeSchemas = {}; }
+    },
+    _extractSchemaFields(schema) {
+      if (!schema || typeof schema !== 'object') return [];
+      if (Array.isArray(schema.fields)) return schema.fields.slice();
+      if (schema.fields && typeof schema.fields === 'object') return Object.keys(schema.fields);
+      if (schema.properties && typeof schema.properties === 'object') return Object.keys(schema.properties);
+      return [];
     },
     filteredBlockTypes() {
       const q = (this.modal.blockTypeQuery || '').toLowerCase();
@@ -1908,6 +1939,7 @@ function seoApp() {
         _hint: cfg.hint || '',
         _fields: Array.isArray(cfg.fields) ? cfg.fields.slice() : [],
         _extraConfig: this._stripCfgKeys(cfg),
+        _collapsed: false,
       };
     },
     _stripCfgKeys(cfg) {
@@ -1956,8 +1988,10 @@ function seoApp() {
     },
 
     openTplBlockPicker() {
+      if (this.tplBlockPicker) return;
       this.tplBlockPickerQuery = '';
       this.tplBlockPicker = true;
+      this.$nextTick(() => { this.$refs.tplPickerInput && this.$refs.tplPickerInput.focus(); });
     },
     addTemplateBlock(type) {
       if (!this.tpl) return;
@@ -1965,21 +1999,31 @@ function seoApp() {
       const schema = this.blockTypeSchemas[code] || {};
       this.tpl.blocks.push(this._wrapBlock({
         type: code,
-        name: schema.label || code,
+        name: schema.label || schema.display_name || code,
         sort_order: this.tpl.blocks.length + 1,
         is_required: 0,
       }));
     },
     removeTemplateBlock(i) {
       if (!this.tpl) return;
-      this.tpl.blocks.splice(i, 1);
+      SEO.flipReorder(this.$refs.tplBlocksList, () => this.tpl.blocks.splice(i, 1));
     },
     moveTemplateBlock(i, dir) {
       if (!this.tpl) return;
       const j = i + dir;
       if (j < 0 || j >= this.tpl.blocks.length) return;
       const arr = this.tpl.blocks;
-      [arr[i], arr[j]] = [arr[j], arr[i]];
+      SEO.flipReorder(this.$refs.tplBlocksList, () => {
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      });
+    },
+    anyBlockExpanded() {
+      return !!(this.tpl && this.tpl.blocks && this.tpl.blocks.some(b => !b._collapsed));
+    },
+    toggleAllTplBlocks() {
+      if (!this.tpl || !this.tpl.blocks) return;
+      const collapse = this.anyBlockExpanded();
+      this.tpl.blocks.forEach(b => { b._collapsed = collapse; });
     },
     addBlockField(b, name) {
       const v = (name || '').trim();
