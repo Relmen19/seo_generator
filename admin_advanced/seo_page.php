@@ -26,10 +26,12 @@ $topbarRight = '
 include __DIR__ . '/_layout/header.php';
 ?>
 
-<div x-data="seoApp()" x-init="init()" class="space-y-6">
+<div x-data="seoApp()" x-init="init()"
+     x-effect="SEO.setFocus(listTab === 'templates' && current.kind === 'template' && !!tpl)"
+     class="space-y-6">
 
   <!-- ============================================================ TOP BAR (filters + tabs) ========================== -->
-  <section class="card">
+  <section class="card focus-collapse focus-shrink-pad">
     <div class="flex flex-wrap items-center gap-2 mb-4">
       <div class="tabs">
         <template x-for="t in listTabs" :key="t.id">
@@ -89,8 +91,8 @@ include __DIR__ . '/_layout/header.php';
     </div>
   </section>
 
-  <!-- ============================================================ MAIN GRID (articles / catalogs / templates) === -->
-  <div x-show="['articles','catalogs','templates'].includes(listTab)" class="grid xl:grid-cols-[440px_1fr] gap-6">
+  <!-- ============================================================ MAIN GRID (articles / catalogs) ============== -->
+  <div x-show="['articles','catalogs'].includes(listTab)" class="grid xl:grid-cols-[440px_1fr] gap-6">
 
     <!-- ------------------------------------------------------- LEFT: list -->
     <section class="card p-0 overflow-hidden">
@@ -134,20 +136,6 @@ include __DIR__ . '/_layout/header.php';
           </template>
           <div x-show="!flatCatalogs.length" class="p-6 text-ink-500 text-sm">Рубрик нет.</div>
         </div>
-
-        <!-- TEMPLATES list -->
-        <div x-show="listTab === 'templates'">
-          <template x-for="t in filteredTemplates()" :key="t.id">
-            <button @click="openTemplate(t.id)"
-                    class="w-full text-left px-4 py-3 border-b border-sand-200 hover:bg-sand-100 flex flex-col gap-1"
-                    :class="{ 'bg-sand-100': current.kind === 'template' && current.id === t.id }">
-              <span class="font-semibold" x-text="t.name"></span>
-              <span class="text-xs text-ink-500" x-text="(t.code || '') + ' · блоков: ' + (t.block_count || 0)"></span>
-            </button>
-          </template>
-          <div x-show="!templates.length" class="p-6 text-ink-500 text-sm">Шаблонов нет.</div>
-        </div>
-
 
       </div>
     </section>
@@ -601,24 +589,184 @@ include __DIR__ . '/_layout/header.php';
         </div>
       </div>
 
-      <div x-show="current.kind === 'template' && tpl" class="card space-y-4">
-        <h2 class="text-xl font-bold" x-text="tpl?.id ? 'Шаблон #' + tpl.id : 'Новый шаблон'"></h2>
-        <div class="grid md:grid-cols-2 gap-3">
-          <div><label class="label">Название</label><input class="input" x-model="tpl.name"></div>
-          <div><label class="label">Код</label><input class="input" x-model="tpl.code"></div>
-        </div>
-        <div><label class="label">Описание</label><textarea class="textarea" rows="2" x-model="tpl.description"></textarea></div>
-        <div>
-          <label class="label">Структура (JSON массив блоков)</label>
-          <textarea class="textarea font-mono text-xs" rows="14" x-model="tpl.structure_json"></textarea>
-        </div>
-        <div class="flex gap-2">
-          <button class="btn-primary" @click="saveTemplate()">Сохранить</button>
-          <button class="btn-danger" x-show="tpl.id" @click="confirmDeleteTemplate()">Удалить</button>
+    </section>
+  </div>
+
+  <!-- ============================================================ TEMPLATES drawer ========================== -->
+  <div x-show="listTab === 'templates'"
+       x-transition:enter="anim-fade-in"
+       class="drawer-split" :data-drawer="tpl ? 'open' : 'closed'">
+
+    <div class="drawer-list anim-stagger" style="max-height: 78vh"
+         x-ref="templatesList"
+         x-init="$watch('tpl', v => $nextTick(() => SEO.morphPill($refs.templatesList, pill, 'templatesList', v && (v.id || 'new'))))">
+      <div class="drawer-list-pill" :class="{ 'is-visible': tpl }"
+           :style="SEO.pillStyle(pill.templatesList)"></div>
+      <template x-for="t in filteredTemplates()" :key="t.id">
+        <button class="drawer-list-item press-shrink"
+                :class="{ 'is-active': tpl && tpl.id === t.id }"
+                :data-row-id="t.id"
+                @click="openTemplate(t.id)">
+          <span class="drawer-list-title" x-text="t.name || '(без имени)'"></span>
+          <span class="drawer-list-sub" x-text="(t.slug || t.code || '') + ' · блоков: ' + (t.block_count != null ? t.block_count : '—')"></span>
+        </button>
+      </template>
+      <div x-show="!templates.length" class="p-6 text-ink-500 text-sm text-center">Шаблонов нет. Нажмите «+ Шаблон».</div>
+    </div>
+
+    <div class="drawer-editor" x-show="tpl" x-cloak
+         x-transition:enter="anim-slide-up" x-transition:leave="anim-fade-in">
+
+      <div class="flex items-center gap-2 mb-4 flex-wrap">
+        <button class="drawer-back-btn" @click="closeTemplateEditor()">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4l-4 4 4 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          К списку
+        </button>
+        <h2 class="text-xl font-bold flex-1 truncate"
+            x-text="tpl?.id ? (tpl.name || ('Шаблон #' + tpl.id)) : 'Новый шаблон'"></h2>
+        <div class="tabs">
+          <button class="tab" :class="{ 'tab-active': tplView === 'form' }" @click="setTplView('form')">Форма</button>
+          <button class="tab" :class="{ 'tab-active': tplView === 'json' }" @click="setTplView('json')">JSON</button>
         </div>
       </div>
 
-    </section>
+      <div class="tab-swap">
+
+        <!-- ============== FORM VIEW ============== -->
+        <div x-show="tplView === 'form'" data-tab-pane class="space-y-4 anim-stagger">
+          <div class="grid md:grid-cols-2 gap-3">
+            <div><label class="label">Название</label><input class="input" x-model="tpl.name"></div>
+            <div><label class="label">Slug</label><input class="input" x-model="tpl.slug" placeholder="my-template"></div>
+          </div>
+          <div>
+            <label class="label">Описание</label>
+            <textarea class="textarea" rows="2" x-model="tpl.description" placeholder="Зачем шаблон, когда применять…"></textarea>
+          </div>
+          <div>
+            <label class="label">GPT системный промпт</label>
+            <textarea class="textarea text-sm" rows="5" x-model="tpl.gpt_system_prompt"
+                      placeholder="Контекст и инструкции для генерации статьи по этому шаблону…"></textarea>
+          </div>
+          <div class="grid md:grid-cols-[1fr_auto] gap-3 items-end">
+            <div>
+              <label class="label">CSS-класс обёртки</label>
+              <input class="input" x-model="tpl.css_class" placeholder="tpl-something">
+            </div>
+            <label class="flex items-center gap-2 pb-2">
+              <span class="toggle">
+                <input type="checkbox" :checked="!!tpl.is_active" @change="tpl.is_active = $event.target.checked ? 1 : 0">
+                <span class="toggle-track"></span><span class="toggle-thumb"></span>
+              </span>
+              <span class="text-sm text-ink-700">Активен</span>
+            </label>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Blocks -->
+          <div class="flex items-center gap-2">
+            <h3 class="font-semibold text-sm uppercase tracking-wide text-ink-500 flex-1">
+              Блоки шаблона
+              <span class="text-ink-300 normal-case font-normal" x-text="'(' + (tpl.blocks?.length || 0) + ')'"></span>
+            </h3>
+            <button class="btn-soft" @click="addTemplateBlock()">
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4v12M4 10h12" stroke-linecap="round"/></svg>
+              Блок
+            </button>
+          </div>
+
+          <div class="space-y-2 anim-stagger">
+            <template x-for="(b, i) in tpl.blocks" :key="b._uid">
+              <div class="tpl-block-card anim-slide-up" :class="{ 'is-required': b.is_required }">
+                <div class="tpl-block-head">
+                  <span class="tpl-block-num" x-text="i + 1"></span>
+                  <input class="input flex-1" style="min-width:160px" x-model="b.name" placeholder="Имя блока (видно админу)">
+                  <select class="select" style="max-width:220px" x-model="b.type">
+                    <template x-for="entry in blockTypeOptions()" :key="entry[0]">
+                      <option :value="entry[0]" x-text="(entry[1].label || entry[0]) + ' · ' + entry[0]"></option>
+                    </template>
+                    <template x-if="b.type && !blockTypeSchemas[b.type]">
+                      <option :value="b.type" x-text="b.type"></option>
+                    </template>
+                  </select>
+                  <button class="btn-icon" @click="moveTemplateBlock(i, -1)" :disabled="i === 0" title="Вверх">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10l4-4 4 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <button class="btn-icon" @click="moveTemplateBlock(i, 1)" :disabled="i === tpl.blocks.length - 1" title="Вниз">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <button class="btn-icon press-shrink" style="background:#fee2e2;color:#991b1b" @click="removeTemplateBlock(i)" title="Удалить">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8" stroke-linecap="round"/></svg>
+                  </button>
+                </div>
+
+                <div>
+                  <label class="label">Подсказка для GPT</label>
+                  <textarea class="textarea text-xs" rows="2" x-model="b._hint" placeholder="Что и как сгенерировать…"></textarea>
+                </div>
+
+                <div>
+                  <label class="label">Поля блока</label>
+                  <div class="flex flex-wrap gap-1.5 items-center">
+                    <template x-for="(f, fi) in b._fields" :key="f + ':' + fi">
+                      <span class="tpl-field-pill">
+                        <span x-text="f"></span>
+                        <button @click="removeBlockField(b, fi)" title="Убрать">×</button>
+                      </span>
+                    </template>
+                    <button class="tpl-field-add" @click="promptAddBlockField(b)">
+                      <span>+ поле</span>
+                    </button>
+                    <template x-for="fname in suggestedBlockFields(b)" :key="'sug-'+fname">
+                      <button class="tpl-field-add"
+                              @click="addBlockField(b, fname)"
+                              :title="'Поле из схемы блока: ' + fname"
+                              x-text="'+ ' + fname"></button>
+                    </template>
+                  </div>
+                </div>
+
+                <label class="flex items-center gap-2 text-xs text-ink-500">
+                  <span class="toggle">
+                    <input type="checkbox" :checked="!!b.is_required" @change="b.is_required = $event.target.checked ? 1 : 0">
+                    <span class="toggle-track"></span><span class="toggle-thumb"></span>
+                  </span>
+                  Обязательный блок
+                </label>
+              </div>
+            </template>
+            <div x-show="!tpl.blocks || !tpl.blocks.length"
+                 class="p-6 text-center text-ink-300 text-sm border border-dashed border-sand-300 rounded-2xl">
+              Блоков нет. Добавьте первый — это «скелет» статьи для GPT.
+            </div>
+          </div>
+        </div>
+
+        <!-- ============== JSON VIEW ============== -->
+        <div x-show="tplView === 'json'" data-tab-pane class="space-y-3">
+          <div class="text-xs text-ink-500">
+            Редактируйте JSON и нажмите «Применить из JSON», чтобы перенести данные в форму. Save отправит уже изменённую модель.
+          </div>
+          <textarea class="textarea font-mono text-xs" rows="22" x-model="tpl._jsonText" spellcheck="false"></textarea>
+          <div class="flex gap-2">
+            <button class="btn-soft" @click="applyTemplateJson()">Применить из JSON</button>
+            <button class="btn-ghost" @click="rebuildTemplateJson()">Сбросить к форме</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="flex items-center gap-2">
+        <button class="btn-primary" @click="saveTemplate()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3 3 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Сохранить
+        </button>
+        <button class="btn-danger" x-show="tpl && tpl.id" @click="confirmDeleteTemplate()">Удалить</button>
+        <span class="ml-auto text-xs text-ink-300" x-show="tpl && tpl.articles_count != null"
+              x-text="'статей: ' + tpl.articles_count"></span>
+      </div>
+    </div>
   </div>
 
   <!-- ============================================================ LINKS drawer ============================== -->
@@ -977,7 +1125,11 @@ function seoApp() {
     _dragIndex: null,
 
     // shared-element "magic move" pill positions per ref name (see SEO.morphPill)
-    pill: { linksList: null, targetsList: null },
+    pill: { linksList: null, targetsList: null, templatesList: null },
+
+    // template editor view: 'form' | 'json'
+    tplView: 'form',
+    _tplBlockUid: 1,
 
     // ============================================================ INIT ==
     async init() {
@@ -1006,6 +1158,7 @@ function seoApp() {
 
     // ============================================================ TABS ==
     setListTab(t) {
+      if (t !== 'templates' && this.tpl) this.closeTemplateEditor();
       this.listTab = t;
     },
 
@@ -1669,23 +1822,225 @@ function seoApp() {
     // ============================================================ TEMPLATE editor ==
     openCreateTemplate() {
       this.current = { kind: 'template', id: null };
-      this.tpl = { id: null, profile_id: this.profileId, name: '', code: '', description: '', structure_json: '[]' };
+      this.tpl = this._wrapTemplate({
+        id: null, profile_id: this.profileId,
+        name: '', slug: '', description: '',
+        gpt_system_prompt: '', css_class: '',
+        is_active: 1, articles_count: 0,
+        blocks: [],
+      });
+      this.tplView = 'form';
+      this._tplOriginalBlockIds = [];
     },
     async openTemplate(id) {
       this.current = { kind: 'template', id };
       const t = await SEO.api('templates/' + id);
-      this.tpl = { ...t, structure_json: typeof t.structure_json === 'string' ? t.structure_json : JSON.stringify(t.structure_json || [], null, 2) };
+      this.tpl = this._wrapTemplate(t);
+      this.tplView = 'form';
+      this._tplOriginalBlockIds = (t.blocks || []).map(b => b.id);
     },
+    closeTemplateEditor() {
+      this.tpl = null;
+      this.current = { kind: null, id: null };
+    },
+    setTplView(v) {
+      if (v === this.tplView) return;
+      if (v === 'json') this.rebuildTemplateJson();
+      this.tplView = v;
+    },
+
+    // Wrap raw API template into editable model: parse each block's
+    // string `config` into _hint / _fields and stamp a stable _uid for
+    // x-for keys (so reorders animate cleanly).
+    _wrapTemplate(t) {
+      const blocks = (t.blocks || []).map(b => this._wrapBlock(b));
+      return {
+        id: t.id ?? null,
+        profile_id: t.profile_id ?? this.profileId,
+        name: t.name || '',
+        slug: t.slug || '',
+        description: t.description || '',
+        gpt_system_prompt: t.gpt_system_prompt || '',
+        css_class: t.css_class || '',
+        is_active: t.is_active ? 1 : 0,
+        preview_image: t.preview_image || null,
+        articles_count: t.articles_count ?? null,
+        blocks,
+        _jsonText: '',
+      };
+    },
+    _wrapBlock(b) {
+      let cfg = {};
+      if (b && b.config) {
+        if (typeof b.config === 'string') { try { cfg = JSON.parse(b.config); } catch { cfg = {}; } }
+        else if (typeof b.config === 'object') { cfg = b.config; }
+      }
+      return {
+        id: b?.id ?? null,
+        _uid: 'b' + (this._tplBlockUid++),
+        type: b?.type || 'richtext',
+        name: b?.name || '',
+        sort_order: b?.sort_order ?? 0,
+        is_required: b?.is_required ? 1 : 0,
+        _hint: cfg.hint || '',
+        _fields: Array.isArray(cfg.fields) ? cfg.fields.slice() : [],
+        _extraConfig: this._stripCfgKeys(cfg),
+      };
+    },
+    _stripCfgKeys(cfg) {
+      const o = { ...(cfg || {}) };
+      delete o.hint; delete o.fields;
+      return o;
+    },
+    _serializeBlockConfig(b) {
+      return JSON.stringify({
+        hint: b._hint || '',
+        fields: b._fields || [],
+        ...(b._extraConfig || {}),
+      });
+    },
+    _blockToApiPayload(b, idx) {
+      return {
+        type: b.type,
+        name: b.name,
+        config: this._serializeBlockConfig(b),
+        sort_order: idx + 1,
+        is_required: b.is_required ? 1 : 0,
+      };
+    },
+
+    blockTypeOptions() {
+      return Object.entries(this.blockTypeSchemas || {});
+    },
+    suggestedBlockFields(b) {
+      const schema = this.blockTypeSchemas[b.type];
+      if (!schema || !schema.fields) return [];
+      const all = Array.isArray(schema.fields) ? schema.fields : Object.keys(schema.fields);
+      return all.filter(f => !b._fields.includes(f));
+    },
+
+    addTemplateBlock() {
+      if (!this.tpl) return;
+      this.tpl.blocks.push(this._wrapBlock({
+        type: Object.keys(this.blockTypeSchemas)[0] || 'richtext',
+        name: 'Новый блок',
+        sort_order: this.tpl.blocks.length + 1,
+        is_required: 0,
+      }));
+    },
+    removeTemplateBlock(i) {
+      if (!this.tpl) return;
+      this.tpl.blocks.splice(i, 1);
+    },
+    moveTemplateBlock(i, dir) {
+      if (!this.tpl) return;
+      const j = i + dir;
+      if (j < 0 || j >= this.tpl.blocks.length) return;
+      const arr = this.tpl.blocks;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    },
+    addBlockField(b, name) {
+      const v = (name || '').trim();
+      if (!v || b._fields.includes(v)) return;
+      b._fields.push(v);
+    },
+    removeBlockField(b, idx) { b._fields.splice(idx, 1); },
+    promptAddBlockField(b) {
+      const v = window.prompt('Имя поля (snake_case)');
+      if (v) this.addBlockField(b, v);
+    },
+
+    rebuildTemplateJson() {
+      if (!this.tpl) return;
+      const out = {
+        id: this.tpl.id,
+        profile_id: this.tpl.profile_id,
+        name: this.tpl.name,
+        slug: this.tpl.slug,
+        description: this.tpl.description,
+        gpt_system_prompt: this.tpl.gpt_system_prompt,
+        css_class: this.tpl.css_class,
+        is_active: this.tpl.is_active ? 1 : 0,
+        blocks: this.tpl.blocks.map((b, i) => ({
+          id: b.id,
+          type: b.type,
+          name: b.name,
+          sort_order: i + 1,
+          is_required: b.is_required ? 1 : 0,
+          config: JSON.parse(this._serializeBlockConfig(b)),
+        })),
+      };
+      this.tpl._jsonText = JSON.stringify(out, null, 2);
+    },
+    applyTemplateJson() {
+      if (!this.tpl) return;
+      let parsed;
+      try { parsed = JSON.parse(this.tpl._jsonText || '{}'); }
+      catch (e) { SEO.toast('JSON некорректен: ' + e.message, 'err'); return; }
+      // Preserve current id / profile_id; re-wrap.
+      const wrapped = this._wrapTemplate({
+        ...parsed,
+        id: this.tpl.id,
+        profile_id: this.tpl.profile_id,
+        articles_count: this.tpl.articles_count,
+      });
+      wrapped._jsonText = this.tpl._jsonText;
+      this.tpl = wrapped;
+      SEO.toast('Применено из JSON', 'ok');
+    },
+
     async saveTemplate() {
+      if (!this.tpl) return;
+      if (!this.tpl.name) { SEO.toast('Название обязательно', 'err'); return; }
+      if (!this.tpl.slug) { SEO.toast('Slug обязателен', 'err'); return; }
       try {
-        const body = { ...this.tpl };
-        try { body.structure_json = JSON.parse(this.tpl.structure_json || '[]'); } catch { SEO.toast('JSON структуры некорректен', 'err'); return; }
-        const isNew = !this.tpl.id;
-        const r = isNew
-          ? await SEO.api('templates', { method: 'POST', body })
-          : await SEO.api('templates/' + this.tpl.id, { method: 'PUT', body });
-        if (r) this.tpl = { ...r, structure_json: typeof r.structure_json === 'string' ? r.structure_json : JSON.stringify(r.structure_json || [], null, 2) };
-        await this.loadTemplates(); SEO.toast('Сохранено', 'ok');
+        const meta = {
+          profile_id: this.profileId,
+          name: this.tpl.name,
+          slug: this.tpl.slug,
+          description: this.tpl.description,
+          gpt_system_prompt: this.tpl.gpt_system_prompt,
+          css_class: this.tpl.css_class,
+          is_active: this.tpl.is_active ? 1 : 0,
+        };
+
+        if (!this.tpl.id) {
+          // Create with full blocks payload (controller supports it).
+          const body = { ...meta, blocks: this.tpl.blocks.map((b, i) => this._blockToApiPayload(b, i)) };
+          const r = await SEO.api('templates', { method: 'POST', body });
+          this.tpl = this._wrapTemplate(r);
+          this._tplOriginalBlockIds = (r.blocks || []).map(b => b.id);
+          this.current = { kind: 'template', id: r.id };
+        } else {
+          // 1) Update meta.
+          await SEO.api('templates/' + this.tpl.id, { method: 'PUT', body: meta });
+
+          // 2) Diff blocks: delete removed, then update existing / create new.
+          const tid = this.tpl.id;
+          const currentIds = new Set(this.tpl.blocks.filter(b => b.id).map(b => b.id));
+          const removed = (this._tplOriginalBlockIds || []).filter(id => !currentIds.has(id));
+          for (const bid of removed) {
+            await SEO.api('templates/' + tid + '/blocks', { method: 'DELETE', body: { block_id: bid } });
+          }
+          for (let i = 0; i < this.tpl.blocks.length; i++) {
+            const b = this.tpl.blocks[i];
+            const payload = this._blockToApiPayload(b, i);
+            if (b.id) {
+              await SEO.api('templates/' + tid + '/blocks', { method: 'PUT', body: { block_id: b.id, ...payload } });
+            } else {
+              const created = await SEO.api('templates/' + tid + '/blocks', { method: 'POST', body: payload });
+              if (created && created.id) b.id = created.id;
+            }
+          }
+
+          // 3) Reload fresh state.
+          const fresh = await SEO.api('templates/' + tid);
+          this.tpl = this._wrapTemplate(fresh);
+          this._tplOriginalBlockIds = (fresh.blocks || []).map(b => b.id);
+        }
+
+        await this.loadTemplates();
+        SEO.toast('Сохранено', 'ok');
       } catch (_) {}
     },
     confirmDeleteTemplate() {
@@ -1694,7 +2049,7 @@ function seoApp() {
         onConfirm: async () => {
           try {
             await SEO.api('templates/' + this.tpl.id, { method: 'DELETE' });
-            this.current = { kind: null, id: null }; this.tpl = null;
+            this.closeTemplateEditor();
             await this.loadTemplates(); SEO.toast('Удалено', 'ok');
           } catch (_) {}
         }

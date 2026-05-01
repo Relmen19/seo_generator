@@ -289,6 +289,16 @@
       : '--pill-top: 0px; --pill-h: 0px;';
   }
 
+  /**
+   * Workspace focus mode — flip body[data-focus] so any descendant
+   * with `.focus-collapse` smoothly collapses and the page chrome
+   * (#seo-topbar) shrinks/dims. Pure CSS-driven; see admin.css.
+   * Use from Alpine via x-effect: `SEO.setFocus(!!editorOpen)`.
+   */
+  function setFocus(on) {
+    document.body.dataset.focus = on ? 'on' : 'off';
+  }
+
   // ---------- Public ----------
   window.SEO = {
     $, on, ready, esc, escAttr, debounce, fmtNum, fmtCost,
@@ -296,5 +306,6 @@
     SearchSelect,
     loadChartJs, loadCodeMirror,
     morphPill, pillStyle,
+    setFocus,
   };
 })();
