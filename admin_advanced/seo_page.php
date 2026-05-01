@@ -966,7 +966,6 @@ function seoApp() {
         return;
       }
       await this.loadProfile();
-      this.renderProfileSlot();
       await Promise.all([
         this.loadCatalogs(),
         this.loadTemplates(),
