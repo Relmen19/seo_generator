@@ -608,7 +608,7 @@ include __DIR__ . '/_layout/header.php';
                 :data-row-id="t.id"
                 @click="openTemplate(t.id)">
           <span class="drawer-list-title" x-text="t.name || '(без имени)'"></span>
-          <span class="drawer-list-sub" x-text="(t.slug || t.code || '') + ' · блоков: ' + (t.block_count != null ? t.block_count : '—')"></span>
+          <span class="drawer-list-sub" x-text="(t.slug || t.code || '') + ' · блоков: ' + (t.blocks ? t.blocks.length : (t.block_count != null ? t.block_count : 0))"></span>
         </button>
       </template>
       <div x-show="!templates.length" class="p-6 text-ink-500 text-sm text-center">Шаблонов нет. Нажмите «+ Шаблон».</div>
@@ -669,10 +669,37 @@ include __DIR__ . '/_layout/header.php';
               Блоки шаблона
               <span class="text-ink-300 normal-case font-normal" x-text="'(' + (tpl.blocks?.length || 0) + ')'"></span>
             </h3>
-            <button class="btn-soft" @click="addTemplateBlock()">
+            <button class="btn-soft" @click="openTplBlockPicker()">
               <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4v12M4 10h12" stroke-linecap="round"/></svg>
               Блок
             </button>
+          </div>
+
+          <!-- block-type picker overlay -->
+          <div x-show="tplBlockPicker" x-cloak class="modal-backdrop"
+               x-transition:enter="anim-fade-in"
+               @click.self="tplBlockPicker = false">
+            <div class="modal-card p-5 anim-pop">
+              <div class="flex items-center gap-2 mb-3">
+                <h3 class="text-lg font-bold flex-1">Выберите тип блока</h3>
+                <button class="btn-icon" @click="tplBlockPicker = false" title="Закрыть">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+              <input class="input mb-3" placeholder="Поиск по типу или названию…" x-model="tplBlockPickerQuery">
+              <div class="grid sm:grid-cols-2 gap-2 max-h-[60vh] overflow-auto pr-1 anim-stagger">
+                <template x-for="entry in filteredBlockTypeOptions()" :key="entry[0]">
+                  <button class="bf-card hover-lift press-shrink text-left"
+                          @click="addTemplateBlock(entry[0]); tplBlockPicker = false">
+                    <div class="bf-title" x-text="entry[1].label || entry[0]"></div>
+                    <div class="bf-sub font-mono" x-text="entry[0]"></div>
+                  </button>
+                </template>
+                <div x-show="!filteredBlockTypeOptions().length" class="text-ink-300 text-sm p-4 col-span-full text-center">
+                  Ничего не найдено.
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="space-y-2 anim-stagger">
@@ -681,14 +708,7 @@ include __DIR__ . '/_layout/header.php';
                 <div class="tpl-block-head">
                   <span class="tpl-block-num" x-text="i + 1"></span>
                   <input class="input flex-1" style="min-width:160px" x-model="b.name" placeholder="Имя блока (видно админу)">
-                  <select class="select" style="max-width:220px" x-model="b.type">
-                    <template x-for="entry in blockTypeOptions()" :key="entry[0]">
-                      <option :value="entry[0]" x-text="(entry[1].label || entry[0]) + ' · ' + entry[0]"></option>
-                    </template>
-                    <template x-if="b.type && !blockTypeSchemas[b.type]">
-                      <option :value="b.type" x-text="b.type"></option>
-                    </template>
-                  </select>
+                  <span class="tpl-block-type-pill" :title="blockTypeLabel(b.type)" x-text="b.type"></span>
                   <button class="btn-icon" @click="moveTemplateBlock(i, -1)" :disabled="i === 0" title="Вверх">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10l4-4 4 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </button>
@@ -714,15 +734,16 @@ include __DIR__ . '/_layout/header.php';
                         <button @click="removeBlockField(b, fi)" title="Убрать">×</button>
                       </span>
                     </template>
-                    <button class="tpl-field-add" @click="promptAddBlockField(b)">
-                      <span>+ поле</span>
-                    </button>
                     <template x-for="fname in suggestedBlockFields(b)" :key="'sug-'+fname">
                       <button class="tpl-field-add"
                               @click="addBlockField(b, fname)"
-                              :title="'Поле из схемы блока: ' + fname"
+                              :title="'Доступное поле блока: ' + fname"
                               x-text="'+ ' + fname"></button>
                     </template>
+                    <span x-show="!b._fields.length && !suggestedBlockFields(b).length"
+                          class="text-xs text-ink-300">
+                      У этого типа блока нет настраиваемых полей.
+                    </span>
                   </div>
                 </div>
 
@@ -1129,6 +1150,8 @@ function seoApp() {
 
     // template editor view: 'form' | 'json'
     tplView: 'form',
+    tplBlockPicker: false,
+    tplBlockPickerQuery: '',
     _tplBlockUid: 1,
 
     // ============================================================ INIT ==
@@ -1912,6 +1935,19 @@ function seoApp() {
     blockTypeOptions() {
       return Object.entries(this.blockTypeSchemas || {});
     },
+    blockTypeLabel(code) {
+      const s = this.blockTypeSchemas[code];
+      return (s && s.label) ? (s.label + ' · ' + code) : code;
+    },
+    filteredBlockTypeOptions() {
+      const q = (this.tplBlockPickerQuery || '').toLowerCase().trim();
+      const all = this.blockTypeOptions();
+      if (!q) return all;
+      return all.filter(([code, s]) =>
+        code.toLowerCase().includes(q) ||
+        ((s.label || '').toLowerCase().includes(q))
+      );
+    },
     suggestedBlockFields(b) {
       const schema = this.blockTypeSchemas[b.type];
       if (!schema || !schema.fields) return [];
@@ -1919,11 +1955,17 @@ function seoApp() {
       return all.filter(f => !b._fields.includes(f));
     },
 
-    addTemplateBlock() {
+    openTplBlockPicker() {
+      this.tplBlockPickerQuery = '';
+      this.tplBlockPicker = true;
+    },
+    addTemplateBlock(type) {
       if (!this.tpl) return;
+      const code = type || Object.keys(this.blockTypeSchemas)[0] || 'richtext';
+      const schema = this.blockTypeSchemas[code] || {};
       this.tpl.blocks.push(this._wrapBlock({
-        type: Object.keys(this.blockTypeSchemas)[0] || 'richtext',
-        name: 'Новый блок',
+        type: code,
+        name: schema.label || code,
         sort_order: this.tpl.blocks.length + 1,
         is_required: 0,
       }));
@@ -1945,10 +1987,6 @@ function seoApp() {
       b._fields.push(v);
     },
     removeBlockField(b, idx) { b._fields.splice(idx, 1); },
-    promptAddBlockField(b) {
-      const v = window.prompt('Имя поля (snake_case)');
-      if (v) this.addBlockField(b, v);
-    },
 
     rebuildTemplateJson() {
       if (!this.tpl) return;

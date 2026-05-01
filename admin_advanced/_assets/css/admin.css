@@ -455,9 +455,17 @@ body[data-focus="on"] .focus-collapse {
 [data-focus="on"] .focus-shrink-pad,
 body[data-focus="on"] .focus-shrink-pad { padding: .5rem 1rem !important; }
 
-#seo-topbar { transition: transform var(--motion-base) var(--motion-ease), opacity var(--motion-base) var(--motion-ease); transform-origin: left center; }
-body[data-focus="on"] #seo-topbar { transform: scale(.92); opacity: .55; }
+#seo-topbar {
+  transform-origin: left top;
+  transition:
+    transform var(--motion-base) var(--motion-ease),
+    opacity   var(--motion-base) var(--motion-ease);
+}
+body[data-focus="on"] #seo-topbar { transform: translateY(-6px) scaleY(.55); opacity: .55; }
 body[data-focus="on"] #seo-topbar:hover { transform: none; opacity: 1; }
+/* Tighten the gap between the (shrunken) topbar and the main content */
+main { transition: margin-top var(--motion-base) var(--motion-ease); }
+body[data-focus="on"] main { margin-top: 1.25rem !important; }
 
 @media (prefers-reduced-motion: reduce) {
   .focus-collapse, #seo-topbar { transition: none; }
