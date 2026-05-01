@@ -673,13 +673,15 @@ include __DIR__ . '/_layout/header.php';
                  @keydown.escape.window="tplBlockPicker = false"
                  @click.outside="tplBlockPicker = false">
               <button class="btn-soft"
+                      x-ref="tplPickerBtn"
                       @click="openTplBlockPicker()"
                       @mouseenter="openTplBlockPicker()">
                 <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4v12M4 10h12" stroke-linecap="round"/></svg>
                 Блок
               </button>
 
-              <div x-show="tplBlockPicker" x-cloak class="tpl-picker-pop anim-pop">
+              <div x-show="tplBlockPicker" x-cloak class="tpl-picker-pop anim-pop"
+                   x-ref="tplPickerPop">
                 <input class="input mb-2" placeholder="Поиск типа блока…"
                        x-model="tplBlockPickerQuery"
                        x-ref="tplPickerInput"
@@ -2007,7 +2009,28 @@ function seoApp() {
       if (this.tplBlockPicker) return;
       this.tplBlockPickerQuery = '';
       this.tplBlockPicker = true;
-      this.$nextTick(() => { this.$refs.tplPickerInput && this.$refs.tplPickerInput.focus(); });
+      this.$nextTick(() => {
+        this._positionTplPicker();
+        this.$refs.tplPickerInput && this.$refs.tplPickerInput.focus();
+      });
+    },
+    _positionTplPicker() {
+      const btn = this.$refs.tplPickerBtn;
+      const pop = this.$refs.tplPickerPop;
+      if (!btn || !pop) return;
+      const r = btn.getBoundingClientRect();
+      const popW = pop.offsetWidth || 360;
+      const popH = pop.offsetHeight || 320;
+      const margin = 8;
+      // Align right edge with trigger; clamp inside viewport.
+      let left = r.right - popW;
+      let top  = r.bottom + margin;
+      if (left < margin) left = margin;
+      if (top + popH > window.innerHeight - margin) {
+        top = Math.max(margin, r.top - popH - margin);
+      }
+      pop.style.left = left + 'px';
+      pop.style.top  = top  + 'px';
     },
     addTemplateBlock(type) {
       if (!this.tpl) return;

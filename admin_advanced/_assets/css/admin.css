@@ -80,6 +80,10 @@
 }
 
 html, body { height: 100%; }
+/* Reserve scrollbar gutter so popovers/menus appearing at viewport bottom
+   don't trigger a horizontal page shift when the vertical scrollbar
+   toggles on. */
+html { scrollbar-gutter: stable; }
 body { font-feature-settings: 'cv11','ss01','ss02'; }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -573,12 +577,14 @@ body[data-focus="on"] main { margin-top: 1.25rem !important; }
 .tpl-block-toggle:hover { background: var(--sand-100); color: var(--ink-900); }
 .tpl-block-toggle.is-collapsed { transform: rotate(-90deg); }
 
-/* Popover for + Блок picker — anchored under the trigger button */
+/* Popover for + Блок picker — rendered as a viewport-fixed layer so it
+   escapes the drawer-editor's stacking context and clip rect. Positioned
+   from JS via getBoundingClientRect on the trigger button. */
 .tpl-picker-anchor { position: relative; }
 .tpl-picker-pop {
-  position: absolute;
-  top: calc(100% + 8px); right: 0;
-  z-index: 80;
+  position: fixed;
+  top: 0; left: 0;                        /* placeholders, set inline by JS */
+  z-index: 9999;
   width: min(360px, 90vw);
   background: #ffffff;
   border: 1px solid var(--sand-300);
