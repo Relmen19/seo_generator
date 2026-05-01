@@ -627,9 +627,9 @@ include __DIR__ . '/_layout/header.php';
        class="drawer-split" :data-drawer="lnk ? 'open' : 'closed'">
     <div class="drawer-list anim-stagger" style="max-height: 78vh"
          x-ref="linksList"
-         x-init="$watch('lnk', () => $nextTick(() => syncPill('linksList', lnk && lnk.id)))">
+         x-init="$watch('lnk', () => $nextTick(() => SEO.morphPill(this, 'linksList', lnk && lnk.id)))">
       <div class="drawer-list-pill" :class="{ 'is-visible': lnk && lnk.id }"
-           :style="`--pill-top: ${pill.linksList?.top || 0}px; --pill-h: ${pill.linksList?.height || 0}px;`"></div>
+           :style="SEO.pillStyle(pill.linksList)"></div>
       <template x-for="l in filteredLinks()" :key="l.id">
         <button class="drawer-list-item press-shrink" :class="{ 'is-active': lnk && lnk.id === l.id }"
                 :data-row-id="l.id"
@@ -707,9 +707,9 @@ include __DIR__ . '/_layout/header.php';
        class="drawer-split" :data-drawer="tgt ? 'open' : 'closed'">
     <div class="drawer-list anim-stagger" style="max-height: 78vh"
          x-ref="targetsList"
-         x-init="$watch('tgt', () => $nextTick(() => syncPill('targetsList', tgt && tgt.id)))">
+         x-init="$watch('tgt', () => $nextTick(() => SEO.morphPill(this, 'targetsList', tgt && tgt.id)))">
       <div class="drawer-list-pill" :class="{ 'is-visible': tgt && tgt.id }"
-           :style="`--pill-top: ${pill.targetsList?.top || 0}px; --pill-h: ${pill.targetsList?.height || 0}px;`"></div>
+           :style="SEO.pillStyle(pill.targetsList)"></div>
       <template x-for="t in filteredTargets()" :key="t.id">
         <button class="drawer-list-item press-shrink" :class="{ 'is-active': tgt && tgt.id === t.id }"
                 :data-row-id="t.id"
@@ -976,23 +976,8 @@ function seoApp() {
     // drag
     _dragIndex: null,
 
-    // shared-element "magic move" pill positions per ref name
+    // shared-element "magic move" pill positions per ref name (see SEO.morphPill)
     pill: { linksList: null, targetsList: null },
-
-    /**
-     * Move/resize the shared highlight pill in a drawer-list.
-     * Reads the active row's offset relative to the list container; the
-     * pill's CSS uses these as transform/height targets, so the change
-     * animates via `transition` on the pill (no per-row repaint).
-     */
-    syncPill(refName, rowId) {
-      const list = this.$refs[refName];
-      if (!list) return;
-      if (!rowId) { this.pill[refName] = null; return; }
-      const row = list.querySelector('[data-row-id="' + rowId + '"]');
-      if (!row) { this.pill[refName] = null; return; }
-      this.pill[refName] = { top: row.offsetTop, height: row.offsetHeight };
-    },
 
     // ============================================================ INIT ==
     async init() {

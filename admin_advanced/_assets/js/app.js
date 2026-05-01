@@ -256,11 +256,46 @@
     Alpine.store('layout', { hideTopbar: false });
   });
 
+  /**
+   * iOS-style "magic move" highlight for any list of buttons.
+   *
+   * Markup contract (CSS classes defined in admin.css):
+   *   <div class="drawer-list" x-ref="myList">
+   *     <div class="drawer-list-pill" :class="{'is-visible': activeId}"
+   *          :style="SEO.pillStyle(pill.myList)"></div>
+   *     <button class="drawer-list-item" :data-row-id="row.id"
+   *             :class="{'is-active': activeId === row.id}">…</button>
+   *   </div>
+   *
+   * In the Alpine component:
+   *   pill: { myList: null },
+   *   $watch('activeId', () => $nextTick(() => SEO.morphPill(this, 'myList', activeId)))
+   *
+   * The pill element animates between rows via CSS transition on
+   * transform/height (vars --pill-top / --pill-h), so no per-row
+   * repaint and no JS animation loop.
+   */
+  function morphPill(component, refName, rowId) {
+    const list = component.$refs && component.$refs[refName];
+    if (!list) return;
+    if (!rowId) { component.pill[refName] = null; return; }
+    const row = list.querySelector('[data-row-id="' + rowId + '"]');
+    component.pill[refName] = row
+      ? { top: row.offsetTop, height: row.offsetHeight }
+      : null;
+  }
+  function pillStyle(p) {
+    return p
+      ? `--pill-top: ${p.top}px; --pill-h: ${p.height}px;`
+      : '--pill-top: 0px; --pill-h: 0px;';
+  }
+
   // ---------- Public ----------
   window.SEO = {
     $, on, ready, esc, escAttr, debounce, fmtNum, fmtCost,
     api, sse, toast, profile, modal, copy,
     SearchSelect,
     loadChartJs, loadCodeMirror,
+    morphPill, pillStyle,
   };
 })();
