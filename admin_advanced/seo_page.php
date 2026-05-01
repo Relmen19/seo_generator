@@ -1370,13 +1370,31 @@ function seoApp() {
       // Catalog pill must follow the active item across tree mutations:
       // search filtering, collapse/expand, and tab switches all reflow rows
       // and the pill needs a fresh measurement once the new layout settles.
-      this.$watch('filters.qCat',  () => this.$nextTick(() => this._recomputeCatPill()));
-      this.$watch('catCollapsed',  () => this.$nextTick(() => this._recomputeCatPill()));
-      this.$watch('listTab',       v => v === 'catalogs' && this.$nextTick(() => this._recomputeCatPill()));
+      // Reflows from filtering / collapsing / tab-swapping should snap the
+      // pill instantly — animating would make it "ride" across the list as
+      // rows shift. Selection changes (cat watcher in the markup) keep the
+      // smooth slide, since they pass through morphPill without no-anim.
+      this.$watch('filters.qCat',  () => this.$nextTick(() => this._recomputeCatPill({ instant: true })));
+      this.$watch('catCollapsed',  () => this.$nextTick(() => this._recomputeCatPill({ instant: true })));
+      this.$watch('listTab',       v => v === 'catalogs' && this.$nextTick(() => this._recomputeCatPill({ instant: true })));
     },
-    _recomputeCatPill() {
+    _recomputeCatPill(opts) {
       if (this.listTab !== 'catalogs') return;
-      SEO.morphPill(this.$refs.catalogsList, this.pill, 'catalogsList', this.cat && (this.cat.id || 'new'));
+      const list = this.$refs.catalogsList;
+      if (!list) return;
+      const pillEl = list.querySelector('.drawer-list-pill');
+      const instant = opts && opts.instant && pillEl;
+      if (instant) {
+        pillEl.classList.add('no-anim');
+        // force reflow so the no-anim class takes effect before we mutate vars
+        // eslint-disable-next-line no-unused-expressions
+        pillEl.offsetWidth;
+      }
+      SEO.morphPill(list, this.pill, 'catalogsList', this.cat && (this.cat.id || 'new'));
+      if (instant) {
+        // re-enable transitions after the new position has been committed
+        requestAnimationFrame(() => requestAnimationFrame(() => pillEl.classList.remove('no-anim')));
+      }
     },
 
     async loadProfile() {

@@ -356,6 +356,10 @@ body { font-feature-settings: 'cv11','ss01','ss02'; }
   z-index: 0;
 }
 .drawer-list-pill.is-visible { opacity: 1; }
+/* Snap-mode: applied while the list reflows (collapse/expand/search/tab
+   swap) so the pill jumps to the new position instead of animating across
+   shifting rows. Selection changes leave this class off and keep the slide. */
+.drawer-list-pill.no-anim { transition: none !important; }
 
 .drawer-list-item {
   position: relative;                     /* sit above the pill */
