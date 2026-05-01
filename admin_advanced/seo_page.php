@@ -54,7 +54,7 @@ include __DIR__ . '/_layout/header.php';
       <select class="select" x-model="filters.catalogId" @change="loadArticles()">
         <option value="">Все рубрики</option>
         <template x-for="c in flatCatalogs" :key="c.id">
-          <option :value="c.id" x-text="c._indent + c.name"></option>
+          <option :value="c.id" x-text="'— '.repeat(c.depth) + c.name"></option>
         </template>
       </select>
       <select class="select" x-model="filters.sort" @change="loadArticles()">
@@ -67,9 +67,18 @@ include __DIR__ . '/_layout/header.php';
     </div>
 
     <!-- CATALOGS toolbar -->
-    <div x-show="listTab === 'catalogs'" class="flex flex-wrap gap-2">
-      <input class="input flex-1 min-w-[240px]" placeholder="Поиск рубрики…" x-model.debounce.300ms="filters.qCat">
-      <button class="btn-primary" @click="openCreateCatalog()">+ Рубрика</button>
+    <div x-show="listTab === 'catalogs'" class="flex flex-wrap items-center gap-2">
+      <input class="input flex-1 min-w-[240px]" placeholder="Поиск каталога…" x-model.debounce.200ms="filters.qCat">
+      <button class="btn-soft" @click="catExpandAll()" title="Развернуть всё">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6l5 5 5-5" stroke-linecap="round"/></svg>
+        Развернуть
+      </button>
+      <button class="btn-soft" @click="catCollapseAll()" title="Свернуть всё">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10l5-5 5 5" stroke-linecap="round"/></svg>
+        Свернуть
+      </button>
+      <span class="text-xs text-ink-500" x-text="'Всего: ' + flatCatalogs.length"></span>
+      <button class="btn-primary" @click="openCreateCatalog()">+ Каталог</button>
     </div>
 
     <!-- TEMPLATES toolbar -->
@@ -91,8 +100,8 @@ include __DIR__ . '/_layout/header.php';
     </div>
   </section>
 
-  <!-- ============================================================ MAIN GRID (articles / catalogs) ============== -->
-  <div x-show="['articles','catalogs'].includes(listTab)" class="grid xl:grid-cols-[440px_1fr] gap-6">
+  <!-- ============================================================ MAIN GRID (articles) ============== -->
+  <div x-show="listTab === 'articles'" class="grid xl:grid-cols-[440px_1fr] gap-6">
 
     <!-- ------------------------------------------------------- LEFT: list -->
     <section class="card p-0 overflow-hidden">
@@ -121,20 +130,6 @@ include __DIR__ . '/_layout/header.php';
               </div>
             </button>
           </template>
-        </div>
-
-        <!-- CATALOGS list -->
-        <div x-show="listTab === 'catalogs'">
-          <template x-for="c in filteredCatalogs()" :key="c.id">
-            <button @click="openCatalog(c.id)"
-                    class="w-full text-left px-4 py-3 border-b border-sand-200 hover:bg-sand-100 flex items-center gap-2"
-                    :class="{ 'bg-sand-100': current.kind === 'catalog' && current.id === c.id }">
-              <span x-html="c._indent.replace(/ /g, '&nbsp;')"></span>
-              <span class="font-medium" x-text="c.name"></span>
-              <span class="text-xs text-ink-500 ml-auto" x-text="c.slug"></span>
-            </button>
-          </template>
-          <div x-show="!flatCatalogs.length" class="p-6 text-ink-500 text-sm">Рубрик нет.</div>
         </div>
 
       </div>
@@ -200,7 +195,7 @@ include __DIR__ . '/_layout/header.php';
               <select class="select" x-model="art.catalog_id" @change="dirty = true">
                 <option :value="null">— без рубрики —</option>
                 <template x-for="c in flatCatalogs" :key="c.id">
-                  <option :value="c.id" x-text="c._indent + c.name"></option>
+                  <option :value="c.id" x-text="'— '.repeat(c.depth) + c.name"></option>
                 </template>
               </select>
             </div>
@@ -565,31 +560,193 @@ include __DIR__ . '/_layout/header.php';
 
       </div>
 
-      <!-- ============================================================ CATALOG / TEMPLATE / LINK / TARGET / AUDIT EDITORS -->
-      <div x-show="current.kind === 'catalog' && cat" class="card space-y-4">
-        <h2 class="text-xl font-bold" x-text="cat?.id ? 'Рубрика #' + cat.id : 'Новая рубрика'"></h2>
-        <div class="grid md:grid-cols-2 gap-3">
-          <div><label class="label">Название</label><input class="input" x-model="cat.name"></div>
-          <div><label class="label">Slug</label><input class="input" x-model="cat.slug"></div>
-          <div>
-            <label class="label">Родитель</label>
-            <select class="select" x-model="cat.parent_id">
-              <option :value="null">— верхний уровень —</option>
-              <template x-for="c in flatCatalogs" :key="c.id">
-                <option :value="c.id" x-text="c._indent + c.name" x-show="c.id !== cat.id"></option>
-              </template>
-            </select>
-          </div>
-          <div><label class="label">Сортировка</label><input class="input" type="number" x-model.number="cat.sort_order"></div>
+    </section>
+  </div>
+
+  <!-- ============================================================ CATALOGS drawer ========================== -->
+  <div x-show="listTab === 'catalogs'"
+       x-transition:enter="anim-fade-in"
+       class="drawer-split" :data-drawer="(cat && !_catClosing) ? 'open' : 'closed'">
+
+    <!-- LEFT: tree list -->
+    <div class="drawer-list cat-tree anim-stagger" style="max-height: 78vh"
+         x-ref="catalogsList"
+         x-init="$watch('cat', v => $nextTick(() => SEO.morphPill($refs.catalogsList, pill, 'catalogsList', v && (v.id || 'new'))))">
+      <div class="drawer-list-pill" :class="{ 'is-visible': cat }"
+           :style="SEO.pillStyle(pill.catalogsList)"></div>
+
+      <template x-for="c in visibleCatalogs()" :key="c.id">
+        <div class="cat-tree-row press-shrink"
+             :data-row-id="c.id"
+             :style="'--depth:' + c.depth + '; --i:' + c._idx">
+          <button class="cat-tree-toggle"
+                  :class="{ 'is-leaf': !c._hasChildren, 'is-open': c._hasChildren && !catCollapsed[c.id] }"
+                  @click.stop="c._hasChildren && toggleCatNode(c.id)"
+                  :aria-label="c._hasChildren ? (catCollapsed[c.id] ? 'Развернуть' : 'Свернуть') : ''"
+                  :tabindex="c._hasChildren ? 0 : -1">
+            <svg x-show="c._hasChildren" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 1.5l3 3.5-3 3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span x-show="!c._hasChildren" class="cat-tree-dot"></span>
+          </button>
+          <button class="cat-tree-item"
+                  :class="{ 'is-active': cat && cat.id === c.id }"
+                  @click="openCatalog(c.id)">
+            <span class="cat-tree-name" x-text="c.name || '(без имени)'"></span>
+            <span class="cat-tree-slug" x-show="c.slug" x-text="c.slug"></span>
+            <span class="cat-tree-count" x-show="c._descendants" x-text="c._descendants" :title="'Вложенных каталогов: ' + c._descendants"></span>
+          </button>
         </div>
-        <div><label class="label">Описание</label><textarea class="textarea" rows="3" x-model="cat.description"></textarea></div>
-        <div class="flex gap-2">
+      </template>
+
+      <div x-show="!flatCatalogs.length" class="p-6 text-ink-500 text-sm text-center">
+        Каталогов нет. Нажмите «+ Каталог», чтобы создать первый.
+      </div>
+      <div x-show="flatCatalogs.length && !visibleCatalogs().length" class="p-6 text-ink-500 text-sm text-center">
+        Ничего не найдено по запросу «<span x-text="filters.qCat"></span>».
+      </div>
+    </div>
+
+    <!-- RIGHT: editor -->
+    <div class="drawer-editor" x-show="cat" x-cloak>
+
+      <div class="flex items-center gap-2 mb-4 flex-wrap">
+        <button class="drawer-back-btn" @click="closeCatalogEditor()">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4l-4 4 4 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          К списку
+        </button>
+        <h2 class="text-xl font-bold flex-1 truncate"
+            x-text="cat?.id ? (cat.name || ('Каталог #' + cat.id)) : 'Новый каталог'"></h2>
+        <span x-show="cat?.id && cat?.articles_count != null" class="badge bg-sand-200 text-ink-700"
+              x-text="'Статей: ' + (cat.articles_count || 0)"
+              title="Количество статей в этом каталоге"></span>
+      </div>
+
+      <div class="space-y-4 anim-stagger">
+
+        <!-- Название + Slug -->
+        <div class="grid md:grid-cols-2 gap-3">
+          <div>
+            <label class="label">Название</label>
+            <input class="input" x-model="cat.name"
+                   @input.debounce.250ms="catRecomputeDups()"
+                   @change="catSyncSlugFromName()"
+                   placeholder="Например: Кулинария">
+            <div x-show="catNameDups.length" class="cat-dup-hint">
+              <span class="cat-dup-icon">⚠</span>
+              Похожие уже есть:
+              <template x-for="d in catNameDups" :key="d.id">
+                <button class="cat-dup-pill" @click="openCatalog(d.id)"
+                        :title="'Перейти к: ' + d._path">
+                  <span x-text="d.name"></span>
+                  <span class="cat-dup-path" x-show="d._parentPath" x-text="' · ' + d._parentPath"></span>
+                </button>
+              </template>
+            </div>
+          </div>
+          <div>
+            <label class="label">Slug
+              <span class="label-hint" title="URL-фрагмент. Используется в адресе раздела на сайте.">?</span>
+            </label>
+            <div class="flex gap-2">
+              <input class="input" x-model="cat.slug" placeholder="kulinariya">
+              <button class="btn-soft" @click="cat.slug = generateSlug(cat.name || '')" title="Сгенерировать из названия">↺</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Родитель picker -->
+        <div>
+          <label class="label">Родительский каталог
+            <span class="label-hint" title="Каталог, в котором этот будет вложенным разделом. Влияет на структуру навигации и хлебные крошки.">?</span>
+          </label>
+          <button type="button"
+                  class="cat-parent-trigger"
+                  x-ref="catParentBtn"
+                  @click="openCatParentPicker()">
+            <span class="cat-parent-trigger-label" x-show="!cat.parent_id">— верхний уровень —</span>
+            <span class="cat-parent-trigger-label" x-show="cat.parent_id" x-text="catParentLabel(cat.parent_id)"></span>
+            <span class="cat-parent-trigger-clear" x-show="cat.parent_id" @click.stop="cat.parent_id = null" title="Сбросить">×</span>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+
+        <!-- Сортировка с пояснением и стрелками -->
+        <div>
+          <label class="label">Порядок отображения
+            <span class="label-hint" title="Меньше число — выше в списке. Применяется при показе каталогов в навигации сайта и в выпадающих списках при создании статей.">?</span>
+          </label>
+          <div class="cat-sort-row">
+            <button class="btn-icon cat-sort-btn" @click="catBumpSort(-1)" title="Поднять выше (уменьшить число)">↑</button>
+            <input class="input cat-sort-input" type="number" x-model.number="cat.sort_order" step="1">
+            <button class="btn-icon cat-sort-btn" @click="catBumpSort(+1)" title="Опустить ниже (увеличить число)">↓</button>
+            <span class="cat-sort-help">
+              <span x-show="(cat.sort_order || 0) === 0">Без приоритета — отсортируется по названию среди соседей с тем же значением.</span>
+              <span x-show="(cat.sort_order || 0) !== 0"
+                    x-text="'Чем меньше — тем выше. Сейчас: ' + (cat.sort_order || 0) + ' среди ' + catSiblingsCount() + ' соседних каталогов.'"></span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Описание -->
+        <div>
+          <label class="label">Описание
+            <span class="label-hint" title="Короткий текст для SEO-блока на странице каталога и подсказок в админке.">?</span>
+          </label>
+          <textarea class="textarea" rows="3" x-model="cat.description"
+                    placeholder="Например: Рецепты, советы по приготовлению, кухни мира…"></textarea>
+        </div>
+
+        <div class="flex flex-wrap gap-2 pt-2 border-t border-sand-200">
           <button class="btn-primary" @click="saveCatalog()">Сохранить</button>
+          <button class="btn-soft" @click="closeCatalogEditor()">Отмена</button>
+          <div class="flex-1"></div>
           <button class="btn-danger" x-show="cat.id" @click="confirmDeleteCatalog()">Удалить</button>
         </div>
       </div>
+    </div>
 
-    </section>
+    <!-- Parent picker popover (teleported, viewport-fixed) -->
+    <template x-teleport="body">
+      <div x-show="catParentPicker.open" x-cloak
+           x-ref="catParentPop"
+           class="cat-pop"
+           x-transition:enter="anim-pop"
+           :style="catParentPicker.style"
+           @mousedown.window="if (!catParentPicker.open) return;
+             if ($refs.catParentBtn && $refs.catParentBtn.contains($event.target)) return;
+             if ($refs.catParentPop && $refs.catParentPop.contains($event.target)) return;
+             catParentPicker.open = false;">
+        <div class="cat-pop-head">
+          <input class="input cat-pop-search" placeholder="Поиск каталога…"
+                 x-model="catParentPicker.query"
+                 @keydown.escape.prevent="catParentPicker.open = false"
+                 x-init="$watch('catParentPicker.open', v => v && $nextTick(() => $el.focus()))">
+          <button class="btn-icon" @click="catParentPicker.open = false" title="Закрыть">×</button>
+        </div>
+        <div class="cat-pop-list">
+          <button class="cat-pop-item is-root"
+                  :class="{ 'is-selected': !cat?.parent_id }"
+                  @click="pickCatParent(null)">
+            <span class="cat-pop-dot"></span>
+            <span class="cat-pop-name">— верхний уровень —</span>
+          </button>
+          <template x-for="c in filteredCatParentOptions()" :key="c.id">
+            <button class="cat-pop-item"
+                    :class="{ 'is-selected': cat?.parent_id === c.id, 'is-disabled': c._disabled }"
+                    :disabled="c._disabled"
+                    :style="'--depth:' + c.depth"
+                    @click="!c._disabled && pickCatParent(c.id)"
+                    :title="c._disabled ? 'Нельзя выбрать самого себя или своего потомка' : c._path">
+              <span class="cat-pop-indent"></span>
+              <span class="cat-pop-name" x-text="c.name"></span>
+              <span class="cat-pop-slug" x-show="c.slug" x-text="c.slug"></span>
+            </button>
+          </template>
+          <div x-show="!filteredCatParentOptions().length" class="cat-pop-empty">
+            Ничего не найдено
+          </div>
+        </div>
+      </div>
+    </template>
   </div>
 
   <!-- ============================================================ TEMPLATES drawer ========================== -->
@@ -1169,7 +1326,14 @@ function seoApp() {
     _dragIndex: null,
 
     // shared-element "magic move" pill positions per ref name (see SEO.morphPill)
-    pill: { linksList: null, targetsList: null, templatesList: null },
+    pill: { linksList: null, targetsList: null, templatesList: null, catalogsList: null },
+
+    // catalog drawer state
+    _catClosing: false,
+    _catCloseTimer: null,
+    catCollapsed: {},                   // { [catalogId]: true } — folded subtrees
+    catNameDups: [],                    // fuzzy duplicates of cat.name
+    catParentPicker: { open: false, query: '', style: '' },
 
     // template editor view: 'form' | 'json'
     tplView: 'form',
@@ -1207,6 +1371,7 @@ function seoApp() {
     // ============================================================ TABS ==
     setListTab(t) {
       if (t !== 'templates' && this.tpl) this.closeTemplateEditor();
+      if (t !== 'catalogs' && this.cat) this.closeCatalogEditor();
       this.listTab = t;
     },
 
@@ -1232,29 +1397,80 @@ function seoApp() {
 
     // ============================================================ CATALOGS ==
     async loadCatalogs() {
-      const data = await SEO.api('catalogs?profile_id=' + this.profileId);
-      this.catalogs = data || [];
-      this.flatCatalogs = this.flattenCatalogs(this.catalogs, null, 0);
+      // /catalogs/tree returns nested rows w/ children[]; gives complete dataset
+      // (the flat /catalogs endpoint is paginated and may truncate huge trees).
+      const tree = await SEO.api('catalogs/tree?profile_id=' + this.profileId);
+      this.catalogs = tree || [];
+      this.flatCatalogs = this._flattenCatTree(this.catalogs, 0, '');
     },
-    flattenCatalogs(list, parentId, depth) {
+    _flattenCatTree(nodes, depth, parentPath) {
       const out = [];
-      const items = (list || []).filter(c => (c.parent_id || null) == parentId);
-      for (const c of items) {
-        out.push({ ...c, _indent: '— '.repeat(depth) });
-        out.push(...this.flattenCatalogs(list, c.id, depth + 1));
-      }
-      // first call: list contains all rows; flatten by building tree from flat
-      if (parentId === null && depth === 0 && !items.length && (list || []).length) {
-        // fallback: list is flat and parent_id may be null/undefined for all → return as-is
-        return (list || []).map(c => ({ ...c, _indent: '' }));
+      let idx = 0;
+      for (const n of (nodes || [])) {
+        const path = parentPath ? (parentPath + ' / ' + (n.name || '')) : (n.name || '');
+        const childRows = this._flattenCatTree(n.children || [], depth + 1, path);
+        out.push({
+          id: n.id,
+          name: n.name || '',
+          slug: n.slug || '',
+          parent_id: n.parent_id || null,
+          sort_order: Number(n.sort_order || 0),
+          description: n.description || '',
+          depth,
+          _path: path,
+          _parentPath: parentPath,
+          _hasChildren: (n.children || []).length > 0,
+          _descendants: this._countDescendants(n),
+          _idx: idx++,
+        });
+        out.push(...childRows);
       }
       return out;
     },
-    filteredCatalogs() {
-      const q = (this.filters.qCat || '').toLowerCase();
-      if (!q) return this.flatCatalogs;
-      return this.flatCatalogs.filter(c => (c.name || '').toLowerCase().includes(q) || (c.slug || '').toLowerCase().includes(q));
+    _countDescendants(n) {
+      let c = 0;
+      for (const ch of (n.children || [])) { c += 1 + this._countDescendants(ch); }
+      return c;
     },
+    visibleCatalogs() {
+      const q = this._normalize(this.filters.qCat || '');
+      const list = this.flatCatalogs;
+      if (q) {
+        // search hides hierarchy: show all matches across the tree
+        return list.filter(c =>
+          this._normalize(c.name).includes(q) ||
+          this._normalize(c.slug).includes(q) ||
+          this._normalize(c._path).includes(q));
+      }
+      // honour catCollapsed: hide rows whose ancestor is collapsed
+      const out = [];
+      const hiddenRoots = new Set();
+      for (const c of list) {
+        // if any ancestor in hiddenRoots → skip
+        const skip = c.parent_id && hiddenRoots.has(c.parent_id);
+        if (skip) {
+          // propagate hidden flag to its descendants
+          if (c._hasChildren) hiddenRoots.add(c.id);
+          continue;
+        }
+        out.push(c);
+        if (this.catCollapsed[c.id] && c._hasChildren) hiddenRoots.add(c.id);
+      }
+      return out;
+    },
+    toggleCatNode(id) {
+      this.catCollapsed = { ...this.catCollapsed, [id]: !this.catCollapsed[id] };
+    },
+    catExpandAll()   { this.catCollapsed = {}; },
+    catCollapseAll() {
+      const m = {};
+      for (const c of this.flatCatalogs) if (c._hasChildren) m[c.id] = true;
+      this.catCollapsed = m;
+    },
+    _normalize(s) {
+      return String(s || '').toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]+/g, '');
+    },
+    filteredCatalogs() { return this.visibleCatalogs(); },   // legacy alias
 
     // ============================================================ TEMPLATES ==
     async loadTemplates() {
@@ -1855,37 +2071,183 @@ function seoApp() {
     },
 
     // ============================================================ CATALOG editor ==
+    _cancelCatClose() {
+      if (this._catCloseTimer) { clearTimeout(this._catCloseTimer); this._catCloseTimer = null; }
+      this._catClosing = false;
+    },
     openCreateCatalog() {
+      this._cancelCatClose();
       this.current = { kind: 'catalog', id: null };
-      this.cat = { id: null, profile_id: this.profileId, name: '', slug: '', parent_id: null, sort_order: 0, description: '' };
+      this.cat = {
+        id: null, profile_id: this.profileId,
+        name: '', slug: '', parent_id: null, sort_order: 0, description: '',
+        articles_count: 0,
+      };
+      this.catNameDups = [];
+      this.catParentPicker = { open: false, query: '', style: '' };
     },
     async openCatalog(id) {
+      this._cancelCatClose();
       this.current = { kind: 'catalog', id };
       const c = await SEO.api('catalogs/' + id);
-      this.cat = c;
+      this.cat = {
+        id: c.id, profile_id: c.profile_id,
+        name: c.name || '', slug: c.slug || '',
+        parent_id: c.parent_id || null,
+        sort_order: Number(c.sort_order || 0),
+        description: c.description || '',
+        articles_count: Number(c.articles_count || 0),
+      };
+      this.catNameDups = [];
+      this.catParentPicker = { open: false, query: '', style: '' };
+      this.catRecomputeDups();
+    },
+    closeCatalogEditor() {
+      if (!this.cat || this._catClosing) return;
+      this._catClosing = true;
+      this.catParentPicker.open = false;
+      this._catCloseTimer = setTimeout(() => {
+        this.cat = null;
+        this.current = { kind: null, id: null };
+        this._catClosing = false;
+        this._catCloseTimer = null;
+      }, 640);
     },
     async saveCatalog() {
+      if (!this.cat?.name?.trim()) { SEO.toast('Название обязательно', 'err'); return; }
       try {
+        const body = { ...this.cat };
+        delete body.articles_count;
         const isNew = !this.cat.id;
         const r = isNew
-          ? await SEO.api('catalogs', { method: 'POST', body: this.cat })
-          : await SEO.api('catalogs/' + this.cat.id, { method: 'PUT', body: this.cat });
-        Object.assign(this.cat, r || {});
+          ? await SEO.api('catalogs', { method: 'POST', body })
+          : await SEO.api('catalogs/' + this.cat.id, { method: 'PUT', body });
+        if (r) Object.assign(this.cat, r);
         await this.loadCatalogs();
         SEO.toast('Сохранено', 'ok');
       } catch (_) {}
     },
     confirmDeleteCatalog() {
       this.modal.confirm = {
-        title: 'Удалить рубрику', message: 'Удалить «' + this.cat.name + '»?',
+        title: 'Удалить каталог',
+        message: 'Удалить «' + this.cat.name + '»?' + (this.cat.articles_count ? ' Связано статей: ' + this.cat.articles_count + '.' : ''),
         onConfirm: async () => {
           try {
             await SEO.api('catalogs/' + this.cat.id, { method: 'DELETE' });
-            this.current = { kind: null, id: null }; this.cat = null;
-            await this.loadCatalogs(); SEO.toast('Удалено', 'ok');
+            this.cat = null;
+            this.current = { kind: null, id: null };
+            await this.loadCatalogs();
+            SEO.toast('Удалено', 'ok');
           } catch (_) {}
         }
       };
+    },
+    catSyncSlugFromName() {
+      if (!this.cat) return;
+      if (!this.cat.slug || !this.cat.slug.trim()) {
+        this.cat.slug = this.generateSlug(this.cat.name || '');
+      }
+    },
+    catSiblingsCount() {
+      if (!this.cat) return 0;
+      return this.flatCatalogs.filter(c =>
+        (c.parent_id || null) === (this.cat.parent_id || null) && c.id !== this.cat.id
+      ).length;
+    },
+    catBumpSort(delta) {
+      if (!this.cat) return;
+      this.cat.sort_order = Math.max(0, Number(this.cat.sort_order || 0) + delta);
+    },
+    // ---------- fuzzy duplicate detection ----------
+    _levenshtein(a, b) {
+      a = String(a || ''); b = String(b || '');
+      if (a === b) return 0;
+      if (!a.length) return b.length;
+      if (!b.length) return a.length;
+      const v0 = new Array(b.length + 1);
+      const v1 = new Array(b.length + 1);
+      for (let i = 0; i <= b.length; i++) v0[i] = i;
+      for (let i = 0; i < a.length; i++) {
+        v1[0] = i + 1;
+        for (let j = 0; j < b.length; j++) {
+          const cost = a[i] === b[j] ? 0 : 1;
+          v1[j + 1] = Math.min(v1[j] + 1, v0[j + 1] + 1, v0[j] + cost);
+        }
+        for (let j = 0; j <= b.length; j++) v0[j] = v1[j];
+      }
+      return v1[b.length];
+    },
+    catRecomputeDups() {
+      if (!this.cat) { this.catNameDups = []; return; }
+      const q = this._normalize(this.cat.name);
+      if (q.length < 2) { this.catNameDups = []; return; }
+      const selfId = this.cat.id;
+      const out = [];
+      for (const c of this.flatCatalogs) {
+        if (c.id === selfId) continue;
+        const n = this._normalize(c.name);
+        if (!n) continue;
+        if (n === q || n.includes(q) || q.includes(n)) {
+          out.push({ ...c, _score: 0 });
+          continue;
+        }
+        const dist = this._levenshtein(n, q);
+        const maxLen = Math.max(n.length, q.length);
+        const sim = 1 - dist / maxLen;
+        if (sim >= 0.72) out.push({ ...c, _score: dist });
+      }
+      out.sort((a, b) => a._score - b._score);
+      this.catNameDups = out.slice(0, 5);
+    },
+    // ---------- parent picker ----------
+    catParentLabel(id) {
+      const c = this.flatCatalogs.find(x => x.id === id);
+      return c ? c._path : '— выбрать —';
+    },
+    openCatParentPicker() {
+      const btn = this.$refs.catParentBtn;
+      if (!btn) return;
+      const r = btn.getBoundingClientRect();
+      const popW = Math.min(380, window.innerWidth - 24);
+      const left = Math.max(12, Math.min(r.left, window.innerWidth - popW - 12));
+      const top  = Math.min(r.bottom + 6, window.innerHeight - 360);
+      this.catParentPicker.style = `top:${top}px; left:${left}px; width:${popW}px;`;
+      this.catParentPicker.query = '';
+      this.catParentPicker.open = true;
+    },
+    pickCatParent(id) {
+      if (!this.cat) return;
+      this.cat.parent_id = id;
+      this.catParentPicker.open = false;
+    },
+    _catDescendantIds(id) {
+      // walk flatCatalogs to collect descendants of `id`
+      const out = new Set();
+      const stack = [id];
+      while (stack.length) {
+        const cur = stack.pop();
+        for (const c of this.flatCatalogs) {
+          if (c.parent_id === cur) { out.add(c.id); stack.push(c.id); }
+        }
+      }
+      return out;
+    },
+    filteredCatParentOptions() {
+      if (!this.cat) return [];
+      const selfId = this.cat.id;
+      const banned = selfId ? this._catDescendantIds(selfId) : new Set();
+      const q = this._normalize(this.catParentPicker.query || '');
+      const out = [];
+      for (const c of this.flatCatalogs) {
+        const disabled = c.id === selfId || banned.has(c.id);
+        if (q) {
+          if (!this._normalize(c.name).includes(q) &&
+              !this._normalize(c.slug).includes(q) &&
+              !this._normalize(c._path).includes(q)) continue;
+        }
+        out.push({ ...c, _disabled: disabled });
+      }
+      return out;
     },
 
     // ============================================================ TEMPLATE editor ==
