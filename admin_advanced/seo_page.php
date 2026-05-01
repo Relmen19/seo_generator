@@ -684,12 +684,17 @@ include __DIR__ . '/_layout/header.php';
               <template x-teleport="body">
                 <div x-show="tplBlockPicker" x-cloak class="tpl-picker-pop anim-pop"
                      x-ref="tplPickerPop"
-                     @click.outside="if ($refs.tplPickerBtn && !$refs.tplPickerBtn.contains($event.target)) tplBlockPicker = false">
-                  <input class="input mb-2" placeholder="Поиск типа блока…"
-                         x-model="tplBlockPickerQuery"
-                         x-ref="tplPickerInput"
-                         @keydown.escape="tplBlockPicker = false"
-                         @keydown.enter.prevent="(() => { const o = filteredBlockTypeOptions().slice(0,8); if (o.length) { addTemplateBlock(o[0][0]); tplBlockPicker = false; } })()">
+                     @mousedown.window="(() => { if (!tplBlockPicker) return; const t = $event.target; if ($refs.tplPickerBtn && $refs.tplPickerBtn.contains(t)) return; if ($refs.tplPickerPop && $refs.tplPickerPop.contains(t)) return; tplBlockPicker = false; })()">
+                  <div class="flex items-center gap-2 mb-2">
+                    <input class="input flex-1" placeholder="Поиск типа блока…"
+                           x-model="tplBlockPickerQuery"
+                           x-ref="tplPickerInput"
+                           @keydown.escape="tplBlockPicker = false"
+                           @keydown.enter.prevent="(() => { const o = filteredBlockTypeOptions().slice(0,8); if (o.length) { addTemplateBlock(o[0][0]); tplBlockPicker = false; } })()">
+                    <button class="btn-icon" @click="tplBlockPicker = false" title="Закрыть">
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8" stroke-linecap="round"/></svg>
+                    </button>
+                  </div>
                   <div class="tpl-picker-list">
                     <template x-for="entry in filteredBlockTypeOptions().slice(0, 8)" :key="entry[0]">
                       <button class="tpl-picker-item"
