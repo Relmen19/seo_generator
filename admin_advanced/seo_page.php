@@ -674,7 +674,8 @@ include __DIR__ . '/_layout/header.php';
               <button class="btn-soft"
                       x-ref="tplPickerBtn"
                       @click="openTplBlockPicker()"
-                      @mouseenter="openTplBlockPicker()">
+                      @mouseenter="openTplBlockPicker(); _cancelPickerClose()"
+                      @mouseleave="_schedulePickerClose()">
                 <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4v12M4 10h12" stroke-linecap="round"/></svg>
                 Блок
               </button>
@@ -684,6 +685,8 @@ include __DIR__ . '/_layout/header.php';
               <template x-teleport="body">
                 <div x-show="tplBlockPicker" x-cloak class="tpl-picker-pop anim-pop"
                      x-ref="tplPickerPop"
+                     @mouseenter="_cancelPickerClose()"
+                     @mouseleave="_schedulePickerClose()"
                      @mousedown.window="(() => { if (!tplBlockPicker) return; const t = $event.target; if ($refs.tplPickerBtn && $refs.tplPickerBtn.contains(t)) return; if ($refs.tplPickerPop && $refs.tplPickerPop.contains(t)) return; tplBlockPicker = false; })()">
                   <div class="flex items-center gap-2 mb-2">
                     <input class="input flex-1" placeholder="Поиск типа блока…"
@@ -1174,6 +1177,7 @@ function seoApp() {
     tplBlockPickerQuery: '',
     _tplBlockUid: 1,
     _tplClosing: false,
+    _pickerCloseTimer: null,
 
     // ============================================================ INIT ==
     async init() {
@@ -2015,6 +2019,7 @@ function seoApp() {
     },
 
     openTplBlockPicker() {
+      this._cancelPickerClose();
       if (this.tplBlockPicker) return;
       this.tplBlockPickerQuery = '';
       this.tplBlockPicker = true;
@@ -2022,6 +2027,16 @@ function seoApp() {
         this._positionTplPicker();
         this.$refs.tplPickerInput && this.$refs.tplPickerInput.focus();
       });
+    },
+    _schedulePickerClose() {
+      this._cancelPickerClose();
+      this._pickerCloseTimer = setTimeout(() => {
+        this.tplBlockPicker = false;
+        this._pickerCloseTimer = null;
+      }, 220);
+    },
+    _cancelPickerClose() {
+      if (this._pickerCloseTimer) { clearTimeout(this._pickerCloseTimer); this._pickerCloseTimer = null; }
     },
     _positionTplPicker() {
       const btn = this.$refs.tplPickerBtn;
