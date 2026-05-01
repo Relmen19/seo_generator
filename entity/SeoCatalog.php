@@ -16,6 +16,7 @@ class SeoCatalog extends AbstractEntity {
     protected ?string $description = null;
     protected int $sortOrder = 0;
     protected bool $isActive = true;
+    protected ?string $allowSimilarName = null;
 
     protected array $children = [];
     protected ?string $fullPath = null;
@@ -39,6 +40,9 @@ class SeoCatalog extends AbstractEntity {
         if (array_key_exists('is_active', $data)) {
             $this->isActive = $this->toBool($data['is_active']);
         }
+        if (array_key_exists('allow_similar_name', $data)) {
+            $this->allowSimilarName = $this->toNullableString($data['allow_similar_name']);
+        }
         if (array_key_exists('full_path', $data)) {
             $this->fullPath = $this->toNullableString($data['full_path']);
         }
@@ -46,13 +50,23 @@ class SeoCatalog extends AbstractEntity {
 
     public function toArray(): array {
         return [
-            'parent_id'   => $this->parentId,
-            'name'        => $this->name,
-            'slug'        => $this->slug,
-            'description' => $this->description,
-            'sort_order'  => $this->sortOrder,
-            'is_active'   => (int)$this->isActive,
+            'parent_id'          => $this->parentId,
+            'name'               => $this->name,
+            'slug'               => $this->slug,
+            'description'        => $this->description,
+            'sort_order'         => $this->sortOrder,
+            'is_active'          => (int)$this->isActive,
+            'allow_similar_name' => $this->allowSimilarName,
         ];
+    }
+
+    public function getAllowSimilarName(): ?string {
+        return $this->allowSimilarName;
+    }
+
+    public function setAllowSimilarName(?string $name): self {
+        $this->allowSimilarName = $name;
+        return $this;
     }
 
     public function toFullArray(): array {

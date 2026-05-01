@@ -645,7 +645,7 @@ include __DIR__ . '/_layout/header.php';
                 Это разные каталоги
               </button>
             </div>
-            <div x-show="cat?._dupDismissed && !catNameDups.length && cat?.name" class="cat-dup-ok">
+            <div x-show="cat?.allow_similar_name && _normalize(cat.allow_similar_name) === _normalize(cat.name) && !catNameDups.length" class="cat-dup-ok">
               <span class="cat-dup-ok-icon">✓</span>
               Похожие имена разрешены для этого каталога.
               <button class="cat-dup-undo" @click="undoCatDupDismiss()" title="Снова показывать предупреждение">↺ отменить</button>
@@ -2089,7 +2089,7 @@ function seoApp() {
       this.cat = {
         id: null, profile_id: this.profileId,
         name: '', slug: '', parent_id: null, sort_order: 0, description: '',
-        articles_count: 0,
+        articles_count: 0, allow_similar_name: null,
       };
       this.catNameDups = [];
       this.catParentPicker = { open: false, query: '' };
@@ -2105,6 +2105,7 @@ function seoApp() {
         sort_order: Number(c.sort_order || 0),
         description: c.description || '',
         articles_count: Number(c.articles_count || 0),
+        allow_similar_name: c.allow_similar_name || null,
       };
       this.catNameDups = [];
       this.catParentPicker = { open: false, query: '' };
@@ -2126,17 +2127,11 @@ function seoApp() {
       try {
         const body = { ...this.cat };
         delete body.articles_count;
-        delete body._dupDismissed;
         const isNew = !this.cat.id;
-        const dismissedAtSave = this.cat._dupDismissed; // normName if user dismissed
         const r = isNew
           ? await SEO.api('catalogs', { method: 'POST', body })
           : await SEO.api('catalogs/' + this.cat.id, { method: 'PUT', body });
         if (r) Object.assign(this.cat, r);
-        // Promote in-memory dismissal to localStorage now that we have an id.
-        if (dismissedAtSave && this.cat.id) {
-          this._setDupDismissed(this.cat.id, dismissedAtSave);
-        }
         await this.loadCatalogs();
         SEO.toast('Сохранено', 'ok');
       } catch (_) {}
@@ -2147,9 +2142,7 @@ function seoApp() {
         message: 'Удалить «' + this.cat.name + '»?' + (this.cat.articles_count ? ' Связано статей: ' + this.cat.articles_count + '.' : ''),
         onConfirm: async () => {
           try {
-            const delId = this.cat.id;
-            await SEO.api('catalogs/' + delId, { method: 'DELETE' });
-            this._setDupDismissed(delId, null);
+            await SEO.api('catalogs/' + this.cat.id, { method: 'DELETE' });
             this.cat = null;
             this.current = { kind: null, id: null };
             await this.loadCatalogs();
@@ -2193,51 +2186,42 @@ function seoApp() {
       }
       return v1[b.length];
     },
-    // ---- duplicate-warning dismissal (persisted in localStorage) ----
-    _dupKey() { return 'seo_cat_dup_ok_' + (this.profileId || 0); },
-    _dupMap() {
-      try { return JSON.parse(localStorage.getItem(this._dupKey()) || '{}') || {}; }
-      catch (_) { return {}; }
-    },
-    _setDupDismissed(catId, normName) {
-      const m = this._dupMap();
-      if (normName) m[catId] = normName; else delete m[catId];
-      try { localStorage.setItem(this._dupKey(), JSON.stringify(m)); } catch (_) {}
-    },
-    _isDupDismissed(catId, normName) {
-      const m = this._dupMap();
-      return catId != null && m[catId] && m[catId] === normName;
-    },
-    dismissCatDups() {
+    // ---- duplicate-warning dismissal (persisted on backend) ----
+    // cat.allow_similar_name stores the normalized name the user explicitly
+    // approved. NULL/empty => warn as usual. Renaming away from the approved
+    // value automatically re-enables the warning (server keeps the column,
+    // but recompute checks current normalized name vs stored).
+    async dismissCatDups() {
       if (!this.cat) return;
       const norm = this._normalize(this.cat.name);
-      if (this.cat.id) this._setDupDismissed(this.cat.id, norm);
-      this.cat._dupDismissed = norm;
+      this.cat.allow_similar_name = norm;
       this.catNameDups = [];
+      // Persist immediately for saved catalogs so a page refresh keeps the
+      // decision. For new catalogs, the value rides along on the first save.
+      if (this.cat.id) {
+        try {
+          await SEO.api('catalogs/' + this.cat.id, { method: 'PUT', body: { ...this.cat } , silent: true });
+        } catch (_) { /* keep in-memory flag even if save fails */ }
+      }
     },
-    undoCatDupDismiss() {
+    async undoCatDupDismiss() {
       if (!this.cat) return;
-      if (this.cat.id) this._setDupDismissed(this.cat.id, null);
-      this.cat._dupDismissed = false;
+      this.cat.allow_similar_name = null;
+      if (this.cat.id) {
+        try {
+          await SEO.api('catalogs/' + this.cat.id, { method: 'PUT', body: { ...this.cat } , silent: true });
+        } catch (_) {}
+      }
       this.catRecomputeDups();
     },
     catRecomputeDups() {
       if (!this.cat) { this.catNameDups = []; return; }
       const q = this._normalize(this.cat.name);
       if (q.length < 2) { this.catNameDups = []; return; }
-      // Honour dismissal: persisted (saved cat) or in-memory (new cat).
-      if (this.cat.id && this._isDupDismissed(this.cat.id, q)) {
-        this.cat._dupDismissed = q;
+      const allowed = this._normalize(this.cat.allow_similar_name || '');
+      if (allowed && allowed === q) {
         this.catNameDups = [];
         return;
-      }
-      if (!this.cat.id && this.cat._dupDismissed === q) {
-        this.catNameDups = [];
-        return;
-      }
-      // Name changed away from dismissed value — clear stale flag.
-      if (this.cat._dupDismissed && this.cat._dupDismissed !== q) {
-        this.cat._dupDismissed = false;
       }
       const selfId = this.cat.id;
       const out = [];
