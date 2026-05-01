@@ -710,7 +710,6 @@ include __DIR__ . '/_layout/header.php';
            x-ref="catParentPop"
            class="cat-pop"
            x-transition:enter="anim-pop"
-           :style="catParentPicker.style"
            @mousedown.window="if (!catParentPicker.open) return;
              if ($refs.catParentBtn && $refs.catParentBtn.contains($event.target)) return;
              if ($refs.catParentPop && $refs.catParentPop.contains($event.target)) return;
@@ -1333,7 +1332,7 @@ function seoApp() {
     _catCloseTimer: null,
     catCollapsed: {},                   // { [catalogId]: true } — folded subtrees
     catNameDups: [],                    // fuzzy duplicates of cat.name
-    catParentPicker: { open: false, query: '', style: '' },
+    catParentPicker: { open: false, query: '' },
 
     // template editor view: 'form' | 'json'
     tplView: 'form',
@@ -2084,7 +2083,7 @@ function seoApp() {
         articles_count: 0,
       };
       this.catNameDups = [];
-      this.catParentPicker = { open: false, query: '', style: '' };
+      this.catParentPicker = { open: false, query: '' };
     },
     async openCatalog(id) {
       this._cancelCatClose();
@@ -2099,7 +2098,7 @@ function seoApp() {
         articles_count: Number(c.articles_count || 0),
       };
       this.catNameDups = [];
-      this.catParentPicker = { open: false, query: '', style: '' };
+      this.catParentPicker = { open: false, query: '' };
       this.catRecomputeDups();
     },
     closeCatalogEditor() {
@@ -2205,15 +2204,29 @@ function seoApp() {
       return c ? c._path : '— выбрать —';
     },
     openCatParentPicker() {
-      const btn = this.$refs.catParentBtn;
-      if (!btn) return;
-      const r = btn.getBoundingClientRect();
-      const popW = Math.min(380, window.innerWidth - 24);
-      const left = Math.max(12, Math.min(r.left, window.innerWidth - popW - 12));
-      const top  = Math.min(r.bottom + 6, window.innerHeight - 360);
-      this.catParentPicker.style = `top:${top}px; left:${left}px; width:${popW}px;`;
       this.catParentPicker.query = '';
       this.catParentPicker.open = true;
+      // Position via direct DOM after Alpine reveals the popover. Doing this
+      // through `:style` would clobber x-show's inline display:none and the
+      // popover would render visible at top:0/left:0 on initial page load.
+      this.$nextTick(() => this._positionCatParentPicker());
+    },
+    _positionCatParentPicker() {
+      const btn = this.$refs.catParentBtn;
+      const pop = this.$refs.catParentPop;
+      if (!btn || !pop) return;
+      const r = btn.getBoundingClientRect();
+      const popW = Math.min(380, window.innerWidth - 24);
+      const popH = pop.offsetHeight || 360;
+      const margin = 8;
+      let left = Math.max(margin, Math.min(r.left, window.innerWidth - popW - margin));
+      let top  = r.bottom + 6;
+      if (top + popH > window.innerHeight - margin) {
+        top = Math.max(margin, r.top - popH - 6);
+      }
+      pop.style.left  = left + 'px';
+      pop.style.top   = top  + 'px';
+      pop.style.width = popW + 'px';
     },
     pickCatParent(id) {
       if (!this.cat) return;
