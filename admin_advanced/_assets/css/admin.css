@@ -332,8 +332,11 @@ body { font-feature-settings: 'cv11','ss01','ss02'; }
    by Alpine via inline style (--pill-top / --pill-h). */
 .drawer-list-pill {
   position: absolute;
-  left: .35rem; right: .35rem;
   top: 0;
+  /* left/width fall back to .35rem inset so existing drawer lists keep
+     their full-row pill; cat-tree overrides by measuring the item rect. */
+  left: var(--pill-left, .35rem);
+  width: var(--pill-w, calc(100% - .7rem));
   height: 0;
   border-radius: 16px;
   background: var(--ink-900);
@@ -344,10 +347,12 @@ body { font-feature-settings: 'cv11','ss01','ss02'; }
   opacity: 0;
   transition:
     transform  var(--motion-slow) var(--motion-glide),
+    width      var(--motion-slow) var(--motion-glide),
+    left       var(--motion-slow) var(--motion-glide),
     height     var(--motion-slow) var(--motion-glide),
     opacity    var(--motion-base) var(--motion-ease),
     background var(--motion-base) var(--motion-ease);
-  will-change: transform, height;
+  will-change: transform, height, left, width;
   z-index: 0;
 }
 .drawer-list-pill.is-visible { opacity: 1; }
@@ -620,8 +625,7 @@ body[data-focus="on"] main { margin-top: 1.25rem !important; }
 .cat-tree { padding: .35rem .35rem .35rem .35rem; }
 
 .cat-tree-row {
-  position: relative;
-  z-index: 1;
+  position: relative;             /* needed so ::before guide rail anchors here */
   display: flex;
   align-items: stretch;
   gap: 2px;
@@ -677,12 +681,10 @@ body[data-focus="on"] main { margin-top: 1.25rem !important; }
   min-width: 0;
 }
 .cat-tree-item:hover:not(.is-active) { background: var(--sand-50); transform: translateX(2px); }
-/* Active row has a solid dark fill so the name stays readable even when the
-   morph-pill is mid-transition or measured before tree expand/collapse. */
+/* Active row gets only the text-color flip — the morph-pill underneath
+   is the visible highlight and slides smoothly between rows. */
 .cat-tree-item.is-active {
   color: var(--sand-50);
-  background: var(--ink-900);
-  box-shadow: var(--shadow-card);
 }
 .cat-tree-item.is-active .cat-tree-slug,
 .cat-tree-item.is-active .cat-tree-count { color: var(--sand-200); border-color: var(--sand-300); background: rgba(255,255,255,.12); }
@@ -708,10 +710,9 @@ body[data-focus="on"] main { margin-top: 1.25rem !important; }
   flex-shrink: 0;
 }
 
-/* Active row uses its own solid bg (above), so hide the shared morph-pill
-   inside cat-tree — the pill spans full list width and would visually clash
-   with depth-indented rows. */
-.cat-tree .drawer-list-pill { display: none; }
+/* In cat-tree the pill measures the item rect (not the row), so it picks
+   up the depth indent and matches the .cat-tree-item border-radius. */
+.cat-tree .drawer-list-pill { border-radius: 14px; }
 
 /* ============================================================
  * Catalog editor — duplicate hint, parent picker, sort row

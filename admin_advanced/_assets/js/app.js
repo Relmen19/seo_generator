@@ -281,12 +281,23 @@
     if (!listEl || !pillState) return;
     if (!rowId) { pillState[key] = null; return; }
     const row = listEl.querySelector('[data-row-id="' + rowId + '"]');
-    pillState[key] = row ? { top: row.offsetTop, height: row.offsetHeight } : null;
+    if (!row) { pillState[key] = null; return; }
+    // Use viewport rects so this works even when [data-row-id] is nested
+    // inside a positioned ancestor (e.g. cat-tree-row), where offsetTop/Left
+    // would be relative to the inner ancestor and not the drawer-list.
+    const lr = listEl.getBoundingClientRect();
+    const rr = row.getBoundingClientRect();
+    pillState[key] = {
+      top:    rr.top - lr.top + listEl.scrollTop,
+      left:   rr.left - lr.left + listEl.scrollLeft,
+      height: row.offsetHeight,
+      width:  row.offsetWidth,
+    };
   }
   function pillStyle(p) {
     return p
-      ? `--pill-top: ${p.top}px; --pill-h: ${p.height}px;`
-      : '--pill-top: 0px; --pill-h: 0px;';
+      ? `--pill-top: ${p.top}px; --pill-h: ${p.height}px; --pill-left: ${p.left}px; --pill-w: ${p.width}px;`
+      : '--pill-top: 0px; --pill-h: 0px; --pill-left: 0px; --pill-w: 0px;';
   }
 
   /**

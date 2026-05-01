@@ -577,7 +577,6 @@ include __DIR__ . '/_layout/header.php';
 
       <template x-for="c in visibleCatalogs()" :key="c.id">
         <div class="cat-tree-row press-shrink"
-             :data-row-id="c.id"
              :style="'--depth:' + c.depth + '; --i:' + c._idx">
           <button class="cat-tree-toggle"
                   :class="{ 'is-leaf': !c._hasChildren, 'is-open': c._hasChildren && !catCollapsed[c.id] }"
@@ -588,6 +587,7 @@ include __DIR__ . '/_layout/header.php';
             <span x-show="!c._hasChildren" class="cat-tree-dot"></span>
           </button>
           <button class="cat-tree-item"
+                  :data-row-id="c.id"
                   :class="{ 'is-active': cat && cat.id === c.id }"
                   @click="openCatalog(c.id)">
             <span class="cat-tree-name" x-text="c.name || '(без имени)'"></span>
@@ -1367,6 +1367,16 @@ function seoApp() {
         this.loadBlockTypes(),
         this.loadArticles(),
       ]);
+      // Catalog pill must follow the active item across tree mutations:
+      // search filtering, collapse/expand, and tab switches all reflow rows
+      // and the pill needs a fresh measurement once the new layout settles.
+      this.$watch('filters.qCat',  () => this.$nextTick(() => this._recomputeCatPill()));
+      this.$watch('catCollapsed',  () => this.$nextTick(() => this._recomputeCatPill()));
+      this.$watch('listTab',       v => v === 'catalogs' && this.$nextTick(() => this._recomputeCatPill()));
+    },
+    _recomputeCatPill() {
+      if (this.listTab !== 'catalogs') return;
+      SEO.morphPill(this.$refs.catalogsList, this.pill, 'catalogsList', this.cat && (this.cat.id || 'new'));
     },
 
     async loadProfile() {
