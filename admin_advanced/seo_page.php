@@ -670,8 +670,7 @@ include __DIR__ . '/_layout/header.php';
             </h3>
             <button class="btn-ghost text-xs" @click="toggleAllTplBlocks()" x-text="anyBlockExpanded() ? 'Свернуть всё' : 'Развернуть всё'"></button>
             <div class="tpl-picker-anchor"
-                 @keydown.escape.window="tplBlockPicker = false"
-                 @click.outside="tplBlockPicker = false">
+                 @keydown.escape.window="tplBlockPicker = false">
               <button class="btn-soft"
                       x-ref="tplPickerBtn"
                       @click="openTplBlockPicker()"
@@ -680,27 +679,32 @@ include __DIR__ . '/_layout/header.php';
                 Блок
               </button>
 
-              <div x-show="tplBlockPicker" x-cloak class="tpl-picker-pop anim-pop"
-                   x-ref="tplPickerPop">
-                <input class="input mb-2" placeholder="Поиск типа блока…"
-                       x-model="tplBlockPickerQuery"
-                       x-ref="tplPickerInput"
-                       @keydown.escape="tplBlockPicker = false"
-                       @keydown.enter.prevent="(() => { const o = filteredBlockTypeOptions().slice(0,8); if (o.length) { addTemplateBlock(o[0][0]); tplBlockPicker = false; } })()">
-                <div class="tpl-picker-list">
-                  <template x-for="entry in filteredBlockTypeOptions().slice(0, 8)" :key="entry[0]">
-                    <button class="tpl-picker-item"
-                            @click="addTemplateBlock(entry[0]); tplBlockPicker = false">
-                      <span class="font-semibold flex-1 truncate" x-text="entry[1].label || entry[0]"></span>
-                      <span x-show="entry[1].category" class="tpl-picker-cat" x-text="entry[1].category"></span>
-                      <span class="tpl-picker-code" x-text="entry[0]"></span>
-                    </button>
-                  </template>
-                  <div x-show="!filteredBlockTypeOptions().length" class="text-ink-300 text-sm p-2 text-center">
-                    Ничего не найдено.
+              <!-- Teleport to <body> so position:fixed escapes drawer-editor's
+                   transform-induced containing block. -->
+              <template x-teleport="body">
+                <div x-show="tplBlockPicker" x-cloak class="tpl-picker-pop anim-pop"
+                     x-ref="tplPickerPop"
+                     @click.outside="if ($refs.tplPickerBtn && !$refs.tplPickerBtn.contains($event.target)) tplBlockPicker = false">
+                  <input class="input mb-2" placeholder="Поиск типа блока…"
+                         x-model="tplBlockPickerQuery"
+                         x-ref="tplPickerInput"
+                         @keydown.escape="tplBlockPicker = false"
+                         @keydown.enter.prevent="(() => { const o = filteredBlockTypeOptions().slice(0,8); if (o.length) { addTemplateBlock(o[0][0]); tplBlockPicker = false; } })()">
+                  <div class="tpl-picker-list">
+                    <template x-for="entry in filteredBlockTypeOptions().slice(0, 8)" :key="entry[0]">
+                      <button class="tpl-picker-item"
+                              @click="addTemplateBlock(entry[0]); tplBlockPicker = false">
+                        <span class="font-semibold flex-1 truncate" x-text="entry[1].label || entry[0]"></span>
+                        <span x-show="entry[1].category" class="tpl-picker-cat" x-text="entry[1].category"></span>
+                        <span class="tpl-picker-code" x-text="entry[0]"></span>
+                      </button>
+                    </template>
+                    <div x-show="!filteredBlockTypeOptions().length" class="text-ink-300 text-sm p-2 text-center">
+                      Ничего не найдено.
+                    </div>
                   </div>
                 </div>
-              </div>
+              </template>
             </div>
           </div>
 
